@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { COLORS, SIZES } from '../constants/theme';
 import AnimatedPressable from './AnimatedPressable';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useCart } from '../context/CartContext';
 
 const DATES = [
   { id: 1, day: 'Today', date: '22 Jun' },
@@ -25,6 +26,7 @@ const TIMES = [
 ];
 
 export default function StickyCart() {
+  const { totalItems, totalPrice, placeOrder } = useCart();
   const { width: windowWidth, height: windowHeight } = useAppDimensions();
   const appWidth = Math.min(windowWidth, 412);
   const appHeight = Math.min(windowHeight, 892);
@@ -69,7 +71,11 @@ export default function StickyCart() {
         Animated.delay(1500)
       ]).start(() => {
         setModalVisible(false);
-        setTimeout(() => { setOrderPlaced(false); checkmarkScale.setValue(0); }, 500);
+        setTimeout(() => { 
+          setOrderPlaced(false); 
+          checkmarkScale.setValue(0); 
+          placeOrder(); 
+        }, 500);
       });
     });
   };
@@ -107,7 +113,7 @@ export default function StickyCart() {
                 </XStack>
                 <YStack marginLeft={4}>
                   <Text color={COLORS.white} fontSize={14} fontWeight="800">
-                    Laundry <Text color="rgba(255,255,255,0.5)" fontWeight="normal" fontSize={14}> | </Text><Text color={COLORS.vibrantYellow} fontWeight="900" fontSize={15}>₹700</Text>
+                    {totalItems} items <Text color="rgba(255,255,255,0.5)" fontWeight="normal" fontSize={14}> | </Text><Text color={COLORS.vibrantYellow} fontWeight="900" fontSize={15}>₹{totalPrice}</Text>
                   </Text>
                 </YStack>
               </XStack>
@@ -168,17 +174,17 @@ export default function StickyCart() {
 
                   <YStack height={1} backgroundColor="#EEE" marginVertical={20} />
                   
-                  <XStack justifyContent="space-between" marginBottom={10}>
-                    <Text fontSize={14} color="#666">Subtotal</Text>
-                    <Text fontSize={14} fontWeight="bold">₹700</Text>
+                  <XStack justifyContent="space-between" marginBottom={8}>
+                    <Text fontSize={14} color="#666">Item Total</Text>
+                    <Text fontSize={14} fontWeight="bold">₹{totalPrice}</Text>
                   </XStack>
                   <XStack justifyContent="space-between" marginBottom={10}>
                     <Text fontSize={14} color="#666">Delivery Fee</Text>
                     <Text fontSize={14} fontWeight="bold" color="#27AE60">FREE</Text>
                   </XStack>
-                  <XStack justifyContent="space-between" marginBottom={10} marginTop={10}>
-                    <Text fontSize={18} fontWeight="900">Grand Total</Text>
-                    <Text fontSize={24} fontWeight="900" color={COLORS.darkGreen}>₹700</Text>
+                  <XStack justifyContent="space-between" marginTop={8}>
+                    <Text fontSize={16} fontWeight="bold">Total to Pay</Text>
+                    <Text fontSize={24} fontWeight="900" color={COLORS.darkGreen}>₹{totalPrice}</Text>
                   </XStack>
                 </ScrollView>
 

@@ -29,7 +29,7 @@ export default function ProfileScreen({ navigation }) {
       "Are you sure you want to log out of SafaiKart?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Log Out", style: "destructive", onPress: () => console.log('User logged out') }
+        { text: "Log Out", style: "destructive", onPress: () => navigation.replace('Entry') }
       ]
     );
   };

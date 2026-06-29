@@ -12,6 +12,8 @@ import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../constants/theme';
 import Header from '../components/Header';
+import { useCart } from '../context/CartContext';
+import AnimatedPressable from '../components/AnimatedPressable';
 
 const timelineSteps = [
   { id: '1', title: 'Order Confirmed', time: '8:30 AM', completed: true },
@@ -78,7 +80,8 @@ const leafletHtml = `
 </html>
 `;
 
-export default function OrderTrackingScreen() {
+export default function OrderTrackingScreen({ navigation }) {
+  const { activeOrder } = useCart();
   const { width: windowWidth } = useAppDimensions();
   const appWidth = Math.min(windowWidth, 412);
   const insets = useSafeAreaInsets();
@@ -145,20 +148,32 @@ export default function OrderTrackingScreen() {
   return (
     <YStack flex={1} backgroundColor={COLORS.primaryBg}>
       <Header />
-      <ScrollView 
-        contentContainerStyle={{ padding: SIZES.padding, paddingBottom: 100 + insets.bottom }} 
-        showsVerticalScrollIndicator={false}
-        scrollEnabled={scrollEnabled}
-      >
-        
-        {/* Map Visualization */}
-        <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} padding={SIZES.padding} marginBottom={SIZES.padding * 1.5} elevation={8} shadowColor={COLORS.vibrantYellow} shadowOffset={{ width: 0, height: 0 }} shadowOpacity={0.6} shadowRadius={12} borderWidth={1} borderColor="rgba(0,0,0,0.03)">
-          <XStack justifyContent="space-between" alignItems="center" marginBottom={20}>
-            <Text fontSize={18} fontWeight="900" color={COLORS.darkGreen} letterSpacing={0.5}>Order #SK-2401</Text>
-            <YStack backgroundColor="#FEF6E0" paddingHorizontal={10} paddingVertical={4} borderRadius={12}>
-              <Text fontSize={11} fontWeight="800" color="#B58600">ETA: 22 Jun, 5:00 PM</Text>
-            </YStack>
-          </XStack>
+      {!activeOrder ? (
+        <YStack flex={1} justifyContent="center" alignItems="center" padding={SIZES.padding}>
+          <Ionicons name="receipt-outline" size={60} color={COLORS.textSecondary} style={{ marginBottom: 16 }} />
+          <Text fontSize={20} fontWeight="bold" color={COLORS.black} marginBottom={8}>No Active Orders</Text>
+          <Text fontSize={14} color={COLORS.textSecondary} textAlign="center" marginBottom={24}>
+            You haven't placed any orders yet. Add items to your cart to get started!
+          </Text>
+          <AnimatedPressable style={{ backgroundColor: COLORS.darkGreen, paddingVertical: 14, paddingHorizontal: 30, borderRadius: 30 }} onPress={() => navigation.navigate('Home')}>
+            <Text color={COLORS.white} fontSize={16} fontWeight="bold">Start Shopping</Text>
+          </AnimatedPressable>
+        </YStack>
+      ) : (
+        <ScrollView 
+          contentContainerStyle={{ padding: SIZES.padding, paddingBottom: 100 + insets.bottom }} 
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={scrollEnabled}
+        >
+          
+          {/* Map Visualization */}
+          <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} padding={SIZES.padding} marginBottom={SIZES.padding * 1.5} elevation={8} shadowColor={COLORS.vibrantYellow} shadowOffset={{ width: 0, height: 0 }} shadowOpacity={0.6} shadowRadius={12} borderWidth={1} borderColor="rgba(0,0,0,0.03)">
+            <XStack justifyContent="space-between" alignItems="center" marginBottom={20}>
+              <Text fontSize={18} fontWeight="900" color={COLORS.darkGreen} letterSpacing={0.5}>Order #{activeOrder.id}</Text>
+              <YStack backgroundColor="#FEF6E0" paddingHorizontal={10} paddingVertical={4} borderRadius={12}>
+                <Text fontSize={11} fontWeight="800" color="#B58600">ETA: 22 Jun, 5:00 PM</Text>
+              </YStack>
+            </XStack>
 
           <YStack 
             height={400} width="100%" backgroundColor="#F7F9F6" borderRadius={SIZES.radius} overflow="hidden" borderWidth={1} borderColor="#E8EFE9"
@@ -222,14 +237,12 @@ export default function OrderTrackingScreen() {
           <YStack height={1} borderBottomWidth={1} borderBottomColor="#E0E0E0" borderStyle="dashed" marginBottom={16} />
           
           <YStack marginBottom={4}>
-            <XStack justifyContent="space-between" marginBottom={12}>
-              <Text fontSize={14} color="#4A4A4A" fontWeight="500">1x Daily Laundry</Text>
-              <Text fontSize={14} color={COLORS.black} fontWeight="700">₹250</Text>
-            </XStack>
-            <XStack justifyContent="space-between" marginBottom={12}>
-              <Text fontSize={14} color="#4A4A4A" fontWeight="500">1x Footwear Revival</Text>
-              <Text fontSize={14} color={COLORS.black} fontWeight="700">₹450</Text>
-            </XStack>
+            {activeOrder.items.map((item, idx) => (
+              <XStack key={idx} justifyContent="space-between" marginBottom={12}>
+                <Text fontSize={14} color="#4A4A4A" fontWeight="500">{item.quantity}x {item.name}</Text>
+                <Text fontSize={14} color={COLORS.black} fontWeight="700">₹{item.price * item.quantity}</Text>
+              </XStack>
+            ))}
           </YStack>
 
           <YStack height={1} borderBottomWidth={1} borderBottomColor="#E0E0E0" borderStyle="dashed" marginBottom={16} />
@@ -237,13 +250,14 @@ export default function OrderTrackingScreen() {
           <YStack paddingTop={8}>
             <XStack justifyContent="space-between" marginBottom={12}>
               <Text fontSize={18} fontWeight="900" color={COLORS.darkGreen}>Grand Total</Text>
-              <Text fontSize={18} fontWeight="900" color={COLORS.darkGreen}>₹700</Text>
+              <Text fontSize={18} fontWeight="900" color={COLORS.darkGreen}>₹{activeOrder.totalPrice}</Text>
             </XStack>
             <Text fontSize={11} color={COLORS.textSecondary} textAlign="right" marginTop={4} fontWeight="600">Paid via UPI</Text>
           </YStack>
         </YStack>
 
       </ScrollView>
+      )}
     </YStack>
   );
 }

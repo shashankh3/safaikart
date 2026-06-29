@@ -10,37 +10,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../constants/theme';
 import Header from '../components/Header';
-
-const orders = [
-  {
-    id: '#SK-2401',
-    date: '20 June 2026',
-    status: 'Processing',
-    items: '1 x Daily Laundry',
-    price: '250',
-    readyBy: '22 June 2026',
-    action: 'Track',
-    img: require('../../assets/laundry_basket.png')
-  },
-  {
-    id: '#SK-2398',
-    date: '15 June 2026',
-    status: 'Delivered',
-    items: '1 x Footwear Revival',
-    price: '450',
-    action: 'Order Again',
-    img: require('../../assets/shoe_cleaning.png')
-  }
-];
+import { useCart } from '../context/CartContext';
 
 export default function OrdersScreen({ navigation }) {
   const { width: windowWidth } = useAppDimensions();
   const appWidth = Math.min(windowWidth, 412);
   const insets = useSafeAreaInsets();
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const { orderHistory } = useCart();
 
   const renderOrderCard = (order) => {
-    const isDelivered = order.status === 'Delivered';
+    // For our dynamic mock data, all placed orders are "Processing"
+    const isDelivered = false;
     const statusBgColor = isDelivered ? '#E6F4EA' : '#FEF6E0'; 
     const statusTextColor = isDelivered ? COLORS.darkGreen : '#B58600';
 
@@ -61,22 +42,22 @@ export default function OrdersScreen({ navigation }) {
       >
         <XStack justifyContent="space-between" alignItems="flex-start" borderBottomWidth={1} borderBottomColor="#F0F0F0" paddingBottom={14} marginBottom={14}>
           <YStack>
-            <Text fontSize={16} fontWeight="800" color={COLORS.black} letterSpacing={0.5}>Order ID {order.id}</Text>
-            <Text fontSize={12} color={COLORS.textSecondary} marginTop={4}>Date: {order.date}</Text>
+            <Text fontSize={16} fontWeight="800" color={COLORS.black} letterSpacing={0.5}>Order {order.id}</Text>
+            <Text fontSize={12} color={COLORS.textSecondary} marginTop={4}>Date: {new Date(order.timestamp).toLocaleDateString()}</Text>
           </YStack>
           <XStack alignItems="center" paddingHorizontal={10} paddingVertical={4} borderRadius={20} backgroundColor={statusBgColor}>
             {isDelivered ? <Ionicons name="checkmark-circle" size={14} color={statusTextColor} style={{ marginRight: 4 }} /> : <Ionicons name="time" size={14} color={statusTextColor} style={{ marginRight: 4 }} />}
             <Text fontSize={12} fontWeight="800" letterSpacing={0.2} color={statusTextColor}>
-              {order.status}
+              Processing
             </Text>
           </XStack>
         </XStack>
 
         <XStack alignItems="center" marginBottom={18}>
-          <ImageBackground source={order.img} style={{ width: 65, height: 65, marginRight: 16, backgroundColor: '#EAEAEA', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 }} imageStyle={{ borderRadius: SIZES.radius }} />
+          <ImageBackground source={order.items[0]?.img || require('../../assets/laundry_basket.png')} style={{ width: 65, height: 65, marginRight: 16, backgroundColor: '#EAEAEA', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 }} imageStyle={{ borderRadius: SIZES.radius }} />
           <YStack flex={1} justifyContent="center">
-            <Text fontSize={16} fontWeight="600" color="#2C2C2C" marginBottom={6}>{order.items}</Text>
-            <Text fontSize={18} fontWeight="900" color={COLORS.darkGreen}>₹{order.price}</Text>
+            <Text fontSize={14} fontWeight="600" color="#2C2C2C" marginBottom={6}>{order.items.map(i => `${i.quantity} x ${i.title}`).join(', ')}</Text>
+            <Text fontSize={18} fontWeight="900" color={COLORS.darkGreen}>₹{order.totalPrice}</Text>
           </YStack>
         </XStack>
 
@@ -84,7 +65,7 @@ export default function OrdersScreen({ navigation }) {
           {order.readyBy ? (
             <XStack alignItems="center">
               <Ionicons name="calendar-outline" size={14} color={COLORS.textSecondary} />
-              <Text fontSize={12} color={COLORS.textSecondary} fontWeight="600" marginLeft={4}>Ready by {order.readyBy}</Text>
+              <Text fontSize={12} color={COLORS.textSecondary} fontWeight="600" marginLeft={4}>Ready in 1-2 Days</Text>
             </XStack>
           ) : (
             <TouchableOpacity style={{ paddingVertical: 4, paddingHorizontal: 8 }} onPress={() => setSelectedOrder(order)}>
@@ -95,7 +76,7 @@ export default function OrdersScreen({ navigation }) {
             style={[{ backgroundColor: isDelivered ? COLORS.white : COLORS.vibrantYellow, paddingVertical: 10, paddingHorizontal: 24, borderRadius: 25 }, isDelivered ? { borderWidth: 1, borderColor: '#E0E0E0', elevation: 0, shadowOpacity: 0 } : { elevation: 2, shadowColor: '#D4AF37', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4 }]}
             onPress={() => !isDelivered && navigation.navigate('OrderTracking')}
           >
-            <Text color={isDelivered ? '#333333' : COLORS.black} fontWeight="800" fontSize={13}>{order.action}</Text>
+            <Text color={isDelivered ? '#333333' : COLORS.black} fontWeight="800" fontSize={13}>Track</Text>
           </TouchableOpacity>
         </XStack>
       </YStack>
@@ -108,7 +89,18 @@ export default function OrdersScreen({ navigation }) {
       <ScrollView contentContainerStyle={{ padding: SIZES.padding }} showsVerticalScrollIndicator={false}>
         <Text fontSize={20} fontWeight="900" color={COLORS.darkGreen} marginBottom={SIZES.padding} letterSpacing={0.5}>MY ORDERS</Text>
         
-        {orders.map(renderOrderCard)}
+        {orderHistory.length === 0 ? (
+          <YStack flex={1} justifyContent="center" alignItems="center" marginTop={40}>
+            <Ionicons name="receipt-outline" size={60} color="#D0D0D0" />
+            <Text fontSize={18} fontWeight="bold" color="#888" marginTop={16}>No Orders Yet</Text>
+            <Text fontSize={14} color="#AAA" marginTop={8} textAlign="center">Looks like you haven't placed any orders. Go back to Home and add some services!</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Home')} style={{ marginTop: 24, backgroundColor: COLORS.darkGreen, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 20 }}>
+              <Text color={COLORS.white} fontWeight="bold">Start Shopping</Text>
+            </TouchableOpacity>
+          </YStack>
+        ) : (
+          orderHistory.map(renderOrderCard)
+        )}
         
         <YStack height={100 + insets.bottom} />
       </ScrollView>
@@ -130,8 +122,8 @@ export default function OrdersScreen({ navigation }) {
                 
                 <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 200 }}>
                   <XStack justifyContent="space-between" marginBottom={10}>
-                    <Text fontSize={16} color="#444" fontWeight="600">{selectedOrder.items}</Text>
-                    <Text fontSize={14} fontWeight="bold">₹{selectedOrder.price}</Text>
+                    <Text fontSize={16} color="#444" fontWeight="600">{selectedOrder.items.map(i => `${i.quantity} x ${i.title}`).join(', ')}</Text>
+                    <Text fontSize={14} fontWeight="bold">₹{selectedOrder.totalPrice}</Text>
                   </XStack>
                 </ScrollView>
                 
@@ -139,7 +131,7 @@ export default function OrdersScreen({ navigation }) {
                 
                 <XStack justifyContent="space-between" marginBottom={10}>
                   <Text fontSize={14} color="#666">Subtotal</Text>
-                  <Text fontSize={14} fontWeight="bold">₹{selectedOrder.price}</Text>
+                  <Text fontSize={14} fontWeight="bold">₹{selectedOrder.totalPrice}</Text>
                 </XStack>
                 <XStack justifyContent="space-between" marginBottom={10}>
                   <Text fontSize={14} color="#666">Delivery Fee</Text>
@@ -147,7 +139,7 @@ export default function OrdersScreen({ navigation }) {
                 </XStack>
                 <XStack justifyContent="space-between" marginBottom={10} marginTop={10}>
                   <Text fontSize={18} fontWeight="900">Total Paid</Text>
-                  <Text fontSize={24} fontWeight="900" color={COLORS.black}>₹{selectedOrder.price}</Text>
+                  <Text fontSize={24} fontWeight="900" color={COLORS.black}>₹{selectedOrder.totalPrice}</Text>
                 </XStack>
 
                 <TouchableOpacity 

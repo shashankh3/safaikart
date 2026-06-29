@@ -1,11 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ScrollView, Animated, ImageBackground, TextInput, FlatList, TouchableOpacity, Platform } from 'react-native';
+import { ScrollView, Animated, ImageBackground, TextInput, FlatList, TouchableOpacity, Platform, Easing, useWindowDimensions } from 'react-native';
 import { YStack, XStack, ZStack, Text } from '../components/Stacks';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-
-
-
 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../constants/theme';
@@ -13,6 +10,7 @@ import Header from '../components/Header';
 import AnimatedPressable from '../components/AnimatedPressable';
 import StickyCart from '../components/StickyCart';
 import NotificationModal from '../components/NotificationModal';
+import { useCart } from '../context/CartContext';
 import * as Haptics from 'expo-haptics';
 
 const CATEGORIES = [
@@ -25,12 +23,12 @@ const CATEGORIES = [
 ];
 
 const services = [
-  { id: '1', title: 'Daily Laundry', category: 'LAUNDRY', time: '1-2 DAY', img: require('../../assets/laundry_basket.png'), icon: 'washing-machine' },
-  { id: '2', title: 'Luxury Garment Care', category: 'DRY CLEANING', time: '1-2 DAY', img: require('../../assets/dry_cleaning_suit.png'), icon: 'hanger' },
-  { id: '3', title: 'Footwear Revival', category: 'SHOE CLEANING', time: '1-2 DAY', img: require('../../assets/shoe_cleaning.png'), icon: 'shoe-sneaker' },
-  { id: '4', title: 'Fabric Finishing', category: 'STEAM PRESS', time: '1-2 DAY', img: require('../../assets/steam_press.png'), icon: 'iron' },
-  { id: '5', title: 'Home Textiles', category: 'SOFA CLEANING', time: '1-2 DAY', img: require('../../assets/sofa_cleaning.png'), icon: 'sofa' },
-  { id: '6', title: 'Specialist Items', category: 'LUXURY CARE', time: '1-2 DAY', img: require('../../assets/luxury_care.png'), icon: 'star' },
+  { id: '1', title: 'Daily Laundry', category: 'LAUNDRY', time: '1-2 DAY', img: require('../../assets/laundry_basket.png'), icon: 'washing-machine', chipCategories: ['Clothing'] },
+  { id: '2', title: 'Luxury Garment Care', category: 'DRY CLEANING', time: '1-2 DAY', img: require('../../assets/dry_cleaning_suit.png'), icon: 'hanger', chipCategories: ['Clothing'] },
+  { id: '3', title: 'Footwear Revival', category: 'SHOE CLEANING', time: '1-2 DAY', img: require('../../assets/shoe_cleaning.png'), icon: 'shoe-sneaker', chipCategories: ['Footwear'] },
+  { id: '4', title: 'Fabric Finishing', category: 'STEAM PRESS', time: '1-2 DAY', img: require('../../assets/steam_press.png'), icon: 'iron', chipCategories: ['Clothing'] },
+  { id: '5', title: 'Home Textiles', category: 'SOFA CLEANING', time: '1-2 DAY', img: require('../../assets/sofa_cleaning.png'), icon: 'sofa', chipCategories: ['Home'] },
+  { id: '6', title: 'Specialist Items', category: 'LUXURY CARE', time: '1-2 DAY', img: require('../../assets/luxury_care.png'), icon: 'star', chipCategories: ['Premium', 'Bags'] },
 ];
 
 const OFFERS = [
@@ -57,8 +55,129 @@ const OFFERS = [
   }
 ];
 
+const AnimatedServiceIcon = ({ iconName }) => {
+  const animValue = useRef(new Animated.Value(0)).current;
+  
+  // Assign a unique animation perfectly suited to each specific icon
+  const animType = (() => {
+    if (iconName === 'washing-machine') return 'spin';
+    if (iconName === 'iron') return 'glide';
+    if (iconName === 'shoe-sneaker') return 'bounce';
+    if (iconName === 'star') return 'pulse';
+    if (iconName === 'hanger') return 'float';
+    return 'wobble'; // Sofa and default
+  })();
+
+  useEffect(() => {
+    if (animType === 'spin') {
+      // Realistic washing machine "Spin Cycle" vibration
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(animValue, { toValue: 1, duration: 50, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: -1, duration: 100, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: 1, duration: 100, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: -1, duration: 100, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: 1, duration: 100, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: -1, duration: 100, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: 0, duration: 50, easing: Easing.linear, useNativeDriver: true }),
+          Animated.delay(1500)
+        ])
+      ).start();
+    } else if (animType === 'pulse') {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(animValue, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: 0, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true })
+        ])
+      ).start();
+    } else if (animType === 'float') {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(animValue, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true })
+        ])
+      ).start();
+    } else if (animType === 'wobble') {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(animValue, { toValue: 1, duration: 300, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: -1, duration: 600, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: 0, duration: 300, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+          Animated.delay(1000)
+        ])
+      ).start();
+    } else if (animType === 'glide') {
+      // Iron gliding back and forth
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(animValue, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: -1, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: 0, duration: 600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      ).start();
+    } else if (animType === 'bounce') {
+      // Shoe Tapping Toe!
+      Animated.loop(
+        Animated.sequence([
+          // Tap 1 (Toe goes up, then strikes down)
+          Animated.timing(animValue, { toValue: -1, duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: 0, duration: 150, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+          // Tap 2
+          Animated.timing(animValue, { toValue: -1, duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(animValue, { toValue: 0, duration: 150, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+          // Pause between beats
+          Animated.delay(1500)
+        ])
+      ).start();
+    }
+  }, [animType]);
+
+  // Apply the specific transform based on the assigned type
+  let transform = [];
+  if (animType === 'spin') {
+    transform.push({ translateX: animValue.interpolate({ inputRange: [-1, 1], outputRange: [-2, 2] }) });
+    transform.push({ rotate: animValue.interpolate({ inputRange: [-1, 1], outputRange: ['-5deg', '5deg'] }) });
+  } else if (animType === 'pulse') {
+    transform.push({ scale: animValue.interpolate({ inputRange: [0, 1], outputRange: [1, 1.25] }) });
+  } else if (animType === 'float') {
+    transform.push({ translateY: animValue.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) });
+  } else if (animType === 'wobble') {
+    transform.push({ rotate: animValue.interpolate({ inputRange: [-1, 1], outputRange: ['-15deg', '15deg'] }) });
+  } else if (animType === 'glide') {
+    transform.push({ translateX: animValue.interpolate({ inputRange: [-1, 1], outputRange: [-6, 6] }) });
+  } else if (animType === 'bounce') {
+    // Tapping Toe: Rotate the toe up (-25deg) and adjust X/Y to fake a heel pivot point
+    transform.push({
+      rotate: animValue.interpolate({
+        inputRange: [-1, 0],
+        outputRange: ['-25deg', '0deg']
+      })
+    });
+    transform.push({
+      translateX: animValue.interpolate({
+        inputRange: [-1, 0],
+        outputRange: [2, 0]
+      })
+    });
+    transform.push({
+      translateY: animValue.interpolate({
+        inputRange: [-1, 0],
+        outputRange: [-2, 0]
+      })
+    });
+  }
+
+  return (
+    <Animated.View style={{ transform }}>
+      <MaterialCommunityIcons name={iconName} size={22} color={COLORS.white} />
+    </Animated.View>
+  );
+};
+
 export default function HomeScreen({ navigation }) {
-  const [activeCategory, setActiveCategory] = useState("Home");
+  const { totalItems } = useCart();
+  const { width } = useWindowDimensions();
+  const [activeCategory, setActiveCategory] = useState("All");
   const [notifVisible, setNotifVisible] = useState(false);
   const flatListRef = useRef(null);
   const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
@@ -112,7 +231,7 @@ export default function HomeScreen({ navigation }) {
           <XStack p={6} ai="center">
             {/* Left Icon */}
             <YStack bg={COLORS.darkGreen} w={38} h={38} borderRadius={10} jc="center" ai="center">
-              <MaterialCommunityIcons name={item.icon} size={22} color={COLORS.white} />
+              <AnimatedServiceIcon iconName={item.icon} />
             </YStack>
             
             {/* Middle Text */}
@@ -252,7 +371,10 @@ export default function HomeScreen({ navigation }) {
                         <Text color={COLORS.white} fontSize={30} fontWeight="900" mb="$3">
                           {item.title}
                         </Text>
-                        <AnimatedPressable style={{ borderWidth: 1, borderColor: '#F2C94C', paddingVertical: 8, paddingHorizontal: 20, borderRadius: 8, alignSelf: 'flex-start', backgroundColor: '#D4AF37' }}>
+                        <AnimatedPressable 
+                          onPress={() => alert(`Discount Code ${item.btnText === 'GET CODE' ? 'SAVE20' : ''} applied to your account!`)}
+                          style={{ borderWidth: 1, borderColor: '#F2C94C', paddingVertical: 8, paddingHorizontal: 20, borderRadius: 8, alignSelf: 'flex-start', backgroundColor: '#D4AF37' }}
+                        >
                           <Text color={COLORS.black} fontWeight="bold" fontSize={12}>{item.btnText}</Text>
                         </AnimatedPressable>
                       </YStack>
@@ -267,7 +389,9 @@ export default function HomeScreen({ navigation }) {
 
         {/* Services Grid */}
         <XStack fw="wrap" jc="space-between">
-          {services.map((item, index) => (
+          {services
+            .filter(item => activeCategory === 'All' || item.chipCategories?.includes(activeCategory))
+            .map((item, index) => (
             <React.Fragment key={item.id}>
               {renderServiceCard({ item, index })}
             </React.Fragment>
@@ -278,7 +402,7 @@ export default function HomeScreen({ navigation }) {
         <YStack h={180} />
         </YStack>
       </ScrollView>
-      <StickyCart />
+      {totalItems > 0 ? <StickyCart /> : null}
       <NotificationModal visible={notifVisible} onClose={() => setNotifVisible(false)} />
     </YStack>
   );

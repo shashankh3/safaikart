@@ -9,6 +9,7 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
+import { CartProvider } from './src/context/CartContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -84,7 +85,9 @@ export default function App() {
           }}
         >
           <StatusBar style="auto" />
-          <AppNavigator />
+          <CartProvider>
+            <AppNavigator />
+          </CartProvider>
         </View>
       </YStack>
     </SafeAreaProvider>

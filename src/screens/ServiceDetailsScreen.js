@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AnimatedPressable from '../components/AnimatedPressable';
 import { COLORS, SIZES } from '../constants/theme';
+import { useCart } from '../context/CartContext';
 
 const MOCK_ITEMS = [
   { id: '1', name: 'T-Shirt / Shirt', price: 50 },
@@ -20,6 +21,7 @@ const MOCK_ITEMS = [
 export default function ServiceDetailsScreen({ route, navigation }) {
   const { service } = route.params;
   const [quantities, setQuantities] = useState({});
+  const { addToCart } = useCart();
 
   const updateQuantity = (id, delta) => {
     setQuantities(prev => {
@@ -84,17 +86,25 @@ export default function ServiceDetailsScreen({ route, navigation }) {
       </ScrollView>
 
       {/* Sticky Bottom Bar */}
-      {totalItems > 0 && (
+      {totalItems > 0 ? (
         <XStack position="absolute" bottom={0} left={0} right={0} backgroundColor={COLORS.white} justifyContent="space-between" alignItems="center" paddingHorizontal={24} paddingTop={16} paddingBottom={30} shadowColor="#000" shadowOffset={{ width: 0, height: -4 }} shadowOpacity={0.1} shadowRadius={10} elevation={10} borderTopLeftRadius={24} borderTopRightRadius={24}>
           <YStack>
             <Text fontSize={14} color="#666" fontWeight="500">{totalItems} items</Text>
             <Text fontSize={24} fontWeight="900" color={COLORS.black}>₹{totalPrice}</Text>
           </YStack>
-          <AnimatedPressable style={{ backgroundColor: '#1B3B22', paddingVertical: 14, paddingHorizontal: 30, borderRadius: 30 }} onPress={() => navigation.navigate('Home')}>
+          <AnimatedPressable style={{ backgroundColor: '#1B3B22', paddingVertical: 14, paddingHorizontal: 30, borderRadius: 30 }} onPress={() => {
+            const itemsToAdd = Object.keys(quantities).map(id => {
+              const item = MOCK_ITEMS.find(i => i.id === id);
+              return { ...item, quantity: quantities[id] };
+            }).filter(i => i.quantity > 0);
+            
+            if (itemsToAdd.length > 0) addToCart(itemsToAdd);
+            navigation.navigate('MainTabs', { screen: 'Home' });
+          }}>
             <Text color={COLORS.white} fontSize={16} fontWeight="bold">Add to Cart</Text>
           </AnimatedPressable>
         </XStack>
-      )}
+      ) : null}
     </YStack>
   );
 }

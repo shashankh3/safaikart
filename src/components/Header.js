@@ -131,6 +131,7 @@ export default function Header() {
                 <XStack alignItems="center">
                   <TouchableOpacity onPress={() => {
                     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    alert('GPS location tracking is currently disabled in this demo.');
                   }}>
                     <Ionicons name="location-sharp" size={14} color={COLORS.vibrantYellow} />
                   </TouchableOpacity>
