@@ -62,7 +62,7 @@ export default function ServiceDetailsScreen({ route, navigation }) {
           {MOCK_ITEMS.map(item => {
             const qty = quantities[item.id] || 0;
             return (
-              <XStack key={item.id} justifyContent="space-between" alignItems="center" backgroundColor={COLORS.white} padding={16} borderRadius={12} marginBottom={12} shadowColor="#000" shadowOffset={{ width: 0, height: 2 }} shadowOpacity={0.05} shadowRadius={4} elevation={2}>
+              <XStack key={item.id} justifyContent="space-between" alignItems="center" backgroundColor={COLORS.white} padding={16} borderRadius={12} marginBottom={12} shadowColor={COLORS.vibrantYellow} shadowOffset={{ width: 0, height: 0 }} shadowOpacity={0.6} shadowRadius={12} elevation={8}>
                 <YStack flex={1}>
                   <Text fontSize={16} fontWeight="bold" marginBottom={4}>{item.name}</Text>
                   <Text fontSize={14} color="#666">₹{item.price} / pc</Text>

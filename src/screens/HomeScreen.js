@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 
 
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../constants/theme';
 import Header from '../components/Header';
 import AnimatedPressable from '../components/AnimatedPressable';
@@ -15,15 +15,22 @@ import StickyCart from '../components/StickyCart';
 import NotificationModal from '../components/NotificationModal';
 import * as Haptics from 'expo-haptics';
 
-const CATEGORIES = ["All", "Clothing", "Footwear", "Bags", "Home", "Premium"];
+const CATEGORIES = [
+  { name: "All", icon: "view-grid-outline" },
+  { name: "Clothing", icon: "tshirt-crew-outline" },
+  { name: "Footwear", icon: "shoe-sneaker" },
+  { name: "Bags", icon: "bag-personal-outline" },
+  { name: "Home", icon: "home-outline" },
+  { name: "Premium", icon: "star-outline" }
+];
 
 const services = [
-  { id: '1', title: 'Daily Laundry', category: 'LAUNDRY', time: '1-2 DAY', img: require('../../assets/laundry_basket.png') },
-  { id: '2', title: 'Luxury Garment Care', category: 'DRY CLEANING', time: '1-2 DAY', img: require('../../assets/dry_cleaning_suit.png') },
-  { id: '3', title: 'Footwear Revival', category: 'SHOE CLEANING', time: '1-2 DAY', img: require('../../assets/shoe_cleaning.png') },
-  { id: '4', title: 'Fabric Finishing', category: 'STEAM PRESS', time: '1-2 DAY', img: require('../../assets/steam_press.png') },
-  { id: '5', title: 'Home Textiles', category: 'SOFA CLEANING', time: '1-2 DAY', img: require('../../assets/sofa_cleaning.png') },
-  { id: '6', title: 'Specialist Items', category: 'LUXURY CARE', time: '1-2 DAY', img: require('../../assets/luxury_care.png') },
+  { id: '1', title: 'Daily Laundry', category: 'LAUNDRY', time: '1-2 DAY', img: require('../../assets/laundry_basket.png'), icon: 'washing-machine' },
+  { id: '2', title: 'Luxury Garment Care', category: 'DRY CLEANING', time: '1-2 DAY', img: require('../../assets/dry_cleaning_suit.png'), icon: 'hanger' },
+  { id: '3', title: 'Footwear Revival', category: 'SHOE CLEANING', time: '1-2 DAY', img: require('../../assets/shoe_cleaning.png'), icon: 'shoe-sneaker' },
+  { id: '4', title: 'Fabric Finishing', category: 'STEAM PRESS', time: '1-2 DAY', img: require('../../assets/steam_press.png'), icon: 'iron' },
+  { id: '5', title: 'Home Textiles', category: 'SOFA CLEANING', time: '1-2 DAY', img: require('../../assets/sofa_cleaning.png'), icon: 'sofa' },
+  { id: '6', title: 'Specialist Items', category: 'LUXURY CARE', time: '1-2 DAY', img: require('../../assets/luxury_care.png'), icon: 'star' },
 ];
 
 const OFFERS = [
@@ -74,38 +81,53 @@ export default function HomeScreen({ navigation }) {
     <YStack 
       opacity={1} y={0}
       width="48%"
-      marginBottom={SIZES.padding}
+      marginBottom={16}
     >
       <AnimatedPressable onPress={() => navigation.navigate('ServiceDetails', { service: item })}>
-        <ImageBackground 
-          source={item.img} 
-          style={{ width: '100%', height: 160, borderRadius: SIZES.radius, overflow: 'hidden', elevation: 3, shadowColor: COLORS.cardShadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.8, shadowRadius: 4, backgroundColor: COLORS.cardBg }}
-          imageStyle={{ borderRadius: SIZES.radius, width: '100%', height: '100%', resizeMode: 'cover' }}
+        <YStack
+          borderRadius={14} 
+          elevation={8} 
+          shadowColor={COLORS.vibrantYellow} 
+          shadowOffset={{ width: 0, height: 0 }} 
+          shadowOpacity={0.6} 
+          shadowRadius={12}
+          bg={COLORS.white} 
         >
-        <YStack f={1} bg="transparent" borderRadius={SIZES.radius} jc="space-between">
-          <YStack py="$1" px="$2" ai="center" bg="rgba(0,0,0,0.4)" borderTopLeftRadius={SIZES.radius} borderTopRightRadius={SIZES.radius}>
-            <Text fontSize={13} fontWeight="bold" color={COLORS.white} textAlign="center" textShadowColor="rgba(0,0,0,0.75)" textShadowOffset={{ width: -1, height: 1 }} textShadowRadius={10}>
-              {item.title}
-            </Text>
-            {item.id === '1' && <Text fontSize={9} color={COLORS.white} mt={0}>10+ item list</Text>}
-          </YStack>
+          <YStack borderRadius={14} overflow="hidden" borderWidth={1} borderColor="#F0F0F0">
+            {/* Top Half: Image */}
+            <ImageBackground 
+            source={item.img} 
+            style={{ width: '100%', height: 160 }}
+            imageStyle={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+          >
+            <YStack py="$1" px="$2" ai="center" bg="rgba(27,59,34,0.4)">
+              <Text fontSize={12} fontWeight="bold" color={COLORS.white} textAlign="center" textShadowColor="rgba(0,0,0,0.75)" textShadowOffset={{ width: -1, height: 1 }} textShadowRadius={10}>
+                {item.title}
+              </Text>
+              {item.id === '1' && <Text fontSize={9} color={COLORS.white} mt={0}>10+ item list</Text>}
+            </YStack>
+          </ImageBackground>
           
-          <YStack py="$1.5" px="$2" bg="rgba(0,0,0,0.5)" borderBottomLeftRadius={SIZES.radius} borderBottomRightRadius={SIZES.radius}>
-            <Text fontSize={11} color={COLORS.white} fontWeight="900" textAlign="center" mb="$1" textShadowColor="rgba(0,0,0,0.75)" textShadowOffset={{ width: -1, height: 1 }} textShadowRadius={10}>
-              {item.category}
-            </Text>
-            <XStack jc="space-between" ai="flex-end">
-              <XStack bg="rgba(255,255,255,0.8)" px="$2" py="$1" borderRadius={12} ai="center">
-                <Text fontSize={9} color={COLORS.black} mr="$1">Est. Time:</Text>
-                <Text fontSize={10} fontWeight="bold" color={COLORS.black}>{item.time} &rarr;</Text>
-              </XStack>
-              <AnimatedPressable onPress={() => navigation.navigate('ServiceDetails', { service: item })} style={{ backgroundColor: COLORS.vibrantYellow, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="add" size={20} color={COLORS.black} />
-              </AnimatedPressable>
-            </XStack>
+          {/* Bottom Half: White Info Section */}
+          <XStack p={6} ai="center">
+            {/* Left Icon */}
+            <YStack bg={COLORS.darkGreen} w={38} h={38} borderRadius={10} jc="center" ai="center">
+              <MaterialCommunityIcons name={item.icon} size={22} color={COLORS.white} />
+            </YStack>
+            
+            {/* Middle Text */}
+            <YStack f={1} ml={8} mr={4} jc="center">
+              <Text fontSize={11} fontFamily="Inter_900Black" color={COLORS.black} numberOfLines={1}>{item.category}</Text>
+              <Text fontSize={9} fontFamily="Inter_500Medium" color={COLORS.textSecondary} mt={2}>Est. Time: {item.time}</Text>
+            </YStack>
+
+            {/* Right Button */}
+            <YStack bg={COLORS.vibrantYellow} w={28} h={28} borderRadius={8} jc="center" ai="center">
+              <Ionicons name="add" size={18} color={COLORS.black} />
+            </YStack>
+          </XStack>
           </YStack>
         </YStack>
-        </ImageBackground>
       </AnimatedPressable>
     </YStack>
   );
@@ -140,24 +162,25 @@ export default function HomeScreen({ navigation }) {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12, paddingBottom: 4 }}>
           <XStack>
             {CATEGORIES.map((cat, i) => {
-              const isActive = activeCategory === cat;
+              const isActive = activeCategory === cat.name;
               return (
                   <AnimatedPressable 
                   key={i}
                   onPress={() => {
                     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setActiveCategory(cat);
+                    setActiveCategory(cat.name);
                   }}
                   style={{
                     backgroundColor: isActive ? COLORS.darkGreen : COLORS.cardBg,
-                    paddingHorizontal: 20,
+                    paddingHorizontal: 16,
                     height: 40,
+                    flexDirection: 'row',
                     justifyContent: 'center',
                     alignItems: 'center',
                     borderRadius: 20,
                     marginRight: 10,
                     borderWidth: 1,
-                    borderColor: COLORS.black,
+                    borderColor: isActive ? COLORS.darkGreen : '#E5E5E5',
                     elevation: isActive ? 2 : 1,
                     shadowColor: COLORS.cardShadow,
                     shadowOffset: { width: 0, height: 1 },
@@ -165,8 +188,14 @@ export default function HomeScreen({ navigation }) {
                     shadowRadius: 2,
                   }}
                 >
+                  <MaterialCommunityIcons 
+                    name={cat.icon} 
+                    size={18} 
+                    color={isActive ? COLORS.white : COLORS.darkGreen} 
+                    style={{ marginRight: 6 }} 
+                  />
                   <Text color={isActive ? COLORS.white : COLORS.black} fontWeight={isActive ? "bold" : "600"} fontSize={13}>
-                    {cat}
+                    {cat.name}
                   </Text>
                 </AnimatedPressable>
               );
@@ -196,26 +225,26 @@ export default function HomeScreen({ navigation }) {
                   width={carouselWidth} 
                   borderRadius={SIZES.radius * 1.5} 
                   bg="#1E3120" 
-                  elevation={4} 
-                  shadowColor="#000" 
-                  shadowOffset={{ width: 0, height: 2 }} 
-                  shadowOpacity={0.3} 
-                  shadowRadius={4}
-                  overflow="hidden"
+                  elevation={8} 
+                  shadowColor={COLORS.vibrantYellow} 
+                  shadowOffset={{ width: 0, height: 0 }} 
+                  shadowOpacity={0.6} 
+                  shadowRadius={12}
                 >
-                  <ImageBackground 
+                  <YStack borderRadius={SIZES.radius * 1.5} overflow="hidden" flex={1}>
+                    <ImageBackground 
                     source={item.img} 
                     style={{ width: '100%', height: 160 }} 
                     resizeMode="cover"
                     imageStyle={{ borderRadius: SIZES.radius * 1.5 }}
                   >
                     <LinearGradient
-                      colors={['rgba(0,0,0,0.9)', 'transparent']}
+                      colors={['rgba(27,59,34,0.95)', 'transparent']}
                       start={{ x: 0, y: 0.5 }}
                       end={{ x: 1, y: 0.5 }}
                       style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: SIZES.radius * 1.5 }}
                     />
-                    <YStack f={1} bg="rgba(0,0,0,0.15)" borderRadius={SIZES.radius * 1.5} p={20} jc="center" zIndex={5}>
+                    <YStack f={1} bg="rgba(27,59,34,0.15)" borderRadius={SIZES.radius * 1.5} p={20} jc="center" zIndex={5}>
                       <YStack w="70%">
                         <Text color={COLORS.white} fontSize={12} fontWeight="bold" mb="$1" letterSpacing={0.5}>
                           {item.subtitle}
@@ -229,6 +258,7 @@ export default function HomeScreen({ navigation }) {
                       </YStack>
                     </YStack>
                   </ImageBackground>
+                  </YStack>
                 </YStack>
               )}
             />

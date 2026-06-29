@@ -53,9 +53,18 @@ export default function ProfileScreen({ navigation }) {
         <Text fontSize={20} fontWeight="900" color={COLORS.darkGreen} marginBottom={SIZES.padding} letterSpacing={0.5}>MY PROFILE</Text>
 
         {/* Premium User Card */}
+        <YStack
+          borderRadius={SIZES.radius * 1.5} 
+          marginBottom={SIZES.padding * 1.5} 
+          elevation={8} 
+          shadowColor={COLORS.vibrantYellow} 
+          shadowOffset={{ width: 0, height: 0 }} 
+          shadowOpacity={0.6} 
+          shadowRadius={12}
+        >
         <ImageBackground 
           source={require('../../assets/premium-bg.jpg.png')} 
-          style={{ backgroundColor: '#1B3B22', borderRadius: SIZES.radius * 1.5, marginBottom: SIZES.padding * 1.5, elevation: 6, shadowColor: COLORS.darkGreen, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, overflow: 'hidden' }} 
+          style={{ backgroundColor: '#1B3B22', borderRadius: SIZES.radius * 1.5, overflow: 'hidden' }} 
           imageStyle={{ borderRadius: SIZES.radius * 1.5, width: '102%', left: '-1%' }}
         >
           <XStack padding={SIZES.padding} backgroundColor="rgba(0,0,0,0.1)">
@@ -73,16 +82,17 @@ export default function ProfileScreen({ navigation }) {
             </YStack>
           </XStack>
         </ImageBackground>
+        </YStack>
 
         {/* Settings section */}
         <Text fontSize={14} fontWeight="800" color={COLORS.textSecondary} marginBottom={12} letterSpacing={0.5} textTransform="uppercase">Settings</Text>
         
-        <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} paddingHorizontal={16} paddingVertical={8} elevation={2} shadowColor={COLORS.cardShadow} shadowOffset={{ width: 0, height: 2 }} shadowOpacity={0.1} shadowRadius={4} marginBottom={SIZES.padding} borderWidth={1} borderColor="rgba(0,0,0,0.02)">
+        <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} paddingHorizontal={16} paddingVertical={8} elevation={8} shadowColor={COLORS.vibrantYellow} shadowOffset={{ width: 0, height: 0 }} shadowOpacity={0.6} shadowRadius={12} marginBottom={SIZES.padding} borderWidth={1} borderColor="rgba(0,0,0,0.02)">
           {menuItems.map(renderMenuItem)}
         </YStack>
 
         {/* Logout section */}
-        <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} paddingHorizontal={16} paddingVertical={8} elevation={1} shadowColor={COLORS.cardShadow} shadowOffset={{ width: 0, height: 1 }} shadowOpacity={0.05} shadowRadius={2} borderWidth={1} borderColor="#FFEBEE">
+        <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} paddingHorizontal={16} paddingVertical={8} elevation={8} shadowColor={COLORS.vibrantYellow} shadowOffset={{ width: 0, height: 0 }} shadowOpacity={0.6} shadowRadius={12} borderWidth={1} borderColor="#FFEBEE">
           <TouchableOpacity onPress={handleLogout}>
             <XStack alignItems="center" paddingVertical={12} borderBottomWidth={0}>
               <YStack width={38} height={38} borderRadius={19} justifyContent="center" alignItems="center" marginRight={16} backgroundColor="#FFEBEE">

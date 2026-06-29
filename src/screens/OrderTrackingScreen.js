@@ -152,7 +152,7 @@ export default function OrderTrackingScreen() {
       >
         
         {/* Map Visualization */}
-        <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} padding={SIZES.padding} marginBottom={SIZES.padding * 1.5} elevation={4} shadowColor={COLORS.cardShadow} shadowOffset={{ width: 0, height: 4 }} shadowOpacity={0.15} shadowRadius={10} borderWidth={1} borderColor="rgba(0,0,0,0.03)">
+        <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} padding={SIZES.padding} marginBottom={SIZES.padding * 1.5} elevation={8} shadowColor={COLORS.vibrantYellow} shadowOffset={{ width: 0, height: 0 }} shadowOpacity={0.6} shadowRadius={12} borderWidth={1} borderColor="rgba(0,0,0,0.03)">
           <XStack justifyContent="space-between" alignItems="center" marginBottom={20}>
             <Text fontSize={18} fontWeight="900" color={COLORS.darkGreen} letterSpacing={0.5}>Order #SK-2401</Text>
             <YStack backgroundColor="#FEF6E0" paddingHorizontal={10} paddingVertical={4} borderRadius={12}>
@@ -213,7 +213,7 @@ export default function OrderTrackingScreen() {
         </YStack>
 
         {/* Receipt Styled Summary */}
-        <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius} padding={SIZES.padding} marginBottom={SIZES.padding} elevation={2} shadowColor="#000" shadowOffset={{ width: 0, height: 1 }} shadowOpacity={0.1} shadowRadius={4} borderWidth={1} borderColor="#EFEFEF">
+        <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius} padding={SIZES.padding} marginBottom={SIZES.padding} elevation={8} shadowColor={COLORS.vibrantYellow} shadowOffset={{ width: 0, height: 0 }} shadowOpacity={0.6} shadowRadius={12} borderWidth={1} borderColor="#EFEFEF">
           <XStack justifyContent="space-between" alignItems="center" marginBottom={16}>
             <Text fontSize={16} fontWeight="900" color={COLORS.black} letterSpacing={0.5}>Order Receipt</Text>
             <Ionicons name="receipt-outline" size={20} color={COLORS.textSecondary} />

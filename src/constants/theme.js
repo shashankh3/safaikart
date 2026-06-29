@@ -5,7 +5,7 @@ export const APP_WIDTH = Platform.OS === 'web' ? Math.min(width, 412) : width;
 export const APP_HEIGHT = Platform.OS === 'web' ? Math.min(height, 892) : height;
 
 export const COLORS = {
-  primaryBg: '#FEF9EA',
+  primaryBg: '#FFFFFF',
   darkGreen: '#1B3B22',
   vibrantYellow: '#F4C73E',
   white: '#FFFFFF',

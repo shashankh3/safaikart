@@ -51,11 +51,11 @@ export default function OrdersScreen({ navigation }) {
         borderRadius={SIZES.radius * 1.5}
         marginBottom={SIZES.padding}
         padding={SIZES.padding}
-        elevation={4}
-        shadowColor={COLORS.cardShadow}
-        shadowOffset={{ width: 0, height: 4 }}
-        shadowOpacity={0.15}
-        shadowRadius={10}
+        elevation={8}
+        shadowColor={COLORS.vibrantYellow}
+        shadowOffset={{ width: 0, height: 0 }}
+        shadowOpacity={0.6}
+        shadowRadius={12}
         borderWidth={1}
         borderColor="rgba(0,0,0,0.03)"
       >
