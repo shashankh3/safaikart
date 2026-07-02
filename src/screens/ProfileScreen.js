@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, TouchableOpacity, Image, ImageBackground, Alert } from 'react-native';
+import { ScrollView, TouchableOpacity, Image, ImageBackground, Alert, Linking } from 'react-native';
 import { YStack, XStack, ZStack, Text } from '../components/Stacks';
 
 
@@ -20,7 +20,11 @@ const menuItems = [
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const handleMenuPress = (item) => {
-    navigation.navigate('SubScreen', { title: item.title });
+    if (item.title === 'Help & Support') {
+      Linking.openURL('whatsapp://send?text=Hello SafaiKart! I need some help.&phone=+919691561836');
+    } else {
+      navigation.navigate('SubScreen', { title: item.title });
+    }
   };
 
   const handleLogout = () => {
@@ -69,16 +73,16 @@ export default function ProfileScreen({ navigation }) {
         >
           <XStack padding={SIZES.padding} backgroundColor="rgba(0,0,0,0.1)">
             <YStack marginRight={20} position="relative">
-               <Image source={{ uri: 'https://i.pravatar.cc/150?img=47' }} style={{ width: 75, height: 75, borderRadius: 37.5, borderWidth: 2, borderColor: '#D4AF37' }} />
+               <Image source={require('../../assets/soumya_profile.png')} style={{ width: 75, height: 75, borderRadius: 37.5, borderWidth: 2, borderColor: '#D4AF37' }} />
                <XStack alignItems="center" backgroundColor="#D4AF37" paddingVertical={4} paddingHorizontal={8} borderRadius={12} position="absolute" bottom={-5} left={10} elevation={4} shadowColor="#000" shadowOffset={{ width: 0, height: 2 }} shadowOpacity={0.3} shadowRadius={3}>
                  <Ionicons name="medal" size={12} color={COLORS.black} />
                  <Text fontSize={9} fontWeight="900" color={COLORS.black} marginLeft={4} letterSpacing={0.5}>GOLD</Text>
                </XStack>
             </YStack>
             <YStack flex={1} justifyContent="center">
-              <Text fontSize={22} fontWeight="900" color={COLORS.white} marginBottom={6} letterSpacing={0.5}>Sarah Johnson</Text>
-              <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">+91 9876543210</Text>
-              <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">sarah.j@example.com</Text>
+              <Text fontSize={22} fontWeight="900" color={COLORS.white} marginBottom={6} letterSpacing={0.5}>Soumya Sharma</Text>
+              <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">+91 96915 61836</Text>
+              <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">soumya@example.com</Text>
             </YStack>
           </XStack>
         </ImageBackground>

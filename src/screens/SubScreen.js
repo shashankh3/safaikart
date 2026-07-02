@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, ScrollView } from 'react-native';
 import { YStack, XStack, ZStack, Text } from '../components/Stacks';
 
 
@@ -22,10 +22,75 @@ export default function SubScreen({ route, navigation }) {
         <Text fontSize={18} fontWeight="800" color={COLORS.black}>{title}</Text>
         <YStack width={40} />
       </XStack>
-      <YStack flex={1} justifyContent="center" alignItems="center" padding={SIZES.padding * 2}>
-        <Ionicons name="construct-outline" size={60} color={COLORS.textSecondary} style={{ opacity: 0.5 }} />
-        <Text marginTop={16} fontSize={16} color={COLORS.textSecondary} textAlign="center" fontWeight="500" lineHeight={24}>This section is currently under construction.</Text>
-      </YStack>
+      <ScrollView contentContainerStyle={{ padding: SIZES.padding }} showsVerticalScrollIndicator={false}>
+        {title === 'My Addresses' && (
+          <YStack>
+            <YStack backgroundColor={COLORS.cardBg} padding={16} borderRadius={16} elevation={2} shadowColor="#000" shadowOffset={{ width: 0, height: 2 }} shadowOpacity={0.05} shadowRadius={4} marginBottom={16} borderWidth={1} borderColor={COLORS.darkGreen}>
+              <XStack alignItems="center" marginBottom={8}>
+                <Ionicons name="home" size={18} color={COLORS.darkGreen} />
+                <Text marginLeft={8} fontWeight="800" fontSize={16} color={COLORS.black}>Home</Text>
+                <YStack backgroundColor="#E8F5E9" paddingHorizontal={8} paddingVertical={2} borderRadius={10} marginLeft="auto">
+                  <Text fontSize={10} color={COLORS.darkGreen} fontWeight="700">DEFAULT</Text>
+                </YStack>
+              </XStack>
+              <Text fontSize={13} color={COLORS.textSecondary} lineHeight={20}>123 Cleaning Avenue, Sparkle Sector, New Delhi 110001, India</Text>
+            </YStack>
+            <TouchableOpacity style={{ borderStyle: 'dashed', borderWidth: 2, borderColor: '#CCC', padding: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="add-circle-outline" size={24} color={COLORS.textSecondary} />
+              <Text marginTop={8} color={COLORS.textSecondary} fontWeight="600">Add New Address</Text>
+            </TouchableOpacity>
+          </YStack>
+        )}
+
+        {title === 'Payment Methods' && (
+          <YStack>
+            <YStack backgroundColor="#1E3120" padding={20} borderRadius={16} elevation={4} shadowColor={COLORS.darkGreen} shadowOffset={{ width: 0, height: 4 }} shadowOpacity={0.2} shadowRadius={8} marginBottom={16}>
+              <XStack justifyContent="space-between" alignItems="center" marginBottom={24}>
+                <Text color={COLORS.white} fontWeight="900" fontSize={18} letterSpacing={2}>VISA</Text>
+                <Ionicons name="radio" size={20} color={COLORS.white} />
+              </XStack>
+              <Text color={COLORS.white} fontSize={20} fontWeight="600" letterSpacing={3} marginBottom={16}>**** **** **** 4242</Text>
+              <XStack justifyContent="space-between">
+                <Text color="rgba(255,255,255,0.7)" fontSize={12} fontWeight="500">Sarah Johnson</Text>
+                <Text color="rgba(255,255,255,0.7)" fontSize={12} fontWeight="500">12/28</Text>
+              </XStack>
+            </YStack>
+            <TouchableOpacity style={{ backgroundColor: COLORS.cardBg, padding: 16, borderRadius: 16, flexDirection: 'row', alignItems: 'center', elevation: 1, borderWidth: 1, borderColor: '#F0F0F0' }}>
+              <Ionicons name="add" size={20} color={COLORS.black} />
+              <Text marginLeft={10} fontWeight="700" color={COLORS.black}>Add Payment Method</Text>
+            </TouchableOpacity>
+          </YStack>
+        )}
+
+        {title === 'Coupons & Offers' && (
+          <YStack>
+            <YStack backgroundColor={COLORS.cardBg} padding={0} borderRadius={16} elevation={2} overflow="hidden" marginBottom={16} borderWidth={1} borderColor="#F0F0F0">
+              <XStack>
+                <YStack backgroundColor={COLORS.vibrantYellow} padding={16} justifyContent="center" alignItems="center" width="30%">
+                  <Text fontSize={20} fontWeight="900" color={COLORS.black}>20%</Text>
+                  <Text fontSize={12} fontWeight="700" color={COLORS.black}>OFF</Text>
+                </YStack>
+                <YStack padding={16} flex={1}>
+                  <Text fontSize={16} fontWeight="800" color={COLORS.black} marginBottom={4}>WELCOME20</Text>
+                  <Text fontSize={12} color={COLORS.textSecondary}>Valid on your first order. Max discount ₹100.</Text>
+                </YStack>
+              </XStack>
+            </YStack>
+            <YStack backgroundColor={COLORS.cardBg} padding={0} borderRadius={16} elevation={2} overflow="hidden" marginBottom={16} borderWidth={1} borderColor="#F0F0F0" opacity={0.6}>
+              <XStack>
+                <YStack backgroundColor="#E0E0E0" padding={16} justifyContent="center" alignItems="center" width="30%">
+                  <Text fontSize={20} fontWeight="900" color="#888">₹50</Text>
+                  <Text fontSize={12} fontWeight="700" color="#888">OFF</Text>
+                </YStack>
+                <YStack padding={16} flex={1}>
+                  <Text fontSize={16} fontWeight="800" color="#888" marginBottom={4}>WEEKEND50</Text>
+                  <Text fontSize={12} color="#AAA">Expired on 12 June 2026.</Text>
+                </YStack>
+              </XStack>
+            </YStack>
+          </YStack>
+        )}
+      </ScrollView>
     </YStack>
   );
 }
