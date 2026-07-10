@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Addresses — users can only access their own
+    match /addresses/{addressId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Pickup slots — users can read active slots only
+    match /pickupSlots/{slotId} {
+      allow read: if request.auth != null && resource.data.isActive == true;
+      allow write: if false; // Only Cloud Functions can write
+    }
+
+    // Coupons — users can read valid coupons (for validation display)
+    match /coupons/{couponId} {
+      allow read: if request.auth != null && resource.data.isActive == true;
+      allow write: if false; // Only Cloud Functions/Admin can write
+    }
+
+    // Orders — users can read their own orders only
+    match /orders/{orderId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if false; // Only Cloud Functions can create/update orders
+    }
+
+    // Other existing rules placeholders
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /profiles/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /services/{serviceId} {
+      allow read: if true;
+    }
+    match /categories/{categoryId} {
+      allow read: if true;
+    }
+    match /carts/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
