@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { requestNotificationPermission, getFcmToken, saveFcmToken, setupNotificationListeners } from './messaging';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../app/config/firebase';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 export const NotificationContext = React.createContext<{
   pushToken: string | null;
@@ -33,15 +34,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     });
 
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      // Show custom in-app banner or let system handle it
-      console.log('Foreground notification:', notification);
-    });
+    const isExpoGo = Constants.appOwnership === 'expo';
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('Notification tapped:', response);
-      // Navigate to tracking screen here if needed using a global navigation ref
-    });
+    if (!isExpoGo) {
+      notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+        // Show custom in-app banner or let system handle it
+        console.log('Foreground notification:', notification);
+      });
+
+      responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+        console.log('Notification tapped:', response);
+        // Navigate to tracking screen here if needed using a global navigation ref
+      });
+    }
 
     return () => {
       unsubscribeAuth();

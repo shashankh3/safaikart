@@ -10,13 +10,23 @@ import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-ic
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
 import { CartProvider } from './src/features/cart/presentation/hooks/useCart';
-import { NotificationProvider } from './src/core/firebase/NotificationProvider';
-import * as Sentry from '@sentry/react-native';
+// import { NotificationProvider } from './src/core/firebase/NotificationProvider';
+import Constants from 'expo-constants';
 
-Sentry.init({
-  dsn: "YOUR_SENTRY_DSN",
-  debug: false, 
-});
+const isExpoGo = Constants.appOwnership === 'expo';
+
+// let Sentry: any;
+// if (!isExpoGo) {
+//   try {
+//     Sentry = require('@sentry/react-native');
+//     Sentry.init({
+//       dsn: "YOUR_SENTRY_DSN",
+//       debug: false, 
+//     });
+//   } catch (e) {
+//     console.log('Sentry initialization failed', e);
+//   }
+// }
 
 SplashScreen.preventAutoHideAsync();
 
@@ -93,9 +103,9 @@ function App() {
         >
           <StatusBar style="auto" />
           <CartProvider>
-            <NotificationProvider>
+            {/* <NotificationProvider> */}
               <AppNavigator />
-            </NotificationProvider>
+            {/* </NotificationProvider> */}
           </CartProvider>
         </View>
       </YStack>
@@ -103,6 +113,7 @@ function App() {
   );
 }
 
-export default Sentry.wrap(App);
+// export default isExpoGo ? App : (Sentry ? Sentry.wrap(App) : App);
+export default App;
 
 

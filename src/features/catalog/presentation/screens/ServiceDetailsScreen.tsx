@@ -23,20 +23,11 @@ export default function ServiceDetailsScreen({ route, navigation }: any) {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const categoryMap: any = {
-          'LAUNDRY': 'laundry',
-          'DRY CLEANING': 'dry_cleaning',
-          'SHOE CLEANING': 'shoe_cleaning',
-          'STEAM PRESS': 'steam_press',
-          'SOFA CLEANING': 'household',
-          'LUXURY CARE': 'premium'
-        };
-        const categoryId = categoryMap[service.category] || 'dry_cleaning';
+        const categoryId = service.category;
         
         const q = query(
           collection(db, 'services'),
-          where('categoryId', '==', categoryId),
-          where('isActive', '==', true)
+          where('categoryId', '==', categoryId)
         );
         const snapshot = await getDocs(q);
         

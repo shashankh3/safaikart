@@ -1,17 +1,16 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Placeholder Firebase configuration
-// REPLACE these values when setting up the actual Firebase project
 const firebaseConfig = {
-  apiKey: "PLACEHOLDER_API_KEY",
-  authDomain: "safaikart-placeholder.firebaseapp.com",
-  projectId: "safaikart-placeholder",
-  storageBucket: "safaikart-placeholder.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:placeholder123",
-  measurementId: "G-PLACEHOLDER"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
@@ -19,7 +18,6 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 const db = getFirestore(app);
 
-// Initialize Auth
 const auth = getAuth(app);
 
 export { app, db, auth };

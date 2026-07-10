@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator, Animated, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Animated, ScrollView, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';

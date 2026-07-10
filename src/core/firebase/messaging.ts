@@ -1,21 +1,30 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth } from '../../app/config/firebase';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+const isExpoGo = Constants.appOwnership === 'expo';
+
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export async function requestNotificationPermission() {
+  if (isExpoGo) {
+    console.log('Push notifications are not supported in Expo Go.');
+    return false;
+  }
+
   if (!Device.isDevice) {
     console.log('Must use physical device for Push Notifications');
     return false;
@@ -38,6 +47,8 @@ export async function requestNotificationPermission() {
 }
 
 export async function getFcmToken() {
+  if (isExpoGo) return null;
+  
   try {
     const projectId =
       Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;

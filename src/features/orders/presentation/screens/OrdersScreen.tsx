@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, SafeAreaView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';
@@ -22,7 +23,7 @@ export default function OrdersScreen() {
       const data = await getOrdersUseCase.execute();
       setOrders(data);
     } catch (error) {
-      console.error('Failed to load orders', error);
+      console.warn('Failed to load orders', error);
     }
   }, []);
 
