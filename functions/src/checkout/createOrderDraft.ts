@@ -46,7 +46,7 @@ export const createOrderDraft = onCall(async (request) => {
   // 3. Process Items & Calculate Price
   let subtotalMinor = 0;
   let priceConfirmed = true;
-  const processedItems = [];
+  const processedItems: any[] = [];
 
   for (const item of cartItems) {
     // Fetch actual service from DB to prevent tampering
