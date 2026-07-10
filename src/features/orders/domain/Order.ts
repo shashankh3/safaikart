@@ -19,6 +19,8 @@ export interface Order {
   addressSnapshot: AddressSnapshot;
   pickupSlotId: string;
   pickupSlotSnapshot: PickupSlotSnapshot;
+  editableUntil?: Timestamp;
+  estimatedDeliveryDate?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -31,6 +33,7 @@ export interface OrderItem {
   priceType: 'fixed' | 'variable';
   unitPriceMinor: number | null;
   lineTotalMinor: number | null;
+  addons?: { id: string, name: string, priceMinor: number }[];
   estimatedMinMinor?: number;
   estimatedMaxMinor?: number;
 }

@@ -8,6 +8,7 @@ import PickupSlotScreen from '../../features/checkout/presentation/screens/Picku
 import PaymentScreen from '../../features/payments/presentation/screens/PaymentScreen';
 import PaymentPendingScreen from '../../features/payments/presentation/screens/PaymentPendingScreen';
 import PaymentResultScreen from '../../features/payments/presentation/screens/PaymentResultScreen';
+import EditOrderScreen from '../../features/orders/presentation/screens/EditOrderScreen';
 
 export type CheckoutStackParamList = {
   Checkout: undefined;
@@ -17,6 +18,7 @@ export type CheckoutStackParamList = {
   Payment: { orderId: string; amount: number };
   PaymentPending: { orderId: string };
   PaymentResult: { orderId: string; success: boolean };
+  EditOrder: { orderId: string };
 };
 
 const Stack = createNativeStackNavigator<CheckoutStackParamList>();
@@ -31,6 +33,7 @@ export default function CheckoutNavigator() {
       <Stack.Screen name="Payment" component={PaymentScreen} />
       <Stack.Screen name="PaymentPending" component={PaymentPendingScreen} />
       <Stack.Screen name="PaymentResult" component={PaymentResultScreen} />
+      <Stack.Screen name="EditOrder" component={EditOrderScreen} />
     </Stack.Navigator>
   );
 }

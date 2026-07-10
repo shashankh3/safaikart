@@ -70,7 +70,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalPrice = cartItems.reduce((sum, item) => {
+    const addonsPrice = (item.addons || []).reduce((a: number, addon: any) => a + (addon.priceMinor || 0) / 100, 0);
+    return sum + ((item.price + addonsPrice) * item.quantity);
+  }, 0);
 
   const addToCart = (newItems: any[]) => {
     setCartItems(prevItems => {
@@ -78,7 +81,18 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       
       newItems.forEach(newItem => {
         if (newItem.quantity <= 0) return;
-        const existingItemIndex = updatedCart.findIndex(item => item.id === newItem.id);
+        // Find existing item with same ID and same addons
+        const existingItemIndex = updatedCart.findIndex(item => {
+          if (item.id !== newItem.id) return false;
+          const currentAddons = item.addons || [];
+          const newAddons = newItem.addons || [];
+          if (currentAddons.length !== newAddons.length) return false;
+          // Compare addon IDs
+          const currentAddonIds = currentAddons.map((a: any) => a.id).sort().join(',');
+          const newAddonIds = newAddons.map((a: any) => a.id).sort().join(',');
+          return currentAddonIds === newAddonIds;
+        });
+        
         if (existingItemIndex >= 0) {
           updatedCart[existingItemIndex].quantity += newItem.quantity;
         } else {

@@ -14,26 +14,26 @@ export const createOrderDraft = onCall(async (request) => {
     throw new HttpsError('unauthenticated', 'User must be logged in to create an order.');
   }
 
-  const { addressId, pickupSlotId, couponCode } = request.data;
+  const { addressId, pickupSlotId, couponCode, directItems } = request.data;
   if (!addressId || !pickupSlotId) {
     throw new HttpsError('invalid-argument', 'Address ID and Pickup Slot ID are required.');
   }
 
-  // 1. Fetch Cart
-  // Assuming carts are stored at carts/{uid} and cart items are an array inside.
-  // In Phase 3, cart was stored locally. The spec says "Fetch cart from carts/{userId}". 
-  // Wait, if it's not implemented, we might just pass cart items from client or assume the client synced it.
-  // Let's assume there's a carts/{uid} document with an `items` array.
-  const cartDoc = await db.collection('carts').doc(uid).get();
-  if (!cartDoc.exists) {
-    // For now, if cart syncing isn't built, we'll throw. In a real scenario we'd ensure it syncs.
-    throw new HttpsError('failed-precondition', 'Cart is empty or not found on server.');
-  }
-  
-  const cartData = cartDoc.data();
-  const cartItems: any[] = cartData?.items || [];
-  if (cartItems.length === 0) {
-    throw new HttpsError('failed-precondition', 'Cart is empty.');
+  // 1. Fetch Items
+  let itemsToProcess: any[] = [];
+  if (directItems && Array.isArray(directItems) && directItems.length > 0) {
+    itemsToProcess = directItems;
+  } else {
+    const cartDoc = await db.collection('carts').doc(uid).get();
+    if (!cartDoc.exists) {
+      throw new HttpsError('failed-precondition', 'Cart is empty or not found on server.');
+    }
+    
+    const cartData = cartDoc.data();
+    itemsToProcess = cartData?.items || [];
+    if (itemsToProcess.length === 0) {
+      throw new HttpsError('failed-precondition', 'Cart is empty.');
+    }
   }
 
   // 2. Fetch Address
@@ -46,9 +46,10 @@ export const createOrderDraft = onCall(async (request) => {
   // 3. Process Items & Calculate Price
   let subtotalMinor = 0;
   let priceConfirmed = true;
+  let maxDurationHours = 0;
   const processedItems: any[] = [];
 
-  for (const item of cartItems) {
+  for (const item of itemsToProcess) {
     // Fetch actual service from DB to prevent tampering
     const serviceDoc = await db.collection('services').doc(item.id || item.serviceId).get();
     if (!serviceDoc.exists) {
@@ -59,10 +60,32 @@ export const createOrderDraft = onCall(async (request) => {
       throw new HttpsError('failed-precondition', `Service ${serviceData.name} is no longer active.`);
     }
 
+    const duration = serviceData.estimatedDurationHours || (serviceData.categoryId === 'steam_press' ? 24 : serviceData.categoryId === 'household' ? 72 : 48);
+    if (duration > maxDurationHours) maxDurationHours = duration;
+
     const isVariable = serviceData.priceType === 'variable';
     if (isVariable) priceConfirmed = false;
+    
+    // Process addons
+    let addonsTotalMinor = 0;
+    const validatedAddons: any[] = [];
+    if (item.addons && Array.isArray(item.addons)) {
+      for (const addon of item.addons) {
+        // Find if this service supports this addon
+        const serverAddon = (serviceData.addons || []).find((a: any) => a.id === addon.id);
+        if (serverAddon) {
+          addonsTotalMinor += serverAddon.priceMinor;
+          validatedAddons.push({
+            id: serverAddon.id,
+            name: serverAddon.name,
+            priceMinor: serverAddon.priceMinor
+          });
+        }
+      }
+    }
 
-    const lineTotalMinor = isVariable ? 0 : (serviceData.priceMinor * item.quantity);
+    const itemUnitTotalMinor = (serviceData.priceMinor || 0) + addonsTotalMinor;
+    const lineTotalMinor = isVariable ? 0 : (itemUnitTotalMinor * item.quantity);
     if (!isVariable) {
       subtotalMinor += lineTotalMinor;
     }
@@ -73,6 +96,7 @@ export const createOrderDraft = onCall(async (request) => {
       quantity: item.quantity,
       unit: serviceData.unit || 'piece',
       unitPriceMinor: serviceData.priceMinor,
+      addons: validatedAddons,
       lineTotalMinor,
       priceType: serviceData.priceType || 'fixed'
     });
@@ -118,12 +142,28 @@ export const createOrderDraft = onCall(async (request) => {
     // Increment booked count
     transaction.update(slotRef, { bookedCount: admin.firestore.FieldValue.increment(1) });
 
+    // Calculate Estimated Delivery Date
+    let estimatedDeliveryDateStr = '';
+    try {
+      const [hours, minutes] = (slotData.startTime || '10:00').split(':').map(Number);
+      const pickupDate = new Date(`${slotData.date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00Z`);
+      pickupDate.setHours(pickupDate.getHours() + maxDurationHours + 4);
+      estimatedDeliveryDateStr = pickupDate.toISOString();
+    } catch (e) {
+      estimatedDeliveryDateStr = new Date(Date.now() + 48 * 3600000).toISOString(); // fallback 48h
+    }
+
+    // 3 minute edit window
+    const editableUntil = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 3 * 60000));
+
     // Create Order
     const orderData = {
       userId: uid,
       status: 'PAYMENT_PENDING',
       paymentStatus: 'NOT_STARTED',
       priceConfirmed,
+      editableUntil,
+      estimatedDeliveryDate: estimatedDeliveryDateStr,
       items: processedItems,
       subtotalMinor,
       deliveryFeeMinor,
@@ -153,9 +193,11 @@ export const createOrderDraft = onCall(async (request) => {
     transaction.set(newOrderRef, orderData);
     finalOrderId = newOrderRef.id;
 
-    // Clear user cart
-    const cartRef = db.collection('carts').doc(uid);
-    transaction.update(cartRef, { items: [] });
+    // Clear user cart if not a direct buy
+    if (!directItems) {
+      const cartRef = db.collection('carts').doc(uid);
+      transaction.update(cartRef, { items: [] });
+    }
   });
 
   return {

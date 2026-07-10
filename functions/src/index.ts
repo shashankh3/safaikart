@@ -8,5 +8,6 @@ export { paymentWebhook } from './payments/paymentWebhook';
 
 // Orders & Notifications
 export { cancelOrder } from './orders/cancelOrder';
+export { editOrderItems } from './orders/editOrderItems';
 export { saveFcmToken } from './notifications/saveFcmToken';
 export { sendOrderStatusNotification } from './notifications/sendOrderStatusNotification';

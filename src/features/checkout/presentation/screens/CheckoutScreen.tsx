@@ -24,8 +24,15 @@ export default function CheckoutScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
   const TEMP_USER_ID = 'guest-123';
   
-  const { cartItems, totalPrice } = useCart();
+  const { cartItems: contextCartItems, totalPrice: contextTotalPrice } = useCart();
   const { addresses } = useAddresses(TEMP_USER_ID);
+
+  const directItems = route.params?.directItems;
+  const itemsToProcess = directItems || contextCartItems;
+  
+  const calculatedTotalPrice = directItems 
+    ? directItems.reduce((sum: number, item: any) => sum + (item.price + (item.addons || []).reduce((a: number, addon: any) => a + (addon.priceMinor || 0) / 100, 0)) * item.quantity, 0)
+    : contextTotalPrice;
 
   // Selected Data State
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
@@ -59,9 +66,12 @@ export default function CheckoutScreen({ navigation, route }: any) {
     }
   }, [addresses, route.params]);
 
-  const subtotalMinor = totalPrice * 100; // Assuming totalPrice is in rupees, converting to paise
+  const subtotalMinor = calculatedTotalPrice * 100; // Assuming totalPrice is in rupees, converting to paise
   const deliveryFeeMinor = 4000; // Flat Rs 40
   const finalAmountMinor = subtotalMinor + deliveryFeeMinor - discountMinor;
+
+  const hasSteamPress = itemsToProcess.some((item: any) => item.categoryId === 'steam_press');
+  const hasVariablePricing = itemsToProcess.some((item: any) => item.priceType === 'variable');
 
   const handleApplyCoupon = async () => {
     if (!couponInput) return;
@@ -88,7 +98,7 @@ export default function CheckoutScreen({ navigation, route }: any) {
   };
 
   const handlePlaceOrder = async () => {
-    if (cartItems.length === 0) {
+    if (itemsToProcess.length === 0) {
       Alert.alert('Cart is empty', 'Add items to your cart first.');
       return;
     }
@@ -96,16 +106,15 @@ export default function CheckoutScreen({ navigation, route }: any) {
     setPlacingOrder(true);
     try {
       const result = await createOrderDraftUseCase.execute({
-        cartItemCount: cartItems.length,
+        cartItemCount: itemsToProcess.length,
         addressId: selectedAddress?.id || null,
         pickupSlotId: selectedSlot?.id || null,
-        couponCode: appliedCoupon
+        couponCode: appliedCoupon,
+        directItems: directItems || null
       });
 
-      // Clear cart logic is handled inside useCart or by Cloud Function, but UI should transition.
-      // Move to Payment screen (Phase 6)
       Alert.alert('Success', `Order Draft Created: ${result.orderId}`, [
-        { text: 'OK', onPress: () => navigation.navigate('Home') } // Placeholder until Payment phase
+        { text: 'OK', onPress: () => navigation.navigate('Payment', { orderId: result.orderId }) }
       ]);
     } catch (error: any) {
       Alert.alert('Checkout Failed', error.message || 'Something went wrong.');
@@ -114,7 +123,7 @@ export default function CheckoutScreen({ navigation, route }: any) {
     }
   };
 
-  const canPlaceOrder = selectedAddress && selectedSlot && tncAccepted && cartItems.length > 0 && !placingOrder && !couponLoading;
+  const canPlaceOrder = selectedAddress && selectedSlot && tncAccepted && itemsToProcess.length > 0 && !placingOrder && !couponLoading;
 
   return (
     <YStack flex={1} backgroundColor={COLORS.primaryBg} paddingTop={insets.top}>
@@ -194,15 +203,38 @@ export default function CheckoutScreen({ navigation, route }: any) {
         <YStack backgroundColor={COLORS.white} padding={SIZES.padding} borderRadius={SIZES.radius} marginBottom={SIZES.medium} elevation={1}>
           <Text fontWeight="bold" fontSize={16} marginBottom={12}>Order Summary</Text>
           
-          {cartItems.map((item: any, idx: number) => (
-            <XStack key={idx} justifyContent="space-between" marginBottom={12}>
-              <YStack flex={1} marginRight={12}>
-                <Text fontWeight="600" fontSize={14}>{item.name}</Text>
-                <Text color={COLORS.textSecondary} fontSize={12}>{item.quantity} x Rs {item.price}</Text>
-              </YStack>
-              <Text fontWeight="600" fontSize={14}>Rs {item.price * item.quantity}</Text>
-            </XStack>
-          ))}
+          {itemsToProcess.map((item: any, idx: number) => {
+            const hasAddons = item.addons && item.addons.length > 0;
+            const addonPriceMinor = hasAddons ? item.addons.reduce((sum: number, a: any) => sum + (a.priceMinor || 0), 0) : 0;
+            const itemTotal = item.priceType === 'variable' 
+              ? 0 
+              : ((item.price * 100 + addonPriceMinor) * item.quantity) / 100;
+              
+            return (
+              <XStack key={idx} justifyContent="space-between" marginBottom={12}>
+                <YStack flex={1} marginRight={12}>
+                  <Text fontWeight="600" fontSize={14}>{item.name}</Text>
+                  {hasAddons && (
+                    <Text color="#0F9D58" fontSize={11} marginTop={2}>
+                      {item.addons.map((a: any) => a.name).join(', ')} added
+                    </Text>
+                  )}
+                  {item.priceType === 'variable' ? (
+                    <Text color={COLORS.textSecondary} fontSize={12} marginTop={2}>{item.quantity} x Rs {item.price} - Variable</Text>
+                  ) : (
+                    <Text color={COLORS.textSecondary} fontSize={12} marginTop={2}>{item.quantity} x Rs {(item.price * 100 + addonPriceMinor) / 100}</Text>
+                  )}
+                </YStack>
+                <YStack alignItems="flex-end">
+                  {item.priceType === 'variable' ? (
+                    <Text fontWeight="600" fontSize={14}>Est. range</Text>
+                  ) : (
+                    <Text fontWeight="600" fontSize={14}>Rs {itemTotal}</Text>
+                  )}
+                </YStack>
+              </XStack>
+            );
+          })}
           
           <View style={{ height: 1, backgroundColor: '#F0F0F0', marginVertical: 12 }} />
           
@@ -224,8 +256,13 @@ export default function CheckoutScreen({ navigation, route }: any) {
           <View style={{ height: 1, backgroundColor: '#F0F0F0', marginVertical: 12 }} />
           
           <XStack justifyContent="space-between">
-            <Text fontWeight="bold" fontSize={16}>Total</Text>
-            <Text fontWeight="bold" fontSize={18} color={COLORS.darkGreen}>Rs {finalAmountMinor / 100}</Text>
+            <Text fontWeight="bold" fontSize={16}>{hasVariablePricing ? 'Estimated Total' : 'Total'}</Text>
+            <YStack alignItems="flex-end">
+              <Text fontWeight="bold" fontSize={18} color={COLORS.darkGreen}>Rs {finalAmountMinor / 100}</Text>
+              {hasVariablePricing && (
+                <Text color={COLORS.textSecondary} fontSize={10} marginTop={4}>Final price confirmed after pickup</Text>
+              )}
+            </YStack>
           </XStack>
         </YStack>
 
@@ -270,6 +307,9 @@ export default function CheckoutScreen({ navigation, route }: any) {
           </TouchableOpacity>
           <Text color={COLORS.textSecondary} fontSize={13} marginLeft={8} flex={1} lineHeight={20}>
             I agree to the Terms & Conditions. Please check your garments for any damage before placing the order. SafaiKart is not liable for normal wear and tear.
+            {hasSteamPress && (
+              <Text style={{ fontWeight: 'bold' }}> Note: Steam Press excludes sofa covers, curtains, shoes, carpets, ties, and heavy household items.</Text>
+            )}
           </Text>
         </XStack>
 

@@ -21,6 +21,7 @@ export default function OrderTrackingScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [timeRemainingSecs, setTimeRemainingSecs] = useState<number>(0);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -31,6 +32,13 @@ export default function OrderTrackingScreen() {
     const unsubscribe = trackingUseCase.execute(orderId, (updatedOrder) => {
       setOrder(updatedOrder);
       setIsLoading(false);
+      
+      // Calculate initial time remaining if editableUntil exists
+      if (updatedOrder?.editableUntil) {
+        const editableTime = updatedOrder.editableUntil.toMillis();
+        const now = Date.now();
+        setTimeRemainingSecs(Math.max(0, Math.floor((editableTime - now) / 1000)));
+      }
     });
 
     return () => unsubscribe();
@@ -45,6 +53,16 @@ export default function OrderTrackingScreen() {
       ])
     ).start();
   }, [pulseAnim]);
+
+  useEffect(() => {
+    let interval: any;
+    if (timeRemainingSecs > 0) {
+      interval = setInterval(() => {
+        setTimeRemainingSecs(prev => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timeRemainingSecs]);
 
   const handleCancel = async () => {
     Alert.alert(
@@ -125,6 +143,15 @@ export default function OrderTrackingScreen() {
           </View>
         </View>
 
+        {/* Timeline Header (Est Delivery) */}
+        {order.estimatedDeliveryDate && (
+          <View style={{ backgroundColor: '#F0F9F4', padding: 12, borderRadius: SIZES.radius, marginBottom: SIZES.medium, borderWidth: 1, borderColor: '#A5D6A7' }}>
+            <Text style={{ textAlign: 'center', color: COLORS.darkGreen, fontWeight: 'bold' }}>
+              Expected delivery: {new Date(order.estimatedDeliveryDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+            </Text>
+          </View>
+        )}
+
         {/* Timeline */}
         <View style={styles.timelineContainer}>
           {isCancelled ? (
@@ -195,19 +222,37 @@ export default function OrderTrackingScreen() {
           )}
         </View>
 
-        {/* Actions */}
-        {(order.status === 'CONFIRMED' || order.status === 'PICKUP_SCHEDULED') && (
-          <AnimatedPressable 
-            style={styles.cancelBtn} 
-            onPress={handleCancel}
-            disabled={isCancelling}
-          >
-            {isCancelling ? (
-              <ActivityIndicator color="#FF3B30" />
+        {/* Edit Window Actions */}
+        {(order.status === 'CONFIRMED' || order.status === 'PAYMENT_PENDING') && (
+          <View style={{ marginTop: SIZES.extraLarge }}>
+            {timeRemainingSecs > 0 ? (
+              <>
+                <Text style={{ textAlign: 'center', marginBottom: 12, fontWeight: 'bold', color: timeRemainingSecs < 60 ? '#FF3B30' : COLORS.textSecondary }}>
+                  {Math.floor(timeRemainingSecs / 60)}:{(timeRemainingSecs % 60).toString().padStart(2, '0')} remaining to edit your order
+                </Text>
+                
+                <AnimatedPressable 
+                  style={[styles.cancelBtn, { borderColor: COLORS.darkGreen, marginBottom: 12 }]} 
+                  onPress={() => navigation.navigate('CheckoutFlow', { screen: 'EditOrder', params: { orderId: order.id } })}
+                >
+                  <Text style={[styles.cancelBtnText, { color: COLORS.darkGreen }]}>Edit Order</Text>
+                </AnimatedPressable>
+
+                <AnimatedPressable 
+                  style={styles.cancelBtn} 
+                  onPress={handleCancel}
+                  disabled={isCancelling}
+                >
+                  {isCancelling ? <ActivityIndicator color="#FF3B30" /> : <Text style={styles.cancelBtnText}>Cancel Order</Text>}
+                </AnimatedPressable>
+              </>
             ) : (
-              <Text style={styles.cancelBtnText}>Cancel Order</Text>
+              <View style={{ backgroundColor: '#F9F9F9', padding: 12, borderRadius: 8, alignItems: 'center' }}>
+                <Ionicons name="lock-closed" size={24} color={COLORS.textSecondary} />
+                <Text style={{ marginTop: 8, color: COLORS.textSecondary, fontWeight: 'bold' }}>Order locked — no further edits possible</Text>
+              </View>
             )}
-          </AnimatedPressable>
+          </View>
         )}
 
       </ScrollView>
