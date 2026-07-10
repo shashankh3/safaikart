@@ -63,11 +63,10 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, blurTargetRef }:
         let iconName: any;
         if (route.name === 'Home') iconName = isFocused ? 'home' : 'home-outline';
         else if (route.name === 'Orders') iconName = isFocused ? 'bag' : 'bag-outline';
-        else if (route.name === 'OrderTracking') iconName = isFocused ? 'location' : 'location-outline';
         else if (route.name === 'Profile') iconName = isFocused ? 'person' : 'person-outline';
 
         const label = route.name.toUpperCase();
-        const displayLabel = label === 'ORDERTRACKING' ? 'TRACK' : label;
+        const displayLabel = label;
         const tintColor = isFocused ? '#0F301F' : '#9EB5A8';
 
         return (
@@ -102,11 +101,6 @@ function BottomTabs() {
       >
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Orders" component={OrdersScreen} />
-        <Tab.Screen 
-          name="OrderTracking" 
-          component={OrderTrackingScreen} 
-          options={{ tabBarLabel: 'Track', swipeEnabled: false }} 
-        />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
     </View>
@@ -122,6 +116,7 @@ export default function AppNavigator() {
         <Stack.Screen name="SubScreen" component={SubScreen} />
         <Stack.Screen name="ServiceDetails" component={ServiceDetailsScreen} />
         <Stack.Screen name="CheckoutFlow" component={CheckoutNavigator} />
+        <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

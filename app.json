@@ -31,7 +31,8 @@
           "backgroundColor": "#00000000",
           "enforceContrast": false
         }
-      ]
+      ],
+      "@sentry/react-native"
     ]
   }
 }

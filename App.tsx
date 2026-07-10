@@ -10,13 +10,20 @@ import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-ic
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
 import { CartProvider } from './src/features/cart/presentation/hooks/useCart';
+import { NotificationProvider } from './src/core/firebase/NotificationProvider';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: "YOUR_SENTRY_DSN",
+  debug: false, 
+});
 
 SplashScreen.preventAutoHideAsync();
 
 const MOBILE_WIDTH = 412;
 const MOBILE_HEIGHT = 892;
 
-export default function App() {
+function App() {
   const [fontsLoaded] = useFonts({
     Inter: Inter_400Regular,
     InterBold: Inter_700Bold,
@@ -86,12 +93,16 @@ export default function App() {
         >
           <StatusBar style="auto" />
           <CartProvider>
-            <AppNavigator />
+            <NotificationProvider>
+              <AppNavigator />
+            </NotificationProvider>
           </CartProvider>
         </View>
       </YStack>
     </SafeAreaProvider>
   );
 }
+
+export default Sentry.wrap(App);
 
 

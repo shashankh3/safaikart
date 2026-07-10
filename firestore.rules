@@ -2,9 +2,25 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Addresses — users can only access their own
+    // ===== USERS =====
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // Only Cloud Functions
+    }
+
+    // ===== PROFILES =====
+    match /profiles/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.userId == resource.data.userId;
+      allow create, delete: if false;
+    }
+
+    // ===== ADDRESSES =====
     match /addresses/{addressId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null
         && request.resource.data.userId == request.auth.uid;
       allow update: if request.auth != null
@@ -14,45 +30,69 @@ service cloud.firestore {
         && resource.data.userId == request.auth.uid;
     }
 
-    // Pickup slots — users can read active slots only
-    match /pickupSlots/{slotId} {
+    // ===== CATEGORIES =====
+    match /categories/{categoryId} {
       allow read: if request.auth != null && resource.data.isActive == true;
-      allow write: if false; // Only Cloud Functions can write
+      allow write: if false;
     }
 
-    // Coupons — users can read valid coupons (for validation display)
+    // ===== SERVICES =====
+    match /services/{serviceId} {
+      allow read: if request.auth != null && resource.data.isActive == true;
+      allow write: if false;
+    }
+
+    // ===== CARTS =====
+    match /carts/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ===== ORDERS =====
+    match /orders/{orderId} {
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    // ===== PAYMENTS =====
+    match /payments/{paymentId} {
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    // ===== COUPONS =====
     match /coupons/{couponId} {
       allow read: if request.auth != null && resource.data.isActive == true;
-      allow write: if false; // Only Cloud Functions/Admin can write
+      allow write: if false;
     }
 
-    // Orders — users can read their own orders only
-    match /orders/{orderId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create, update, delete: if false; // Only Cloud Functions can create/update orders
+    // ===== PICKUP SLOTS =====
+    match /pickupSlots/{slotId} {
+      allow read: if request.auth != null && resource.data.isActive == true;
+      allow write: if false;
     }
 
-    // Payments — users can read their own payment status only
-    match /payments/{paymentId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create, update, delete: if false; // Only Cloud Functions can write
+    // ===== NOTIFICATIONS =====
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow write: if false;
     }
 
-    // Other existing rules placeholders
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // ===== APP CONFIG =====
+    match /appConfig/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
     }
-    match /profiles/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    // ===== ADMIN USERS & AUDIT LOGS =====
+    match /adminUsers/{adminUserId} {
+      allow read, write: if false;
     }
-    match /services/{serviceId} {
-      allow read: if true;
-    }
-    match /categories/{categoryId} {
-      allow read: if true;
-    }
-    match /carts/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    match /auditLogs/{logId} {
+      allow read, write: if false;
     }
   }
 }
