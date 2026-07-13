@@ -12,8 +12,7 @@ export default function AddressFormScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
   const { mode, addressId, address } = route?.params || { mode: 'add' };
   
-  const TEMP_USER_ID = 'guest-123';
-  const { addAddress, updateAddress } = useAddresses(TEMP_USER_ID);
+  const { addAddress, updateAddress } = useAddresses();
 
   const [label, setLabel] = useState(mode === 'edit' ? address?.label : 'Home');
   const [name, setName] = useState(mode === 'edit' ? address?.name : '');

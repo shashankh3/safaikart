@@ -22,10 +22,8 @@ const validateCouponUseCase = new ValidateCouponUseCase(repository);
 
 export default function CheckoutScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
-  const TEMP_USER_ID = 'guest-123';
-  
   const { cartItems: contextCartItems, totalPrice: contextTotalPrice } = useCart();
-  const { addresses } = useAddresses(TEMP_USER_ID);
+  const { addresses } = useAddresses();
 
   const directItems = route.params?.directItems;
   const itemsToProcess = directItems || contextCartItems;

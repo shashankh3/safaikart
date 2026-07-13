@@ -12,6 +12,7 @@ import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressabl
 import StickyCart from '../../../../features/cart/presentation/components/StickyCart';
 import NotificationModal from '../../../../shared/ui/feedback/NotificationModal';
 import { useCart } from '../../../../features/cart/presentation/hooks/useCart';
+import { useCategoriesQuery, useServicesQuery } from '../../application/useServicesQuery';
 import * as Haptics from 'expo-haptics';
 
 const CATEGORIES = [
@@ -177,6 +178,27 @@ const AnimatedServiceIcon = ({ iconName }) => {
 
 export default function HomeScreen({ navigation }) {
   const { totalItems } = useCart();
+  const { data: remoteCategories, isLoading: isCategoriesLoading } = useCategoriesQuery();
+  const { data: remoteServices, isLoading: isServicesLoading } = useServicesQuery();
+
+  const finalCategories = remoteCategories && remoteCategories.length > 0 
+    ? [{ name: "All", icon: "view-grid-outline" }, ...remoteCategories.map(c => ({ name: c.name, icon: c.icon }))] 
+    : CATEGORIES;
+
+  const finalServices = remoteServices && remoteServices.length > 0 
+    ? remoteServices.map(s => ({
+        id: s.id,
+        title: s.name,
+        category: remoteCategories?.find(c => c.id === s.categoryId)?.name?.toUpperCase() || 'SERVICE',
+        time: `${Math.round(s.estimatedDurationHours / 24)} DAY`,
+        img: s.imageUrl ? { uri: s.imageUrl } : require('../../../../../assets/laundry_basket.png'),
+        icon: 'washing-machine', // Can map category id to icon in future
+        chipCategories: [remoteCategories?.find(c => c.id === s.categoryId)?.name || 'All'],
+        price: s.priceMinor ? s.priceMinor / 100 : 0,
+        priceMinor: s.priceMinor
+      }))
+    : services;
+
   const { width } = useWindowDimensions();
   const [activeCategory, setActiveCategory] = useState("All");
   const [notifVisible, setNotifVisible] = useState(false);
@@ -281,7 +303,7 @@ export default function HomeScreen({ navigation }) {
         {/* Category Chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12, paddingBottom: 4 }}>
           <XStack>
-            {CATEGORIES.map((cat, i) => {
+            {finalCategories.map((cat, i) => {
               const isActive = activeCategory === cat.name;
               return (
                   <AnimatedPressable 
@@ -390,7 +412,7 @@ export default function HomeScreen({ navigation }) {
 
         {/* Services Grid */}
         <XStack fw="wrap" jc="space-between">
-          {services
+          {finalServices
             .filter(item => activeCategory === 'All' || item.chipCategories?.includes(activeCategory))
             .map((item, index) => (
             <React.Fragment key={item.id}>

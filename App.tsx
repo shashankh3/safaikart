@@ -10,8 +10,13 @@ import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-ic
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
 import { CartProvider } from './src/features/cart/presentation/hooks/useCart';
-// import { NotificationProvider } from './src/core/firebase/NotificationProvider';
+import { AppProvider } from './src/app/AppProvider';
+import { NotificationProvider } from './src/core/firebase/NotificationProvider';
+import { ErrorBoundary } from './src/app/ErrorBoundary';
+import { bootstrap } from './src/app/bootstrap';
 import Constants from 'expo-constants';
+
+bootstrap();
 
 const isExpoGo = Constants.appOwnership === 'expo';
 
@@ -102,11 +107,15 @@ function App() {
           }}
         >
           <StatusBar style="auto" />
-          <CartProvider>
-            {/* <NotificationProvider> */}
-              <AppNavigator />
-            {/* </NotificationProvider> */}
-          </CartProvider>
+          <AppProvider>
+            <CartProvider>
+              <NotificationProvider>
+                <ErrorBoundary>
+                  <AppNavigator />
+                </ErrorBoundary>
+              </NotificationProvider>
+            </CartProvider>
+          </AppProvider>
         </View>
       </YStack>
     </SafeAreaProvider>

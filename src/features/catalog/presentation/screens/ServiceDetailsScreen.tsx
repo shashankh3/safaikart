@@ -6,13 +6,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressable';
 import { COLORS } from '../../../../shared/theme/colors';
 import { useCart } from '../../../../features/cart/presentation/hooks/useCart';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '../../../../app/config/firebase';
+import { useServicesQuery, useCategoriesQuery } from '../../application/useServicesQuery';
 
 export default function ServiceDetailsScreen({ route, navigation }: any) {
   const { service } = route.params;
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: allServices = [], isLoading } = useServicesQuery();
+  const { data: categories = [] } = useCategoriesQuery();
+
+  const categoryId = categories.find(c => c.name.toUpperCase() === service.category?.toUpperCase())?.id || service.category;
   
   // State for quantities and selected addons
   const [quantities, setQuantities] = useState<any>({});
@@ -20,42 +21,16 @@ export default function ServiceDetailsScreen({ route, navigation }: any) {
   
   const { addToCart } = useCart();
 
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const categoryId = service.category;
-        
-        const q = query(
-          collection(db, 'services'),
-          where('categoryId', '==', categoryId)
-        );
-        const snapshot = await getDocs(q);
-        
-        let fetchedItems: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // If Firestore is empty, provide fallback mock data for testing
-        if (fetchedItems.length === 0) {
-          fetchedItems = [
-            { id: 'mock-1', name: 'Shirt', priceMinor: 9000, priceType: 'fixed', unit: 'piece', categoryId, addons: [{ id: 'starch', name: 'Starch', priceMinor: 4000 }] },
-            { id: 'mock-2', name: 'T-Shirt', priceMinor: 7000, priceType: 'fixed', unit: 'piece', categoryId },
-            { id: 'mock-3', name: 'Kurta', priceMinor: 11000, priceType: 'fixed', unit: 'piece', categoryId, addons: [{ id: 'starch', name: 'Starch', priceMinor: 4000 }] },
-            { id: 'mock-4', name: 'Curtains (Light)', priceMinor: 35000, maxPriceMinor: 60000, priceType: 'variable', unit: 'piece', categoryId }
-          ];
-        } else {
-          // Client-side sort fallback since we didn't index sortOrder yet
-          fetchedItems.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
-        }
-        
-        setItems(fetchedItems);
-      } catch (error) {
-        console.error('Error fetching services:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchServices();
-  }, [service]);
+  let items = allServices.filter(s => s.categoryId === categoryId);
+  
+  if (!isLoading && items.length === 0) {
+    items = [
+      { id: 'mock-1', name: 'Shirt', priceMinor: 9000, priceType: 'fixed', unit: 'piece', categoryId, addons: [{ id: 'starch', name: 'Starch', priceMinor: 4000 }] },
+      { id: 'mock-2', name: 'T-Shirt', priceMinor: 7000, priceType: 'fixed', unit: 'piece', categoryId },
+      { id: 'mock-3', name: 'Kurta', priceMinor: 11000, priceType: 'fixed', unit: 'piece', categoryId, addons: [{ id: 'starch', name: 'Starch', priceMinor: 4000 }] },
+      { id: 'mock-4', name: 'Curtains (Light)', priceMinor: 35000, priceMaxMinor: 60000, priceType: 'variable', unit: 'piece', categoryId }
+    ] as any;
+  }
 
   const updateQuantity = (id: string, delta: number) => {
     setQuantities((prev: any) => {
@@ -152,7 +127,7 @@ export default function ServiceDetailsScreen({ route, navigation }: any) {
         <YStack padding={20}>
           <XStack justifyContent="space-between" alignItems="center" marginBottom={16}>
             <Text fontSize={18} fontWeight="bold">Select Garments</Text>
-            {loading && <ActivityIndicator size="small" color={COLORS.darkGreen} />}
+            {isLoading && <ActivityIndicator size="small" color={COLORS.darkGreen} />}
           </XStack>
           
           <YStack backgroundColor="#F0F9F4" padding={12} borderRadius={8} marginBottom={20} borderWidth={1} borderColor="#A5D6A7">
@@ -173,7 +148,7 @@ export default function ServiceDetailsScreen({ route, navigation }: any) {
                   <YStack flex={1}>
                     <Text fontSize={16} fontWeight="bold" marginBottom={4}>{item.name}</Text>
                     {item.priceType === 'variable' ? (
-                      <Text fontSize={14} color="#666">Rs {item.priceMinor/100} - {item.maxPriceMinor/100} (est.) / {item.unit}</Text>
+                      <Text fontSize={14} color="#666">Rs {item.priceMinor/100} - {item.priceMaxMinor/100} (est.) / {item.unit}</Text>
                     ) : (
                       <Text fontSize={14} color="#666">Rs {item.priceMinor/100} / {item.unit}</Text>
                     )}

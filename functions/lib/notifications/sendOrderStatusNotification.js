@@ -31,39 +31,69 @@ exports.sendOrderStatusNotification = (0, firestore_1.onDocumentUpdated)('orders
     const tokens = tokensData.map((t) => t.token);
     let title = 'SafaiKart Order Update';
     let body = '';
+    let type = 'order_update';
     switch (newStatus) {
         case 'CONFIRMED':
-            body = `Your order is confirmed! Pickup scheduled for ${(_c = after.pickupSlotSnapshot) === null || _c === void 0 ? void 0 : _c.date}.`;
+            title = 'Order Confirmed';
+            body = `Order #SK-${orderId.substring(0, 4).toUpperCase()} confirmed! Pickup: ${((_c = after.pickupSlotSnapshot) === null || _c === void 0 ? void 0 : _c.date) || 'soon'}.`;
             break;
         case 'PICKED_UP':
-            body = `Your clothes have been picked up. Cleaning in progress soon.`;
+            title = 'Order Picked Up';
+            body = `Items picked up for order #SK-${orderId.substring(0, 4).toUpperCase()}. Cleaning in progress.`;
             break;
         case 'CLEANING_IN_PROGRESS':
+            title = 'Cleaning in Progress';
             body = `Your items are being cleaned. We'll notify you when they're ready.`;
             break;
         case 'READY_FOR_DELIVERY':
-            body = `Your clothes are ready! Out for delivery soon.`;
+            title = 'Ready for Delivery';
+            body = `Items ready for delivery! Order #SK-${orderId.substring(0, 4).toUpperCase()}.`;
             break;
         case 'OUT_FOR_DELIVERY':
+            title = 'Out for Delivery';
             body = `Your order is out for delivery. Expected soon.`;
             break;
         case 'DELIVERED':
-            body = `Your order has been delivered. Thank you for choosing SafaiKart!`;
+            title = 'Order Delivered';
+            body = `Order #SK-${orderId.substring(0, 4).toUpperCase()} delivered! Thank you for choosing SafaiKart.`;
             break;
         case 'CANCELLED':
-            body = `Your order has been cancelled.`;
+        case 'REFUND_PENDING':
+        case 'REFUNDED':
+            title = 'Order Cancelled';
+            body = `Your order #SK-${orderId.substring(0, 4).toUpperCase()} was cancelled. Please collect your items.`;
+            type = 'order_cancelled';
             break;
         default:
             return; // Skip notification for other statuses
     }
+    const deepLink = `safaikart://order/${orderId}`;
+    // 1. Audit log / In-App Notification Center
+    try {
+        await admin.firestore().collection('notifications').add({
+            userId,
+            orderId,
+            type,
+            title,
+            body,
+            deepLink,
+            isRead: false,
+            createdAt: firestore_2.FieldValue.serverTimestamp()
+        });
+    }
+    catch (error) {
+        console.error('Error writing to notification center:', error);
+    }
+    // 2. FCM Push Notification
+    if (tokens.length === 0)
+        return;
     const message = {
         notification: { title, body },
-        data: { orderId, status: newStatus, type: 'order_update' },
+        data: { orderId, status: newStatus, type, deepLink },
         tokens,
     };
     try {
         const response = await admin.messaging().sendEachForMulticast(message);
-        // Optional: Log failed tokens to remove them
         const failedTokens = [];
         response.responses.forEach((resp, idx) => {
             var _a, _b;
@@ -75,21 +105,11 @@ exports.sendOrderStatusNotification = (0, firestore_1.onDocumentUpdated)('orders
             }
         });
         if (failedTokens.length > 0) {
-            // Remove failed tokens
             const remainingTokens = tokensData.filter((t) => !failedTokens.includes(t.token));
             await admin.firestore().collection('profiles').doc(userId).update({
                 fcmTokens: remainingTokens
             });
         }
-        // Audit log
-        await admin.firestore().collection('notifications').add({
-            userId,
-            orderId,
-            title,
-            body,
-            status: 'SENT',
-            createdAt: firestore_2.FieldValue.serverTimestamp()
-        });
     }
     catch (error) {
         console.error('Error sending multicast notification', error);

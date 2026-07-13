@@ -1,0 +1,27 @@
+appId: com.safaikart.app
+---
+- launchApp
+- tapOn: "View Cart"
+- assertVisible: "My Cart"
+- tapOn: "Checkout"
+
+- assertVisible: "Checkout"
+- assertVisible: "Delivery Address"
+
+# Select Address
+- tapOn: "Select Address"
+- assertVisible: "My Addresses"
+- tapOn: "Home"
+
+# Select Pickup Slot
+- tapOn: "Select Pickup Slot"
+- assertVisible: "Available Slots"
+- tapOn: "Tomorrow"
+- tapOn: "09:00 AM - 12:00 PM"
+
+# T&C
+- tapOn: "I agree to the Terms & Conditions"
+
+# Place Order
+- tapOn: "Place Order"
+- assertVisible: "Payment"

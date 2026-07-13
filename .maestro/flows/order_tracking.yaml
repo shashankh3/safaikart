@@ -1,0 +1,20 @@
+appId: com.safaikart.app
+---
+- launchApp
+- tapOn: "Orders"
+- assertVisible: "My Orders"
+
+# Open first active order
+- tapOn: "CONFIRMED"
+- assertVisible: "Order Status"
+- assertVisible: "Pickup Scheduled"
+
+# Verify 3-min edit timer
+- assertVisible: ":" # timer format mm:ss
+
+# Cancel order (assuming within window)
+- tapOn: "Cancel Order"
+- assertVisible: "Are you sure you want to cancel this order?"
+- tapOn: "Yes, Cancel"
+
+- assertVisible: "Order Cancelled"

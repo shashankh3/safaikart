@@ -6,36 +6,19 @@ import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';
 import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressable';
 import { Order } from '../../domain/Order';
-import { GetOrdersUseCase } from '../../application/getOrders.usecase';
-import { OrdersRepository } from '../../infrastructure/OrdersRepository';
+import { useOrdersQuery } from '../../application/useOrdersQuery';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function OrdersScreen() {
   const navigation = useNavigation<any>();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: orders = [], isLoading, refetch } = useOrdersQuery();
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const getOrdersUseCase = new GetOrdersUseCase(new OrdersRepository());
-
-  const loadOrders = useCallback(async () => {
-    try {
-      const data = await getOrdersUseCase.execute();
-      setOrders(data);
-    } catch (error) {
-      console.warn('Failed to load orders', error);
-    }
-  }, []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await loadOrders();
+    await refetch();
     setIsRefreshing(false);
   };
-
-  useEffect(() => {
-    loadOrders().finally(() => setIsLoading(false));
-  }, [loadOrders]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

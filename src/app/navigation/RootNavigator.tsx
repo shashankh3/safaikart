@@ -12,9 +12,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from '../../features/catalog/presentation/screens/HomeScreen';
 import OrdersScreen from '../../features/orders/presentation/screens/OrdersScreen';
 import ProfileScreen from '../../features/profile/presentation/screens/ProfileScreen';
+import NotificationCenterScreen from '../../features/profile/presentation/screens/NotificationCenterScreen';
 import OrderTrackingScreen from '../../features/orders/presentation/screens/OrderTrackingScreen';
 import SubScreen from '../../features/catalog/presentation/screens/SubScreen';
-import EntryScreen from '../../features/auth/presentation/screens/EntryScreen';
+import AuthNavigator from './AuthNavigator';
 import ServiceDetailsScreen from '../../features/catalog/presentation/screens/ServiceDetailsScreen';
 
 import StickyCart from '../../features/cart/presentation/components/StickyCart';
@@ -24,6 +25,8 @@ import CheckoutNavigator from './CheckoutNavigator';
 
 import { COLORS } from '../../shared/theme/colors';
 import { SIZES } from '../../shared/theme/spacing';
+import { useAuth } from '../../features/auth/application/useAuth';
+import { ActivityIndicator } from 'react-native';
 
 const Tab = createMaterialTopTabNavigator<any>();
 const Stack = createNativeStackNavigator<any>();
@@ -108,15 +111,31 @@ function BottomTabs() {
 }
 
 export default function AppNavigator() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.primaryBg }}>
+        <ActivityIndicator size="large" color={COLORS.darkGreen} />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator id={undefined} screenOptions={{ headerShown: false }} initialRouteName="Entry">
-        <Stack.Screen name="Entry" component={EntryScreen} />
-        <Stack.Screen name="MainTabs" component={BottomTabs} />
-        <Stack.Screen name="SubScreen" component={SubScreen} />
-        <Stack.Screen name="ServiceDetails" component={ServiceDetailsScreen} />
-        <Stack.Screen name="CheckoutFlow" component={CheckoutNavigator} />
-        <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
+      <Stack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
+        {!user ? (
+          <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
+        ) : (
+          <>
+            <Stack.Screen name="MainTabs" component={BottomTabs} />
+            <Stack.Screen name="SubScreen" component={SubScreen} />
+            <Stack.Screen name="ServiceDetails" component={ServiceDetailsScreen} />
+            <Stack.Screen name="CheckoutFlow" component={CheckoutNavigator} />
+            <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} />
+            <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

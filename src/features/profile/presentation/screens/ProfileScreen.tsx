@@ -10,19 +10,26 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';
 import Header from '../../../../shared/ui/components/Header';
+import { useAuth } from '../../../auth/application/useAuth';
+import { useProfileQuery } from '../../application/useProfileQuery';
 
 const menuItems = [
+  { id: '0', title: 'Notifications', icon: 'notifications', tint: '#FFE0B2' },
   { id: '1', title: 'My Addresses', icon: 'location', tint: '#E8F5E9' },
   { id: '2', title: 'Payment Methods', icon: 'card', tint: '#E3F2FD' },
   { id: '3', title: 'Coupons & Offers', icon: 'gift', tint: '#FFF3E0' },
   { id: '4', title: 'Help & Support', icon: 'headset', tint: '#F3E5F5' },
 ];
 
-export default function ProfileScreen({ navigation }) {
+export default function ProfileScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
+  const { logout } = useAuth();
+  const { data: profile } = useProfileQuery();
   const handleMenuPress = (item) => {
     if (item.title === 'Help & Support') {
       Linking.openURL('whatsapp://send?text=Hello SafaiKart! I need some help.&phone=+919691561836');
+    } else if (item.title === 'Notifications') {
+      navigation.navigate('NotificationCenter');
     } else {
       navigation.navigate('SubScreen', { title: item.title });
     }
@@ -34,7 +41,7 @@ export default function ProfileScreen({ navigation }) {
       "Are you sure you want to log out of SafaiKart?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Log Out", style: "destructive", onPress: () => navigation.replace('Entry') }
+        { text: "Log Out", style: "destructive", onPress: () => logout() }
       ]
     );
   };
@@ -81,9 +88,9 @@ export default function ProfileScreen({ navigation }) {
                </XStack>
             </YStack>
             <YStack flex={1} justifyContent="center">
-              <Text fontSize={22} fontWeight="900" color={COLORS.white} marginBottom={6} letterSpacing={0.5}>Soumya Sharma</Text>
-              <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">+91 96915 61836</Text>
-              <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">soumya@example.com</Text>
+              <Text fontSize={22} fontWeight="900" color={COLORS.white} marginBottom={6} letterSpacing={0.5}>{profile?.name || 'Guest User'}</Text>
+              <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">{profile?.phoneNumber || 'No phone number'}</Text>
+              {profile?.email && <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">{profile.email}</Text>}
             </YStack>
           </XStack>
         </ImageBackground>

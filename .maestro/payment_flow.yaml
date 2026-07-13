@@ -1,0 +1,22 @@
+appId: ${APP_ID}
+---
+- launchApp
+
+# Assume we are on Payment Screen
+- assertVisible: "Payment"
+
+- tapOn: "Pay via UPI"
+
+# Wait for Razorpay WebView to load
+- extendedWaitUntil:
+    visible:
+      text: "Razorpay"
+    timeout: 10000
+
+# We can't easily simulate UPI apps, so we rely on the webhook fallback or simulate success
+# If there is a "Cancel Payment" button, we can test the failure path:
+- tapOn: "Cancel Payment"
+
+- assertVisible: "Payment Failed"
+- tapOn: "View in Orders"
+- assertVisible: "My Orders"

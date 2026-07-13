@@ -1,5 +1,6 @@
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { rateLimiter } from '../utils/rateLimiter';
 
 // Initialize admin app if not already initialized
 if (!admin.apps.length) {
@@ -8,15 +9,18 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const createOrderDraft = onCall(async (request) => {
-  const uid = request.auth?.uid;
+export const createOrderDraft = functions.https.onCall(async (data, context) => {
+  const uid = context.auth?.uid;
   if (!uid) {
-    throw new HttpsError('unauthenticated', 'User must be logged in to create an order.');
+    throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to create an order.');
   }
 
-  const { addressId, pickupSlotId, couponCode, directItems } = request.data;
+  // Rate limiting: max 5 orders per hour (3600 seconds)
+  await rateLimiter(uid, 'createOrderDraft', 5, 3600);
+
+  const { addressId, pickupSlotId, couponCode, directItems } = data;
   if (!addressId || !pickupSlotId) {
-    throw new HttpsError('invalid-argument', 'Address ID and Pickup Slot ID are required.');
+    throw new functions.https.HttpsError('invalid-argument', 'Address ID and Pickup Slot ID are required.');
   }
 
   // 1. Fetch Items
@@ -26,20 +30,20 @@ export const createOrderDraft = onCall(async (request) => {
   } else {
     const cartDoc = await db.collection('carts').doc(uid).get();
     if (!cartDoc.exists) {
-      throw new HttpsError('failed-precondition', 'Cart is empty or not found on server.');
+      throw new functions.https.HttpsError('failed-precondition', 'Cart is empty or not found on server.');
     }
     
     const cartData = cartDoc.data();
     itemsToProcess = cartData?.items || [];
     if (itemsToProcess.length === 0) {
-      throw new HttpsError('failed-precondition', 'Cart is empty.');
+      throw new functions.https.HttpsError('failed-precondition', 'Cart is empty.');
     }
   }
 
   // 2. Fetch Address
   const addressDoc = await db.collection('addresses').doc(addressId).get();
   if (!addressDoc.exists || addressDoc.data()?.userId !== uid) {
-    throw new HttpsError('permission-denied', 'Invalid address or unauthorized access.');
+    throw new functions.https.HttpsError('permission-denied', 'Invalid address or unauthorized access.');
   }
   const addressData = addressDoc.data()!;
 
@@ -53,11 +57,11 @@ export const createOrderDraft = onCall(async (request) => {
     // Fetch actual service from DB to prevent tampering
     const serviceDoc = await db.collection('services').doc(item.id || item.serviceId).get();
     if (!serviceDoc.exists) {
-      throw new HttpsError('not-found', `Service not found for item ${item.name}`);
+      throw new functions.https.HttpsError('not-found', `Service not found for item ${item.name}`);
     }
     const serviceData = serviceDoc.data()!;
     if (!serviceData.isActive) {
-      throw new HttpsError('failed-precondition', `Service ${serviceData.name} is no longer active.`);
+      throw new functions.https.HttpsError('failed-precondition', `Service ${serviceData.name} is no longer active.`);
     }
 
     const duration = serviceData.estimatedDurationHours || (serviceData.categoryId === 'steam_press' ? 24 : serviceData.categoryId === 'household' ? 72 : 48);
@@ -132,11 +136,11 @@ export const createOrderDraft = onCall(async (request) => {
     const slotDoc = await transaction.get(slotRef);
     
     if (!slotDoc.exists) {
-      throw new HttpsError('not-found', 'Pickup slot not found.');
+      throw new functions.https.HttpsError('not-found', 'Pickup slot not found.');
     }
     const slotData = slotDoc.data()!;
     if (!slotData.isActive || (slotData.bookedCount >= slotData.capacity)) {
-      throw new HttpsError('failed-precondition', 'Pickup slot is fully booked or inactive.');
+      throw new functions.https.HttpsError('failed-precondition', 'Pickup slot is fully booked or inactive.');
     }
 
     // Increment booked count

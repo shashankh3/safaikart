@@ -1,0 +1,34 @@
+appId: ${APP_ID}
+---
+- launchApp
+
+# Assume we already have items in cart and navigate to checkout
+- tapOn: "View Cart"
+- tapOn: "Checkout"
+
+- assertVisible:
+    text: "Delivery Address"
+
+# Select an address or add one
+- tapOn: "Select or Add Address"
+- assertVisible: "My Addresses"
+- tapOn: "Home"
+
+# Select Pickup Slot
+- tapOn: "Select"
+- assertVisible: "Today"
+- tapOn: "10:00 AM"
+
+# Apply Coupon
+- tapOn: "Enter coupon code"
+- inputText: "WELCOME50"
+- tapOn: "Apply"
+
+# Accept T&C
+- tapOn:
+    id: "tnc_checkbox"
+    optional: true
+
+# Place Order
+- tapOn: "Place Order"
+- assertVisible: "Payment"

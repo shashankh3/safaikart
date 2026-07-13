@@ -1,0 +1,17 @@
+appId: com.safaikart.app
+---
+- launchApp
+- assertVisible: "Payment"
+- assertVisible: "Pay via UPI"
+
+- tapOn: "Pay via UPI"
+
+# Mocking the Razorpay Native UI isn't fully possible with Maestro since it launches another app, 
+# but we can verify the loading state and assume success logic branches correctly.
+- assertVisible: "Secured by Razorpay"
+
+# Fallback: Assume the payment webhook takes over, or the user navigates back.
+# Testing the resulting success screen:
+- assertVisible: "Order Confirmed"
+- tapOn: "Track Order"
+- assertVisible: "Order Status"

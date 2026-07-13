@@ -11,9 +11,7 @@ import { Address } from '../../domain/Address';
 
 export default function AddressListScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
-  // Using temp user id for now until Phase 5 (Auth) is fully integrated across everything
-  const TEMP_USER_ID = 'guest-123'; 
-  const { addresses, loading, refresh, deleteAddress } = useAddresses(TEMP_USER_ID);
+  const { addresses, loading, refresh, deleteAddress } = useAddresses();
   
   const isFromCheckout = route?.params?.fromCheckout;
   const [deletingId, setDeletingId] = useState<string | null>(null);

@@ -1,0 +1,32 @@
+appId: com.safaikart.app
+---
+- launchApp
+- assertVisible: "Home"
+
+# Search for a service
+- tapOn: "Search for services..."
+- inputText: "Shirt"
+- tapOn: "Shirt"
+
+# Service Details Screen
+- assertVisible: "Shirt"
+- assertVisible: "Dry Cleaning"
+- assertVisible: "Rs"
+
+# Add Starch Add-on
+- tapOn: "Add Starch"
+- assertVisible: "+ Rs"
+
+# Increment quantity
+- tapOn: "+"
+- assertVisible: "2"
+
+# Add to Cart
+- tapOn: "Add to Cart"
+- assertVisible: "View Cart"
+
+# Verify Cart
+- tapOn: "View Cart"
+- assertVisible: "My Cart"
+- assertVisible: "Shirt"
+- assertVisible: "Checkout"

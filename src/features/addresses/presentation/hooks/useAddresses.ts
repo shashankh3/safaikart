@@ -1,86 +1,38 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Address, AddressDraft } from '../../domain/Address';
+import { useAddressesQuery, useAddAddressMutation } from '../../application/useAddressesQuery';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AddressRepository } from '../../infrastructure/AddressRepository';
-import { AddAddressUseCase } from '../../application/addAddress.usecase';
-import { UpdateAddressUseCase } from '../../application/updateAddress.usecase';
-import { ListAddressesUseCase } from '../../application/listAddresses.usecase';
+import { auth } from '../../../../app/config/firebase';
+import { AddressDraft } from '../../domain/Address';
 
-// In a real app, this would be injected via Context or a DI container.
 const repository = new AddressRepository();
-const addAddressUseCase = new AddAddressUseCase(repository);
-const updateAddressUseCase = new UpdateAddressUseCase(repository);
-const listAddressesUseCase = new ListAddressesUseCase(repository);
 
-export const useAddresses = (userId: string | null) => {
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export const useAddresses = (userId?: string | null) => {
+  const { data: addresses = [], isLoading: loading, error: queryError, refetch: refresh } = useAddressesQuery();
+  const addMutation = useAddAddressMutation();
+  const queryClient = useQueryClient();
 
-  const fetchAddresses = useCallback(async () => {
-    if (!userId) {
-      setAddresses([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await listAddressesUseCase.execute(userId);
-      setAddresses(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch addresses');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<AddressDraft> }) => {
+      if (!auth.currentUser) throw new Error('Not authenticated');
+      return repository.updateAddress(id, auth.currentUser.uid, patch);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['addresses'] }),
+  });
 
-  useEffect(() => {
-    fetchAddresses();
-  }, [fetchAddresses]);
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!auth.currentUser) throw new Error('Not authenticated');
+      return repository.deleteAddress(id, auth.currentUser.uid);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['addresses'] }),
+  });
 
-  const addAddress = async (draft: AddressDraft) => {
-    if (!userId) throw new Error('User not authenticated');
-    try {
-      await addAddressUseCase.execute(userId, draft);
-      await fetchAddresses(); // Refetch to get updated list with server timestamps
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
-  };
+  const addAddress = async (draft: AddressDraft) => addMutation.mutateAsync(draft);
+  const updateAddress = async (id: string, patch: Partial<AddressDraft>) => updateMutation.mutateAsync({ id, patch });
+  const deleteAddress = async (id: string) => deleteMutation.mutateAsync(id);
+  const setDefault = async (id: string) => updateAddress(id, { isDefault: true });
 
-  const updateAddress = async (id: string, patch: Partial<AddressDraft>) => {
-    if (!userId) throw new Error('User not authenticated');
-    try {
-      await updateAddressUseCase.execute(id, userId, patch);
-      await fetchAddresses();
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
-  };
-
-  const deleteAddress = async (id: string) => {
-    if (!userId) throw new Error('User not authenticated');
-    try {
-      await repository.deleteAddress(id, userId);
-      await fetchAddresses();
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
-  };
-
-  const setDefault = async (id: string) => {
-    if (!userId) throw new Error('User not authenticated');
-    try {
-      await updateAddressUseCase.execute(id, userId, { isDefault: true });
-      await fetchAddresses();
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
-  };
+  const error = queryError?.message || addMutation.error?.message || updateMutation.error?.message || deleteMutation.error?.message || null;
 
   return {
     addresses,
@@ -90,6 +42,6 @@ export const useAddresses = (userId: string | null) => {
     updateAddress,
     deleteAddress,
     setDefault,
-    refresh: fetchAddresses,
+    refresh,
   };
 };

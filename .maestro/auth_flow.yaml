@@ -1,0 +1,25 @@
+appId: ${APP_ID}
+---
+- launchApp
+- assertVisible:
+    text: "Login"
+    optional: true
+
+# If we are already logged in, we might be on Home. This test assumes we are logged out.
+- tapOn:
+    id: "skip_login_button"
+    optional: true
+
+# If not skipping, enter phone number
+- tapOn: "Enter Mobile Number"
+- inputText: "9999999999"
+- tapOn: "Send OTP"
+
+- assertVisible:
+    text: "Verify OTP"
+- tapOn: "Enter OTP"
+- inputText: "123456"
+- tapOn: "Verify & Proceed"
+
+- assertVisible:
+    text: "SafaiKart" # Assuming Home screen has this header

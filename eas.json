@@ -18,6 +18,16 @@
         "buildType": "apk"
       }
     },
+    "testing": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "staging",
+      "env": {
+        "APP_ENV": "staging"
+      }
+    },
     "production": {
       "android": {
         "buildType": "app-bundle"

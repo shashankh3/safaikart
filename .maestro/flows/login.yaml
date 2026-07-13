@@ -1,0 +1,17 @@
+appId: com.safaikart.app
+---
+- launchApp
+- assertVisible: "SafaiKart"
+- assertVisible: "Enter your phone number"
+
+- tapOn: "Phone Number"
+- inputText: "9691561836"
+- tapOn: "Get OTP"
+
+- assertVisible: "Enter OTP"
+- tapOn: "OTP"
+- inputText: "123456"
+- tapOn: "Verify OTP"
+
+- assertVisible: "Home"
+- assertVisible: "Search for services..."

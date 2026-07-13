@@ -21,6 +21,12 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "updates": {
+      "url": "https://u.expo.dev/YOUR-PROJECT-ID"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "plugins": [
       "expo-font",
       "expo-splash-screen",
@@ -32,7 +38,9 @@
           "enforceContrast": false
         }
       ],
-      "@sentry/react-native"
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
+      "@react-native-firebase/app-check"
     ]
   }
 }
