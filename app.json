@@ -11,6 +11,7 @@
     },
     "android": {
       "package": "com.safaikart.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -37,10 +38,7 @@
           "backgroundColor": "#00000000",
           "enforceContrast": false
         }
-      ],
-      "@react-native-firebase/app",
-      "@react-native-firebase/crashlytics",
-      "@react-native-firebase/app-check"
+      ]
     ]
   }
 }

@@ -1,6 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import crashlytics from '@react-native-firebase/crashlytics';
 import { COLORS } from '../shared/theme/colors';
 
 interface Props {
@@ -21,11 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    if (!__DEV__) {
-      crashlytics().recordError(error);
-    } else {
-      console.error("Uncaught error:", error, errorInfo);
-    }
+    console.error("Uncaught error:", error, errorInfo);
   }
 
   public render() {
