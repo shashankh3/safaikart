@@ -1,10 +1,45 @@
-export interface Addon {
+// New Hierarchical Catalog Data Models
+
+export interface CatalogItem {
   id: string;
   name: string;
-  priceMinor: number;
-  isActive: boolean;
+  price: number;
+  currency: string;
+  maxPrice?: number;
+  isRange?: boolean;
+  unit?: string;
+  // Fallback for older code using priceMinor
+  priceMinor?: number; 
 }
 
+export interface CatalogSubcategory {
+  id: string;
+  name: string;
+  items: CatalogItem[];
+}
+
+export interface CatalogCategory {
+  id: string;
+  name: string;
+  subcategories: CatalogSubcategory[];
+}
+
+export interface CatalogService {
+  id: string;
+  name: string;
+  imageRef?: string;
+  termsAndConditions?: string[];
+  categories: CatalogCategory[];
+}
+
+export interface CatalogV2 {
+  businessInfo: {
+    name: string;
+  };
+  services: CatalogService[];
+}
+
+// Keeping the old Service interface for any legacy components temporarily
 export interface Service {
   id: string;
   name: string;
@@ -15,7 +50,6 @@ export interface Service {
   priceMaxMinor?: number;
   priceType: 'fixed' | 'variable';
   unit: 'piece' | 'sqft' | 'seat' | 'chair' | 'package';
-  addons?: Addon[];
   estimatedDurationHours: number;
   isPackage?: boolean;
   packageQuantity?: number;

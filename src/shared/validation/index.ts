@@ -9,11 +9,13 @@ export const phoneSchema = z.object({
 
 export const addressSchema = z.object({
   label: z.string().min(1, 'Label is required'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  phoneNumber: z.string().regex(/^[6-9]\d{9}$/, 'Must be a valid 10-digit Indian mobile number'),
   line1: z.string().min(5, 'Address must be at least 5 characters'),
   line2: z.string().optional(),
   city: z.string().min(1, 'City is required'),
+  state: z.string().min(1, 'State is required'),
   pincode: z.string().regex(/^\d{6}$/, 'Must be a valid 6-digit pincode'),
-  landmark: z.string().optional(),
   isDefault: z.boolean().default(false)
 });
 

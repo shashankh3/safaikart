@@ -158,10 +158,7 @@ export default function EntryScreen({ navigation }) {
   const [ready, setReady] = useState(false);
 
   const handleNext = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'MainTabs' }],
-    });
+    navigation.navigate('PhoneLogin');
   };
 
   const slideAnim = useRef(new Animated.Value(60)).current;
@@ -285,7 +282,6 @@ export default function EntryScreen({ navigation }) {
 
         </View>
 
-        {/* Button */}
         <View>
           <YStack paddingHorizontal={24} style={{ paddingBottom: Math.max(40, insets.bottom + 20) }}>
             <AnimatedPressable 

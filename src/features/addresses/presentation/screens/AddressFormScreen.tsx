@@ -7,6 +7,7 @@ import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';
 import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressable';
 import { useAddresses } from '../hooks/useAddresses';
+import { addressSchema } from '../../../../shared/validation';
 
 export default function AddressFormScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
@@ -24,32 +25,47 @@ export default function AddressFormScreen({ navigation, route }: any) {
   const [pincode, setPincode] = useState(mode === 'edit' ? address?.pincode : '');
   const [isDefault, setIsDefault] = useState(mode === 'edit' ? address?.isDefault : true);
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const isValidPhone = phoneNumber.length === 10;
-  const isValidPincode = pincode.length === 6;
-  const isFormValid = name.trim().length > 0 && isValidPhone && line1.trim().length > 0 && city.trim().length > 0 && isValidPincode;
-
   const handleSave = async () => {
-    if (!isFormValid) return;
+    const draft = {
+      label,
+      name,
+      phoneNumber,
+      line1,
+      line2,
+      city,
+      state,
+      pincode,
+      isDefault
+    };
+
+    const validation = addressSchema.safeParse(draft);
+    if (!validation.success) {
+      const fieldErrors: Record<string, string> = {};
+      validation.error.issues.forEach(issue => {
+        if (issue.path[0]) {
+          fieldErrors[issue.path[0].toString()] = issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setErrors({});
     setSaving(true);
     try {
-      const draft = {
-        label,
-        name,
-        phoneNumber: `+91${phoneNumber}`,
-        line1,
-        line2,
-        city,
-        state,
-        pincode,
-        isDefault
+      const validDraft = {
+        ...validation.data,
+        line2: validation.data.line2 || '',
+        phoneNumber: `+91${validation.data.phoneNumber}`
       };
       
       if (mode === 'edit') {
-        await updateAddress(addressId, draft);
+        await updateAddress(addressId, validDraft);
       } else {
-        await addAddress(draft);
+        await addAddress(validDraft);
       }
       
       // Navigate back on success
@@ -98,21 +114,22 @@ export default function AddressFormScreen({ navigation, route }: any) {
         <YStack marginBottom={16}>
           <Text fontWeight="600" fontSize={13} color={COLORS.textSecondary} marginBottom={4}>Full Name *</Text>
           <TextInput
-            style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: SIZES.radius, padding: 12, fontSize: 16 }}
+            style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: errors.name ? '#E51A1A' : '#E0E0E0', borderRadius: SIZES.radius, padding: 12, fontSize: 16 }}
             placeholder="Enter full name"
             value={name}
             onChangeText={setName}
           />
+          {errors.name && <Text color="#E51A1A" fontSize={12} marginTop={4}>{errors.name}</Text>}
         </YStack>
 
         <YStack marginBottom={16}>
           <Text fontWeight="600" fontSize={13} color={COLORS.textSecondary} marginBottom={4}>Phone Number *</Text>
           <XStack alignItems="center">
-            <View style={{ backgroundColor: '#F5F5F5', borderWidth: 1, borderColor: '#E0E0E0', borderRightWidth: 0, borderTopLeftRadius: SIZES.radius, borderBottomLeftRadius: SIZES.radius, padding: 12, height: 50, justifyContent: 'center' }}>
+            <View style={{ backgroundColor: '#F5F5F5', borderWidth: 1, borderColor: errors.phoneNumber ? '#E51A1A' : '#E0E0E0', borderRightWidth: 0, borderTopLeftRadius: SIZES.radius, borderBottomLeftRadius: SIZES.radius, padding: 12, height: 50, justifyContent: 'center' }}>
               <Text fontSize={16} fontWeight="600">+91</Text>
             </View>
             <TextInput
-              style={{ flex: 1, height: 50, backgroundColor: '#FFF', borderWidth: 1, borderColor: (!isValidPhone && phoneNumber.length > 0) ? '#E51A1A' : '#E0E0E0', borderTopRightRadius: SIZES.radius, borderBottomRightRadius: SIZES.radius, padding: 12, fontSize: 16 }}
+              style={{ flex: 1, height: 50, backgroundColor: '#FFF', borderWidth: 1, borderColor: errors.phoneNumber ? '#E51A1A' : '#E0E0E0', borderTopRightRadius: SIZES.radius, borderBottomRightRadius: SIZES.radius, padding: 12, fontSize: 16 }}
               placeholder="XXXXXXXXXX"
               keyboardType="phone-pad"
               maxLength={10}
@@ -120,48 +137,53 @@ export default function AddressFormScreen({ navigation, route }: any) {
               onChangeText={setPhoneNumber}
             />
           </XStack>
+          {errors.phoneNumber && <Text color="#E51A1A" fontSize={12} marginTop={4}>{errors.phoneNumber}</Text>}
         </YStack>
 
         <YStack marginBottom={16}>
           <Text fontWeight="600" fontSize={13} color={COLORS.textSecondary} marginBottom={4}>Address Line 1 *</Text>
           <TextInput
-            style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: SIZES.radius, padding: 12, fontSize: 16 }}
+            style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: errors.line1 ? '#E51A1A' : '#E0E0E0', borderRadius: SIZES.radius, padding: 12, fontSize: 16 }}
             placeholder="House/Flat no, Building name"
             value={line1}
             onChangeText={setLine1}
           />
+          {errors.line1 && <Text color="#E51A1A" fontSize={12} marginTop={4}>{errors.line1}</Text>}
         </YStack>
 
         <YStack marginBottom={16}>
           <Text fontWeight="600" fontSize={13} color={COLORS.textSecondary} marginBottom={4}>Address Line 2 (Optional)</Text>
           <TextInput
-            style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: SIZES.radius, padding: 12, fontSize: 16 }}
+            style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: errors.line2 ? '#E51A1A' : '#E0E0E0', borderRadius: SIZES.radius, padding: 12, fontSize: 16 }}
             placeholder="Street, Area, Landmark"
             value={line2}
             onChangeText={setLine2}
           />
+          {errors.line2 && <Text color="#E51A1A" fontSize={12} marginTop={4}>{errors.line2}</Text>}
         </YStack>
 
         <XStack marginBottom={16}>
           <YStack flex={1} marginRight={8}>
             <Text fontWeight="600" fontSize={13} color={COLORS.textSecondary} marginBottom={4}>City *</Text>
             <TextInput
-              style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: SIZES.radius, padding: 12, fontSize: 16 }}
+              style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: errors.city ? '#E51A1A' : '#E0E0E0', borderRadius: SIZES.radius, padding: 12, fontSize: 16 }}
               placeholder="City"
               value={city}
               onChangeText={setCity}
             />
+            {errors.city && <Text color="#E51A1A" fontSize={12} marginTop={4}>{errors.city}</Text>}
           </YStack>
           <YStack flex={1}>
             <Text fontWeight="600" fontSize={13} color={COLORS.textSecondary} marginBottom={4}>Pincode *</Text>
             <TextInput
-              style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: (!isValidPincode && pincode.length > 0) ? '#E51A1A' : '#E0E0E0', borderRadius: SIZES.radius, padding: 12, fontSize: 16 }}
+              style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: errors.pincode ? '#E51A1A' : '#E0E0E0', borderRadius: SIZES.radius, padding: 12, fontSize: 16 }}
               placeholder="6 digits"
               keyboardType="numeric"
               maxLength={6}
               value={pincode}
               onChangeText={setPincode}
             />
+            {errors.pincode && <Text color="#E51A1A" fontSize={12} marginTop={4}>{errors.pincode}</Text>}
           </YStack>
         </XStack>
 
@@ -174,8 +196,8 @@ export default function AddressFormScreen({ navigation, route }: any) {
 
       {/* Save Button */}
       <YStack padding={SIZES.padding} paddingBottom={insets.bottom || SIZES.padding} backgroundColor={COLORS.white} borderTopWidth={1} borderTopColor="#F0F0F0">
-        <AnimatedPressable onPress={handleSave} disabled={!isFormValid || saving}>
-          <YStack backgroundColor={isFormValid && !saving ? COLORS.darkGreen : '#A0A0A0'} padding={16} borderRadius={SIZES.radius} alignItems="center">
+        <AnimatedPressable onPress={handleSave} disabled={saving}>
+          <YStack backgroundColor={!saving ? COLORS.darkGreen : '#A0A0A0'} padding={16} borderRadius={SIZES.radius} alignItems="center">
             <Text color={COLORS.white} fontSize={16} fontWeight="bold">{saving ? 'Saving...' : 'Save Address'}</Text>
           </YStack>
         </AnimatedPressable>

@@ -23,8 +23,8 @@ const menuItems = [
 
 export default function ProfileScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
-  const { logout } = useAuth();
-  const { data: profile } = useProfileQuery();
+  const { logout, isAdmin } = useAuth();
+  const { data: profile, isLoading } = useProfileQuery();
   const handleMenuPress = (item) => {
     if (item.title === 'Help & Support') {
       Linking.openURL('whatsapp://send?text=Hello SafaiKart! I need some help.&phone=+919691561836');
@@ -88,13 +88,37 @@ export default function ProfileScreen({ navigation }: any) {
                </XStack>
             </YStack>
             <YStack flex={1} justifyContent="center">
-              <Text fontSize={22} fontWeight="900" color={COLORS.white} marginBottom={6} letterSpacing={0.5}>{profile?.name || 'Guest User'}</Text>
-              <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">{profile?.phoneNumber || 'No phone number'}</Text>
-              {profile?.email && <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">{profile.email}</Text>}
+              {isLoading ? (
+                <Text fontSize={18} color="rgba(255,255,255,0.7)" marginBottom={6}>Loading...</Text>
+              ) : (
+                <>
+                  <Text fontSize={22} fontWeight="900" color={COLORS.white} marginBottom={6} letterSpacing={0.5}>{profile?.name || profile?.displayName || 'Guest User'}</Text>
+                  <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">{profile?.phoneNumber || 'No phone number'}</Text>
+                  {profile?.email && <Text fontSize={13} color="rgba(255,255,255,0.7)" marginBottom={2} fontWeight="500">{profile.email}</Text>}
+                </>
+              )}
             </YStack>
           </XStack>
         </ImageBackground>
         </YStack>
+
+        {/* Admin Dashboard */}
+        {isAdmin && (
+          <YStack marginBottom={SIZES.padding}>
+            <Text fontSize={14} fontWeight="800" color="#6200EE" marginBottom={12} letterSpacing={0.5} textTransform="uppercase">Management</Text>
+            <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} paddingHorizontal={16} paddingVertical={8} elevation={8} shadowColor="#6200EE" shadowOffset={{ width: 0, height: 0 }} shadowOpacity={0.4} shadowRadius={12} borderWidth={1} borderColor="rgba(98,0,238,0.1)">
+              <TouchableOpacity onPress={() => navigation.navigate('AdminDashboard')}>
+                <XStack alignItems="center" paddingVertical={12} borderBottomWidth={0}>
+                  <YStack width={38} height={38} borderRadius={19} justifyContent="center" alignItems="center" marginRight={16} backgroundColor="#EDE7F6">
+                    <Ionicons name="shield" size={20} color="#6200EE" />
+                  </YStack>
+                  <Text flex={1} fontSize={15} color="#6200EE" fontWeight="700">Admin Dashboard</Text>
+                  <Ionicons name="chevron-forward" size={18} color={'#BDBDBD'} />
+                </XStack>
+              </TouchableOpacity>
+            </YStack>
+          </YStack>
+        )}
 
         {/* Settings section */}
         <Text fontSize={14} fontWeight="800" color={COLORS.textSecondary} marginBottom={12} letterSpacing={0.5} textTransform="uppercase">Settings</Text>

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, query, where, orderBy, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth } from '../../../../app/config/firebase';
 import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';
@@ -51,10 +52,12 @@ export default function NotificationCenterScreen() {
   const handlePress = async (item: AppNotification) => {
     if (!item.isRead) {
       try {
-        await updateDoc(doc(db, 'notifications', item.id), { isRead: true });
+        const markReadFn = httpsCallable(getFunctions(), 'markNotificationRead');
+        await markReadFn({ notificationId: item.id });
         setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, isRead: true } : n));
-      } catch (e) {
-        console.error(e);
+      } catch (e: any) {
+        console.warn('Failed to mark notification as read:', e);
+        Alert.alert('Notice', 'Could not update notification status right now. Please try again later.');
       }
     }
 

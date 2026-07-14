@@ -15,6 +15,7 @@ import { PickupSlot } from '../../domain/PickupSlot';
 import { CheckoutRepository } from '../../infrastructure/CheckoutRepository';
 import { CreateOrderDraftUseCase } from '../../application/createOrderDraft.usecase';
 import { ValidateCouponUseCase } from '../../application/validateCoupon.usecase';
+import { checkoutSchema } from '../../../../shared/validation';
 
 const repository = new CheckoutRepository();
 const createOrderDraftUseCase = new CreateOrderDraftUseCase(repository);
@@ -101,13 +102,29 @@ export default function CheckoutScreen({ navigation, route }: any) {
       return;
     }
     
+    const draft = {
+      addressId: selectedAddress?.id || '',
+      pickupSlotId: selectedSlot?.id || '',
+      couponCode: appliedCoupon || '',
+      notes: '',
+      acceptedTc: tncAccepted
+    };
+
+    const validation = checkoutSchema.safeParse(draft);
+    
+    if (!validation.success) {
+      const firstError = validation.error.issues[0].message;
+      Alert.alert('Missing Information', firstError);
+      return;
+    }
+    
     setPlacingOrder(true);
     try {
       const result = await createOrderDraftUseCase.execute({
         cartItemCount: itemsToProcess.length,
-        addressId: selectedAddress?.id || null,
-        pickupSlotId: selectedSlot?.id || null,
-        couponCode: appliedCoupon,
+        addressId: validation.data.addressId,
+        pickupSlotId: validation.data.pickupSlotId,
+        couponCode: validation.data.couponCode || null,
         directItems: directItems || null
       });
 
@@ -121,7 +138,7 @@ export default function CheckoutScreen({ navigation, route }: any) {
     }
   };
 
-  const canPlaceOrder = selectedAddress && selectedSlot && tncAccepted && itemsToProcess.length > 0 && !placingOrder && !couponLoading;
+  const canPlaceOrder = !placingOrder && !couponLoading;
 
   return (
     <YStack flex={1} backgroundColor={COLORS.primaryBg} paddingTop={insets.top}>

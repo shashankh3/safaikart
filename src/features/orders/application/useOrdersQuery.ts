@@ -16,15 +16,3 @@ export const useOrdersQuery = () => {
   });
 };
 
-export const useCreateOrderMutation = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => {
-      if (!auth.currentUser) throw new Error("Not authenticated");
-      return orderRepo.createOrder(orderData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-    },
-  });
-};

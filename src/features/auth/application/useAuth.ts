@@ -15,5 +15,7 @@ export const useAuth = () => {
     return () => unsubscribe();
   }, []);
 
-  return { user, loading, logout: logoutUser };
+  const isAdmin = user?.email === process.env.EXPO_PUBLIC_ADMIN_EMAIL;
+
+  return { user, loading, isAdmin, logout: logoutUser };
 };

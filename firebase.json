@@ -1,5 +1,16 @@
 {
   "react-native": {
     "crashlytics_debug_enabled": false
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "functions": {
+    "source": "functions"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8080
+    }
   }
 }

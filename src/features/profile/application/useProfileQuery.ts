@@ -14,8 +14,8 @@ export const useProfileQuery = () => {
       
       let profile = await ProfileRepository.getProfile(user.uid);
       if (!profile) {
+        console.warn("Profile not found in Firestore. Awaiting backend creation.");
         profile = { id: user.uid, phoneNumber: user.phoneNumber || 'Guest User' };
-        await ProfileRepository.updateProfile(user.uid, profile);
       }
       return profile;
     },

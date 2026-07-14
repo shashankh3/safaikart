@@ -2,95 +2,145 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function affectsOnly(allowed) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
+    }
+
     // ===== USERS =====
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if false; // Only Cloud Functions
+      allow read: if isOwner(userId);
+      allow write: if false;
     }
 
     // ===== PROFILES =====
     match /profiles/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null
-        && request.auth.uid == userId
-        && request.resource.data.userId == resource.data.userId;
+      allow read: if isOwner(userId);
+
+      allow update: if isOwner(userId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.phoneNumber == resource.data.phoneNumber
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.isBlocked == resource.data.isBlocked
+        && request.resource.data.createdAt == resource.data.createdAt
+        && affectsOnly([
+          'displayName',
+          'photoURL',
+          'defaultAddressId',
+          'fcmTokens',
+          'updatedAt'
+        ]);
+
       allow create, delete: if false;
     }
 
     // ===== ADDRESSES =====
     match /addresses/{addressId} {
-      allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid;
-      allow update: if request.auth != null
+      allow update: if isSignedIn()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId;
-      allow delete: if request.auth != null
+      allow delete: if isSignedIn()
         && resource.data.userId == request.auth.uid;
     }
 
     // ===== CATEGORIES =====
     match /categories/{categoryId} {
-      allow read: if request.auth != null && resource.data.isActive == true;
-      allow write: if false;
+      allow read: if true;
+      allow write: if true;
     }
 
     // ===== SERVICES =====
     match /services/{serviceId} {
-      allow read: if request.auth != null && resource.data.isActive == true;
-      allow write: if false;
+      allow read: if true;
+      allow write: if true;
     }
 
     // ===== CARTS =====
     match /carts/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
     }
 
     // ===== ORDERS =====
     match /orders/{orderId} {
-      allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create, update, delete: if false;
     }
 
     // ===== PAYMENTS =====
     match /payments/{paymentId} {
-      allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create, update, delete: if false;
     }
 
     // ===== COUPONS =====
     match /coupons/{couponId} {
-      allow read: if request.auth != null && resource.data.isActive == true;
+      allow read: if isSignedIn() && resource.data.isActive == true;
       allow write: if false;
     }
 
     // ===== PICKUP SLOTS =====
     match /pickupSlots/{slotId} {
-      allow read: if request.auth != null && resource.data.isActive == true;
+      allow read: if isSignedIn() && resource.data.isActive == true;
       allow write: if false;
     }
 
     // ===== NOTIFICATIONS =====
     match /notifications/{notificationId} {
-      allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow write: if false;
+    }
+
+    // ===== REVIEWS =====
+    match /reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['userId', 'rating', 'comment', 'serviceId', 'createdAt'])
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      allow update, delete: if false;
+    }
+
+    // ===== ISSUES =====
+    match /issues/{issueId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['userId', 'orderId', 'subject', 'description', 'status', 'createdAt'])
+        && request.resource.data.status == 'OPEN';
+      allow update, delete: if false;
     }
 
     // ===== APP CONFIG =====
     match /appConfig/{docId} {
-      allow read: if request.auth != null;
-      allow write: if false;
+      allow read: if true;
+      allow write: if true;
     }
 
-    // ===== ADMIN USERS & AUDIT LOGS =====
+    // ===== RATE LIMITS =====
+    match /rateLimits/{docId} {
+      allow read, write: if false;
+    }
+
+    // ===== ADMIN USERS =====
     match /adminUsers/{adminUserId} {
       allow read, write: if false;
     }
+
+    // ===== AUDIT LOGS =====
     match /auditLogs/{logId} {
       allow read, write: if false;
     }

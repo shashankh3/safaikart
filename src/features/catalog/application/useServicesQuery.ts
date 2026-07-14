@@ -16,3 +16,11 @@ export const useServicesQuery = () => {
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 };
+
+export const useCatalogV2Query = () => {
+  return useQuery({
+    queryKey: ['catalog_v2'],
+    queryFn: () => CatalogRepository.getFullCatalogV2(),
+    staleTime: 0, // Force refetch on every mount during development
+  });
+};

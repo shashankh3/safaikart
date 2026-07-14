@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendOrderStatusNotification = exports.saveFcmToken = exports.editOrderItems = exports.cancelOrder = exports.paymentWebhook = exports.retryPayment = exports.verifyPaymentStatus = exports.createPaymentOrder = void 0;
+exports.markNotificationRead = exports.sendOrderStatusNotification = exports.saveFcmToken = exports.editOrderItems = exports.cancelOrder = exports.paymentWebhook = exports.retryPayment = exports.verifyPaymentStatus = exports.createPaymentOrder = void 0;
 __exportStar(require("./checkout/createOrderDraft"), exports);
 __exportStar(require("./checkout/validateCoupon"), exports);
 var createPaymentOrder_1 = require("./payments/createPaymentOrder");
@@ -34,4 +34,6 @@ var saveFcmToken_1 = require("./notifications/saveFcmToken");
 Object.defineProperty(exports, "saveFcmToken", { enumerable: true, get: function () { return saveFcmToken_1.saveFcmToken; } });
 var sendOrderStatusNotification_1 = require("./notifications/sendOrderStatusNotification");
 Object.defineProperty(exports, "sendOrderStatusNotification", { enumerable: true, get: function () { return sendOrderStatusNotification_1.sendOrderStatusNotification; } });
+var markNotificationRead_1 = require("./notifications/markNotificationRead");
+Object.defineProperty(exports, "markNotificationRead", { enumerable: true, get: function () { return markNotificationRead_1.markNotificationRead; } });
 //# sourceMappingURL=index.js.map

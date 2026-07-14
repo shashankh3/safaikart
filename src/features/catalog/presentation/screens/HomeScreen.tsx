@@ -10,9 +10,10 @@ import { SIZES } from '../../../../shared/theme/spacing';
 import Header from '../../../../shared/ui/components/Header';
 import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressable';
 import StickyCart from '../../../../features/cart/presentation/components/StickyCart';
+
 import NotificationModal from '../../../../shared/ui/feedback/NotificationModal';
 import { useCart } from '../../../../features/cart/presentation/hooks/useCart';
-import { useCategoriesQuery, useServicesQuery } from '../../application/useServicesQuery';
+import { useCategoriesQuery, useServicesQuery, useCatalogV2Query } from '../../application/useServicesQuery';
 import * as Haptics from 'expo-haptics';
 
 const CATEGORIES = [
@@ -25,12 +26,12 @@ const CATEGORIES = [
 ];
 
 const services = [
-  { id: '1', title: 'Daily Laundry', category: 'LAUNDRY', time: '1-2 DAY', img: require('../../../../../assets/laundry_basket.png'), icon: 'washing-machine', chipCategories: ['Clothing'] },
-  { id: '2', title: 'Luxury Garment Care', category: 'DRY CLEANING', time: '1-2 DAY', img: require('../../../../../assets/dry_cleaning_suit.png'), icon: 'hanger', chipCategories: ['Clothing'] },
-  { id: '3', title: 'Footwear Revival', category: 'SHOE CLEANING', time: '1-2 DAY', img: require('../../../../../assets/shoe_cleaning.png'), icon: 'shoe-sneaker', chipCategories: ['Footwear'] },
-  { id: '4', title: 'Fabric Finishing', category: 'STEAM PRESS', time: '1-2 DAY', img: require('../../../../../assets/steam_press.png'), icon: 'iron', chipCategories: ['Clothing'] },
+  { id: '1', title: 'Everyday Dry Cleaning', category: 'LAUNDRY', time: '1-2 DAY', img: require('../../../../../assets/laundry_basket.png'), icon: 'washing-machine', chipCategories: ['Clothing'] },
+  { id: '2', title: 'Luxury & Ethnic Wear', category: 'DRY CLEANING', time: '1-2 DAY', img: require('../../../../../assets/dry_cleaning_suit.png'), icon: 'hanger', chipCategories: ['Clothing', 'Premium'] },
+  { id: '3', title: 'Shoe Cleaning', category: 'SHOE CLEANING', time: '1-2 DAY', img: require('../../../../../assets/shoe_cleaning.png'), icon: 'shoe-sneaker', chipCategories: ['Footwear'] },
+  { id: '4', title: 'Steam Press', category: 'STEAM PRESS', time: '1-2 DAY', img: require('../../../../../assets/steam_press.png'), icon: 'iron', chipCategories: ['Clothing'] },
   { id: '5', title: 'Home Textiles', category: 'SOFA CLEANING', time: '1-2 DAY', img: require('../../../../../assets/sofa_cleaning.png'), icon: 'sofa', chipCategories: ['Home'] },
-  { id: '6', title: 'Specialist Items', category: 'LUXURY CARE', time: '1-2 DAY', img: require('../../../../../assets/luxury_care.png'), icon: 'star', chipCategories: ['Premium', 'Bags'] },
+  { id: '6', title: 'Winter & Outerwear', category: 'WINTER CARE', time: '1-2 DAY', img: require('../../../../../assets/luxury_care.png'), icon: 'star', chipCategories: ['Premium', 'Clothing'] },
 ];
 
 const OFFERS = [
@@ -177,27 +178,45 @@ const AnimatedServiceIcon = ({ iconName }) => {
 };
 
 export default function HomeScreen({ navigation }) {
-  const { totalItems } = useCart();
+  const { totalItems, clearCart } = useCart();
   const { data: remoteCategories, isLoading: isCategoriesLoading } = useCategoriesQuery();
-  const { data: remoteServices, isLoading: isServicesLoading } = useServicesQuery();
+  const { data: catalogV2, isLoading: isCatalogLoading, error: catalogError } = useCatalogV2Query();
+  console.log('CatalogV2 data:', catalogV2);
+  console.log('Catalog loading state:', isCatalogLoading);
+  if (catalogError) console.error('Catalog query ERROR:', catalogError);
 
   const finalCategories = remoteCategories && remoteCategories.length > 0 
     ? [{ name: "All", icon: "view-grid-outline" }, ...remoteCategories.map(c => ({ name: c.name, icon: c.icon }))] 
     : CATEGORIES;
 
-  const finalServices = remoteServices && remoteServices.length > 0 
-    ? remoteServices.map(s => ({
-        id: s.id,
-        title: s.name,
-        category: remoteCategories?.find(c => c.id === s.categoryId)?.name?.toUpperCase() || 'SERVICE',
-        time: `${Math.round(s.estimatedDurationHours / 24)} DAY`,
-        img: s.imageUrl ? { uri: s.imageUrl } : require('../../../../../assets/laundry_basket.png'),
-        icon: 'washing-machine', // Can map category id to icon in future
-        chipCategories: [remoteCategories?.find(c => c.id === s.categoryId)?.name || 'All'],
-        price: s.priceMinor ? s.priceMinor / 100 : 0,
-        priceMinor: s.priceMinor
-      }))
+  // Create a mapping of UI metadata (icons, images, colors) for specific service names
+  const UIMetaMapping: Record<string, any> = {
+    'Everyday Dry Cleaning': { img: require('../../../../../assets/laundry_basket.png'), icon: 'washing-machine', chipCategories: ['Clothing'] },
+    'Luxury & Ethnic Wear': { img: require('../../../../../assets/dry_cleaning_suit.png'), icon: 'hanger', chipCategories: ['Clothing', 'Premium'] },
+    'Shoe Cleaning': { img: require('../../../../../assets/shoe_cleaning.png'), icon: 'shoe-sneaker', chipCategories: ['Footwear'] },
+    'Steam Press': { img: require('../../../../../assets/steam_press.png'), icon: 'iron', chipCategories: ['Clothing'] },
+    'Home Textiles': { img: require('../../../../../assets/sofa_cleaning.png'), icon: 'sofa', chipCategories: ['Home'] },
+    'Winter & Outerwear': { img: require('../../../../../assets/luxury_care.png'), icon: 'star', chipCategories: ['Premium', 'Clothing'] },
+    // Fallbacks for the 3 current services in the old JSON if the names don't perfectly match yet
+    'Dry Cleaning': { img: require('../../../../../assets/laundry_basket.png'), icon: 'washing-machine', chipCategories: ['Clothing'] }
+  };
+
+  const finalServices = catalogV2 && catalogV2.services && catalogV2.services.length > 0 
+    ? catalogV2.services.map((s, index) => {
+        const meta = UIMetaMapping[s.name] || services[index % services.length];
+        return {
+          id: s.id,
+          title: s.name,
+          category: s.name.toUpperCase(),
+          time: '1-2 DAY',
+          img: meta.img,
+          icon: meta.icon,
+          chipCategories: meta.chipCategories,
+          price: 0 // Deep nested pricing in V2
+        };
+      })
     : services;
+  console.log('Final services length:', finalServices ? finalServices.length : 0);
 
   const { width } = useWindowDimensions();
   const [activeCategory, setActiveCategory] = useState("All");
@@ -218,6 +237,15 @@ export default function HomeScreen({ navigation }) {
     }, 4000);
     return () => clearInterval(timer);
   }, [currentOfferIndex]);
+
+  // TEMPORARY: Seed the database with the new 6-category JSON when the screen loads
+  useEffect(() => {
+    import('../../domain/seedDatabaseV2').then(({ seedDatabaseV2 }) => {
+      seedDatabaseV2();
+    });
+    // Temporary: Clear cart in case there's old mock data in AsyncStorage causing the sticky cart to appear
+    if (clearCart) clearCart();
+  }, []);
 
   const renderServiceCard = ({ item, index }) => (
     <YStack 
@@ -411,15 +439,27 @@ export default function HomeScreen({ navigation }) {
         </YStack>
 
         {/* Services Grid */}
+        {isCatalogLoading ? (
+          <YStack f={1} jc="center" ai="center">
+            <Text>Loading services...</Text>
+          </YStack>
+        ) : null}
         <XStack fw="wrap" jc="space-between">
-          {finalServices
-            .filter(item => activeCategory === 'All' || item.chipCategories?.includes(activeCategory))
-            .map((item, index) => (
-            <React.Fragment key={item.id}>
-              {renderServiceCard({ item, index })}
-            </React.Fragment>
-          ))}
+          {finalServices && finalServices.length > 0 ? (
+            finalServices
+              .filter(item => activeCategory === 'All' || item.chipCategories?.includes(activeCategory))
+              .map((item, index) => (
+                <React.Fragment key={item.id}>
+                  {renderServiceCard({ item, index })}
+                </React.Fragment>
+              ))
+          ) : (
+            <Text color={COLORS.textSecondary} fontSize={16} ta="center" w="100%">
+              No services available at the moment.
+            </Text>
+          )}
         </XStack>
+
         
         {/* Padding for sticky cart and floating taskbar */}
         <YStack h={180} />

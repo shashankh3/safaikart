@@ -22,6 +22,8 @@ import StickyCart from '../../features/cart/presentation/components/StickyCart';
 import AnimatedPressable from '../../shared/ui/components/AnimatedPressable';
 
 import CheckoutNavigator from './CheckoutNavigator';
+import AdminDashboardScreen from '../../features/admin/presentation/screens/AdminDashboardScreen';
+import CatalogManagerScreen from '../../features/admin/presentation/screens/CatalogManagerScreen';
 
 import { COLORS } from '../../shared/theme/colors';
 import { SIZES } from '../../shared/theme/spacing';
@@ -134,6 +136,8 @@ export default function AppNavigator() {
             <Stack.Screen name="CheckoutFlow" component={CheckoutNavigator} />
             <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} />
             <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
+            <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+            <Stack.Screen name="CatalogManager" component={CatalogManagerScreen} />
           </>
         )}
       </Stack.Navigator>

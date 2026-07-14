@@ -1,8 +1,5 @@
 import { Platform, UIManager } from 'react-native';
-import { initializeAuth } from '../core/firebase/auth';
-import { initializeMessaging } from '../core/firebase/messaging';
 import './config/firebase'; // Ensure Firebase is initialized
-import { appCheck } from '../core/firebase/appCheck';
 
 export const bootstrap = async () => {
   try {

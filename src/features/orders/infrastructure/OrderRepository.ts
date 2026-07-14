@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, where, orderBy, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../../../app/config/firebase';
 import { Order } from '../domain/Order';
 
@@ -24,14 +24,5 @@ export class OrderRepository {
     return null;
   }
 
-  async createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> {
-    const newDocRef = doc(collection(db, this.collectionPath));
-    const newOrder = {
-      ...orderData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-    await setDoc(newDocRef, newOrder);
-    return { id: newDocRef.id, ...newOrder } as unknown as Order;
-  }
+
 }
