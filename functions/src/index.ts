@@ -18,6 +18,7 @@ export { onUserCreate } from './auth/onUserCreate';
 export { cancelOrder } from './orders/cancelOrder';
 export { editOrderItems } from './orders/editOrderItems';
 export { saveFcmToken } from './notifications/saveFcmToken';
+export { removeFcmToken } from './notifications/removeFcmToken';
 export { sendOrderStatusNotification } from './notifications/sendOrderStatusNotification';
 export { markNotificationRead } from './notifications/markNotificationRead';
 

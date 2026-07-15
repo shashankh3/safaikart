@@ -1,19 +1,20 @@
 # Operator Notes
 
-This document contains instructions for the project maintainer or deployment operator to finalize the production deployment of SafaiKart once the Firebase billing blocks are removed.
+This document contains instructions for the project maintainer or deployment operator to finalize the production deployment of SafaiKart.
 
 ## Post-Billing Deploy Checklist
 
-1. **Client Action:** The client must submit the required verification documents in the Google Cloud / Firebase Billing console to restore the active billing account and upgrade to the Blaze plan.
-2. **Deploy Cloud Functions:** After the Blaze plan is active, deploy the backend functions:
+1. **Billing is ACTIVE:** The Firebase project is on the Blaze plan.
+2. **Configure Secrets:** (verify in console) Add the live Razorpay API secrets (`RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`) and `RAZORPAY_KEY_ID` to Google Cloud Secret Manager via Firebase CLI.
+3. **Deploy Resources:** Deploy the backend functions, hosting, and firestore rules:
    ```bash
-   npx firebase-tools deploy --only functions --project safaikart-6c4e4
+   npx firebase-tools deploy --only functions,hosting,firestore:rules --project safaikart-6c4e4
    ```
-3. **Configure Secrets:** Add the live Razorpay API secrets to Google Cloud Secret Manager (or via Firebase functions config) so the backend can process real payments.
 4. **End-to-End Smoke Test:** Run a full manual smoke test of the order and payment flow using the live environment to ensure webhooks and firestore triggers are executing correctly.
 5. **Clean Build:** Verify the typescript build is clean before generating the app bundle:
    ```bash
-   npm run build # or tsc --noEmit
+   npx tsc --noEmit
+   cd functions && npm run build
    ```
 6. **Final Rules Retest:** Go through the manual retest checklist to ensure the hardened Firestore rules do not break any real-world edge cases.
 7. **Release to Play Store:** Submit the signed `.aab` file to the Google Play Console for closed testing.

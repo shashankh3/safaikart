@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.adminConfirmOrderPrice = exports.adminUpdateOrderStatus = exports.markNotificationRead = exports.sendOrderStatusNotification = exports.saveFcmToken = exports.editOrderItems = exports.cancelOrder = exports.onUserCreate = exports.paymentWebhook = exports.retryPayment = exports.verifyPaymentStatus = exports.createPaymentOrder = void 0;
+exports.adminConfirmOrderPrice = exports.adminUpdateOrderStatus = exports.markNotificationRead = exports.sendOrderStatusNotification = exports.removeFcmToken = exports.saveFcmToken = exports.editOrderItems = exports.cancelOrder = exports.onUserCreate = exports.paymentWebhook = exports.retryPayment = exports.verifyPaymentStatus = exports.createPaymentOrder = void 0;
 const v2_1 = require("firebase-functions/v2");
 // All v2 functions deploy to asia-south1 (Mumbai)
 (0, v2_1.setGlobalOptions)({ region: 'asia-south1' });
@@ -38,6 +38,8 @@ var editOrderItems_1 = require("./orders/editOrderItems");
 Object.defineProperty(exports, "editOrderItems", { enumerable: true, get: function () { return editOrderItems_1.editOrderItems; } });
 var saveFcmToken_1 = require("./notifications/saveFcmToken");
 Object.defineProperty(exports, "saveFcmToken", { enumerable: true, get: function () { return saveFcmToken_1.saveFcmToken; } });
+var removeFcmToken_1 = require("./notifications/removeFcmToken");
+Object.defineProperty(exports, "removeFcmToken", { enumerable: true, get: function () { return removeFcmToken_1.removeFcmToken; } });
 var sendOrderStatusNotification_1 = require("./notifications/sendOrderStatusNotification");
 Object.defineProperty(exports, "sendOrderStatusNotification", { enumerable: true, get: function () { return sendOrderStatusNotification_1.sendOrderStatusNotification; } });
 var markNotificationRead_1 = require("./notifications/markNotificationRead");
