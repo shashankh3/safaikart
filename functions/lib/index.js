@@ -15,6 +15,9 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.markNotificationRead = exports.sendOrderStatusNotification = exports.saveFcmToken = exports.editOrderItems = exports.cancelOrder = exports.paymentWebhook = exports.retryPayment = exports.verifyPaymentStatus = exports.createPaymentOrder = void 0;
+const v2_1 = require("firebase-functions/v2");
+// All v2 functions deploy to asia-south1 (Mumbai)
+(0, v2_1.setGlobalOptions)({ region: 'asia-south1' });
 __exportStar(require("./checkout/createOrderDraft"), exports);
 __exportStar(require("./checkout/validateCoupon"), exports);
 var createPaymentOrder_1 = require("./payments/createPaymentOrder");

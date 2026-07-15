@@ -9,7 +9,7 @@ if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.createOrderDraft = functions.https.onCall(async (data, context) => {
+exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (data, context) => {
     var _a, _b;
     const uid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {

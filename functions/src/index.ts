@@ -1,3 +1,8 @@
+import { setGlobalOptions } from 'firebase-functions/v2';
+
+// All v2 functions deploy to asia-south1 (Mumbai)
+setGlobalOptions({ region: 'asia-south1' });
+
 export * from './checkout/createOrderDraft';
 export * from './checkout/validateCoupon';
 

@@ -9,7 +9,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const createOrderDraft = functions.https.onCall(async (data, context) => {
+export const createOrderDraft = functions.region('asia-south1').https.onCall(async (data, context) => {
   const uid = context.auth?.uid;
   if (!uid) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to create an order.');

@@ -1,6 +1,6 @@
 import { collection, doc, query, where, orderBy, getDocs, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { db, auth } from '../../../app/config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, auth, functions } from '../../../app/config/firebase';
 import { Order } from '../domain/Order';
 
 export class OrdersRepository {
@@ -62,7 +62,7 @@ export class OrdersRepository {
   }
 
   async cancelOrder(orderId: string, reason?: string): Promise<{ success: boolean; message: string }> {
-    const cancelFn = httpsCallable(getFunctions(), 'cancelOrder');
+    const cancelFn = httpsCallable(functions, 'cancelOrder');
     try {
       const result = await cancelFn({ orderId, reason });
       return result.data as any;

@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { db, auth } from '../../../../app/config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, auth, functions } from '../../../../app/config/firebase';
 import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,7 +52,7 @@ export default function NotificationCenterScreen() {
   const handlePress = async (item: AppNotification) => {
     if (!item.isRead) {
       try {
-        const markReadFn = httpsCallable(getFunctions(), 'markNotificationRead');
+        const markReadFn = httpsCallable(functions, 'markNotificationRead');
         await markReadFn({ notificationId: item.id });
         setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, isRead: true } : n));
       } catch (e: any) {
