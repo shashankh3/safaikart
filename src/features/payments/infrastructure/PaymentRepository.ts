@@ -1,7 +1,5 @@
-import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
-import { db } from '../../../app/config/firebase';
-
-const functions = getFunctions();
+import { httpsCallable } from '@react-native-firebase/functions';
+import { db, functions } from '../../../app/config/firebase';
 
 export class PaymentRepository {
   async createPaymentOrder(orderId: string): Promise<{ razorpayOrderId: string, razorpayKeyId: string, amountMinor: number, currency: string, checkoutUrl?: string }> {

@@ -8,7 +8,8 @@ import { SIZES } from '../../../../shared/theme/spacing';
 import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressable';
 import { OrdersRepository } from '../../infrastructure/OrdersRepository';
 import { Order, OrderItem } from '../../domain/Order';
-import { httpsCallable, getFunctions } from '@react-native-firebase/functions';
+import { httpsCallable } from '@react-native-firebase/functions';
+import { functions } from '../../../../app/config/firebase';
 
 type RouteParams = RouteProp<{ EditOrder: { orderId: string } }, 'EditOrder'>;
 
@@ -45,7 +46,6 @@ export default function EditOrderScreen() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const functions = getFunctions();
       const editOrderItemsFn = httpsCallable(functions, 'editOrderItems');
       
       const payloadItems = items.filter(i => i.quantity > 0).map(i => ({
