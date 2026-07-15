@@ -4,7 +4,7 @@ exports.paymentWebhook = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
 const admin = require("firebase-admin");
-const crypto = require("crypto");
+const webhook_logic_1 = require("./webhook.logic");
 const razorpayWebhookSecret = (0, params_1.defineSecret)('RAZORPAY_WEBHOOK_SECRET');
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -22,13 +22,8 @@ exports.paymentWebhook = (0, https_1.onRequest)({ secrets: [razorpayWebhookSecre
         }
         // 2. Load secret
         const webhookSecret = razorpayWebhookSecret.value();
-        // 3. Compute expected signature
-        const expectedSignature = crypto
-            .createHmac('sha256', webhookSecret)
-            .update(rawBody)
-            .digest('hex');
-        // 4. Constant-time comparison
-        if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+        // 3. Compute expected signature and constant-time comparison
+        if (!(0, webhook_logic_1.verifyWebhookSignature)(rawBody, signature, webhookSecret)) {
             console.error('Webhook signature verification failed');
             response.status(400).send('Invalid signature');
             return;

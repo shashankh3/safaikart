@@ -4,6 +4,7 @@ exports.createOrderDraft = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const rateLimiter_1 = require("../utils/rateLimiter");
+const pricing_logic_1 = require("../orders/pricing.logic");
 // Initialize admin app if not already initialized
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -44,10 +45,7 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
     }
     const addressData = addressDoc.data();
     // 3. Process Items & Calculate Price
-    let subtotalMinor = 0;
-    let priceConfirmed = true;
-    let maxDurationHours = 0;
-    const processedItems = [];
+    const pricingItems = [];
     for (const item of itemsToProcess) {
         // Fetch actual service from DB to prevent tampering
         const serviceDoc = await db.collection('services').doc(item.id || item.serviceId).get();
@@ -59,20 +57,13 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
             throw new functions.https.HttpsError('failed-precondition', `Service ${serviceData.name} is no longer active.`);
         }
         const duration = serviceData.estimatedDurationHours || (serviceData.categoryId === 'steam_press' ? 24 : serviceData.categoryId === 'household' ? 72 : 48);
-        if (duration > maxDurationHours)
-            maxDurationHours = duration;
-        const isVariable = serviceData.priceType === 'variable';
-        if (isVariable)
-            priceConfirmed = false;
         // Process addons
-        let addonsTotalMinor = 0;
         const validatedAddons = [];
         if (item.addons && Array.isArray(item.addons)) {
             for (const addon of item.addons) {
                 // Find if this service supports this addon
                 const serverAddon = (serviceData.addons || []).find((a) => a.id === addon.id);
                 if (serverAddon) {
-                    addonsTotalMinor += serverAddon.priceMinor;
                     validatedAddons.push({
                         id: serverAddon.id,
                         name: serverAddon.name,
@@ -81,43 +72,33 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
                 }
             }
         }
-        const itemUnitTotalMinor = (serviceData.priceMinor || 0) + addonsTotalMinor;
-        const lineTotalMinor = isVariable ? 0 : (itemUnitTotalMinor * item.quantity);
-        if (!isVariable) {
-            subtotalMinor += lineTotalMinor;
-        }
-        processedItems.push({
+        pricingItems.push({
             serviceId: serviceDoc.id,
             nameSnapshot: serviceData.name,
             quantity: item.quantity,
             unit: serviceData.unit || 'piece',
-            unitPriceMinor: serviceData.priceMinor,
+            unitPriceMinor: serviceData.priceMinor || 0,
             addons: validatedAddons,
-            lineTotalMinor,
-            priceType: serviceData.priceType || 'fixed'
+            priceType: serviceData.priceType || 'fixed',
+            estimatedDurationHours: duration
         });
     }
     // 4. Validate Coupon
-    let discountMinor = 0;
+    let couponInfo = null;
     if (couponCode) {
         const couponDoc = await db.collection('coupons').doc(couponCode.toUpperCase()).get();
         if (couponDoc.exists) {
             const coupon = couponDoc.data();
-            if (coupon.isActive && subtotalMinor >= (coupon.minimumOrderAmount || 0)) {
-                if (coupon.type === 'flat') {
-                    discountMinor = coupon.discountValue;
-                }
-                else if (coupon.type === 'percent') {
-                    discountMinor = Math.floor((subtotalMinor * coupon.discountValue) / 100);
-                }
-                // Cap discount to subtotal
-                if (discountMinor > subtotalMinor)
-                    discountMinor = subtotalMinor;
+            if (coupon.isActive) {
+                couponInfo = {
+                    type: coupon.type,
+                    discountValue: coupon.discountValue,
+                    minimumOrderAmount: coupon.minimumOrderAmount
+                };
             }
         }
     }
-    const deliveryFeeMinor = 4000; // Flat 40 Rs
-    const finalAmountMinor = subtotalMinor + deliveryFeeMinor - discountMinor;
+    const { processedItems, subtotalMinor, discountMinor, deliveryFeeMinor, finalAmountMinor, priceConfirmed, maxDurationHours } = (0, pricing_logic_1.calculateOrderTotals)(pricingItems, couponInfo, 4000);
     // 5. Transaction for Pickup Slot & Order Creation
     const newOrderRef = db.collection('orders').doc();
     let finalOrderId = '';

@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Setup Java (for Firebase Emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Typecheck client
+        run: npx tsc --noEmit
+
+      - name: Build functions
+        run: cd functions && npm ci && npm run build
+
+      - name: Run Unit Tests
+        run: npm run test
+
+      - name: Run Firebase Rules Tests
+        run: npm run test:rules

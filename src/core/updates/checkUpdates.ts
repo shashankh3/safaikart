@@ -1,8 +1,9 @@
 import * as Updates from 'expo-updates';
-import { Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import {doc, getDoc} from '@react-native-firebase/firestore';
 import { db } from '../../app/config/firebase';
 import Constants from 'expo-constants';
+import { compareVersions } from './compareVersions';
 
 export async function checkUpdates() {
   if (__DEV__) return; // Don't run in development
@@ -12,11 +13,12 @@ export async function checkUpdates() {
     const minAppVersion = configDoc.exists() ? configDoc.data().minAppVersion : '1.0.0';
     const currentVersion = Constants.expoConfig?.version || '1.0.0';
 
-    if (currentVersion < minAppVersion) {
+    if (compareVersions(currentVersion, minAppVersion) < 0) {
       Alert.alert(
         'Update Required',
         'Your version of SafaiKart is out of date. Please update the app from the Play Store to continue using our services.',
-        [{ text: 'Update Now', onPress: () => {} }], // In a real app, open Play Store URL
+        [{ text: 'Update Now', onPress: () => { Linking.openURL('https://play.google.com/store/apps/details?id=com.safaikart.app'); } }],
+
         { cancelable: false }
       );
       return;

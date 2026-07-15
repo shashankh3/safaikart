@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { rateLimiter } from '../utils/rateLimiter';
+import { calculateOrderTotals, PricingItem } from '../orders/pricing.logic';
 
 // Initialize admin app if not already initialized
 if (!admin.apps.length) {
@@ -48,10 +49,7 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
   const addressData = addressDoc.data()!;
 
   // 3. Process Items & Calculate Price
-  let subtotalMinor = 0;
-  let priceConfirmed = true;
-  let maxDurationHours = 0;
-  const processedItems: any[] = [];
+  const pricingItems: PricingItem[] = [];
 
   for (const item of itemsToProcess) {
     // Fetch actual service from DB to prevent tampering
@@ -65,20 +63,14 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
     }
 
     const duration = serviceData.estimatedDurationHours || (serviceData.categoryId === 'steam_press' ? 24 : serviceData.categoryId === 'household' ? 72 : 48);
-    if (duration > maxDurationHours) maxDurationHours = duration;
-
-    const isVariable = serviceData.priceType === 'variable';
-    if (isVariable) priceConfirmed = false;
     
     // Process addons
-    let addonsTotalMinor = 0;
-    const validatedAddons: any[] = [];
+    const validatedAddons: { id: string; name: string; priceMinor: number }[] = [];
     if (item.addons && Array.isArray(item.addons)) {
       for (const addon of item.addons) {
         // Find if this service supports this addon
         const serverAddon = (serviceData.addons || []).find((a: any) => a.id === addon.id);
         if (serverAddon) {
-          addonsTotalMinor += serverAddon.priceMinor;
           validatedAddons.push({
             id: serverAddon.id,
             name: serverAddon.name,
@@ -88,44 +80,43 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
       }
     }
 
-    const itemUnitTotalMinor = (serviceData.priceMinor || 0) + addonsTotalMinor;
-    const lineTotalMinor = isVariable ? 0 : (itemUnitTotalMinor * item.quantity);
-    if (!isVariable) {
-      subtotalMinor += lineTotalMinor;
-    }
-
-    processedItems.push({
+    pricingItems.push({
       serviceId: serviceDoc.id,
       nameSnapshot: serviceData.name,
       quantity: item.quantity,
       unit: serviceData.unit || 'piece',
-      unitPriceMinor: serviceData.priceMinor,
+      unitPriceMinor: serviceData.priceMinor || 0,
       addons: validatedAddons,
-      lineTotalMinor,
-      priceType: serviceData.priceType || 'fixed'
+      priceType: serviceData.priceType || 'fixed',
+      estimatedDurationHours: duration
     });
   }
 
   // 4. Validate Coupon
-  let discountMinor = 0;
+  let couponInfo = null;
   if (couponCode) {
     const couponDoc = await db.collection('coupons').doc(couponCode.toUpperCase()).get();
     if (couponDoc.exists) {
       const coupon = couponDoc.data()!;
-      if (coupon.isActive && subtotalMinor >= (coupon.minimumOrderAmount || 0)) {
-        if (coupon.type === 'flat') {
-          discountMinor = coupon.discountValue;
-        } else if (coupon.type === 'percent') {
-          discountMinor = Math.floor((subtotalMinor * coupon.discountValue) / 100);
-        }
-        // Cap discount to subtotal
-        if (discountMinor > subtotalMinor) discountMinor = subtotalMinor;
+      if (coupon.isActive) {
+        couponInfo = {
+          type: coupon.type,
+          discountValue: coupon.discountValue,
+          minimumOrderAmount: coupon.minimumOrderAmount
+        };
       }
     }
   }
 
-  const deliveryFeeMinor = 4000; // Flat 40 Rs
-  const finalAmountMinor = subtotalMinor + deliveryFeeMinor - discountMinor;
+  const {
+    processedItems,
+    subtotalMinor,
+    discountMinor,
+    deliveryFeeMinor,
+    finalAmountMinor,
+    priceConfirmed,
+    maxDurationHours
+  } = calculateOrderTotals(pricingItems, couponInfo, 4000);
 
   // 5. Transaction for Pickup Slot & Order Creation
   const newOrderRef = db.collection('orders').doc();

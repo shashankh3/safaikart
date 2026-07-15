@@ -1,6 +1,8 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
+import { calculateOrderTotals, PricingItem } from './pricing.logic';
+import { calculateOrderDiff } from './editOrder.logic';
 
 const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
@@ -54,10 +56,7 @@ export const editOrderItems = onCall({ secrets: [razorpayKeySecret] }, async (re
     }
 
     // Process new items and recalculate
-    let newSubtotalMinor = 0;
-    let priceConfirmed = true;
-    let maxDurationHours = 0;
-    const processedItems: any[] = [];
+    const pricingItems: PricingItem[] = [];
 
     for (const item of items) {
       const serviceDoc = await transaction.get(db.collection('services').doc(item.serviceId));
@@ -67,18 +66,12 @@ export const editOrderItems = onCall({ secrets: [razorpayKeySecret] }, async (re
       if (!serviceData.isActive) continue;
 
       const duration = serviceData.estimatedDurationHours || (serviceData.categoryId === 'steam_press' ? 24 : serviceData.categoryId === 'household' ? 72 : 48);
-      if (duration > maxDurationHours) maxDurationHours = duration;
-
-      const isVariable = serviceData.priceType === 'variable';
-      if (isVariable) priceConfirmed = false;
       
-      let addonsTotalMinor = 0;
-      const validatedAddons: any[] = [];
+      const validatedAddons: { id: string; name: string; priceMinor: number }[] = [];
       if (item.addons && Array.isArray(item.addons)) {
         for (const addon of item.addons) {
           const serverAddon = (serviceData.addons || []).find((a: any) => a.id === addon.id);
           if (serverAddon) {
-            addonsTotalMinor += serverAddon.priceMinor;
             validatedAddons.push({
               id: serverAddon.id,
               name: serverAddon.name,
@@ -88,50 +81,61 @@ export const editOrderItems = onCall({ secrets: [razorpayKeySecret] }, async (re
         }
       }
 
-      const itemUnitTotalMinor = (serviceData.priceMinor || 0) + addonsTotalMinor;
-      const lineTotalMinor = isVariable ? 0 : (itemUnitTotalMinor * item.quantity);
-      if (!isVariable) {
-        newSubtotalMinor += lineTotalMinor;
-      }
-
-      processedItems.push({
+      pricingItems.push({
         serviceId: serviceDoc.id,
         nameSnapshot: serviceData.name,
         quantity: item.quantity,
         unit: serviceData.unit || 'piece',
-        unitPriceMinor: serviceData.priceMinor,
+        unitPriceMinor: serviceData.priceMinor || 0,
         addons: validatedAddons,
-        lineTotalMinor,
-        priceType: serviceData.priceType || 'fixed'
+        priceType: serviceData.priceType || 'fixed',
+        estimatedDurationHours: duration
       });
     }
 
-    if (processedItems.length === 0) {
+    if (pricingItems.length === 0) {
       throw new HttpsError('failed-precondition', 'Order must have at least one valid item.');
     }
 
     // Recalculate discount if coupon exists
-    let newDiscountMinor = 0;
+    let couponInfo = null;
     if (orderData.couponCode) {
       const couponDoc = await transaction.get(db.collection('coupons').doc(orderData.couponCode));
       if (couponDoc.exists) {
         const coupon = couponDoc.data()!;
-        if (coupon.isActive && newSubtotalMinor >= (coupon.minimumOrderAmount || 0)) {
-          if (coupon.type === 'flat') newDiscountMinor = coupon.discountValue;
-          else if (coupon.type === 'percent') newDiscountMinor = Math.floor((newSubtotalMinor * coupon.discountValue) / 100);
-          if (newDiscountMinor > newSubtotalMinor) newDiscountMinor = newSubtotalMinor;
+        if (coupon.isActive) {
+          couponInfo = {
+            type: coupon.type,
+            discountValue: coupon.discountValue,
+            minimumOrderAmount: coupon.minimumOrderAmount
+          };
         }
       }
     }
 
-    newFinalAmountMinor = newSubtotalMinor + orderData.deliveryFeeMinor - newDiscountMinor;
+    const {
+      processedItems,
+      subtotalMinor: newSubtotalMinor,
+      discountMinor: newDiscountMinor,
+      finalAmountMinor: calculatedFinal,
+      priceConfirmed,
+      maxDurationHours
+    } = calculateOrderTotals(pricingItems, couponInfo, orderData.deliveryFeeMinor);
     
+    newFinalAmountMinor = calculatedFinal;
+
     // Partial Refund or Additional Payment Logic
-    const amountDiff = newFinalAmountMinor - orderData.finalAmountMinor;
-    if (orderData.status === 'CONFIRMED' && amountDiff !== 0) {
-      if (amountDiff < 0) {
+    const { amountDiff, refundAmountMinor: calcRefund, additionalPaymentRequired } = calculateOrderDiff(
+      orderData.finalAmountMinor,
+      newFinalAmountMinor,
+      orderData.status
+    );
+
+    refundAmountMinor = calcRefund;
+
+    if (additionalPaymentRequired || calcRefund > 0) {
+      if (calcRefund > 0) {
         // We owe the customer a refund
-        refundAmountMinor = Math.abs(amountDiff);
         const paymentsSnapshot = await transaction.get(db.collection('payments')
             .where('orderId', '==', orderId)
             .where('status', '==', 'VERIFIED'));
@@ -139,7 +143,7 @@ export const editOrderItems = onCall({ secrets: [razorpayKeySecret] }, async (re
             const payment = paymentsSnapshot.docs[0].data();
             razorpayPaymentId = payment.razorpayPaymentId;
         }
-      } else {
+      } else if (additionalPaymentRequired) {
         // Customer owes us more. Create a pending payment doc.
         const newPaymentRef = db.collection('payments').doc();
         transaction.set(newPaymentRef, {

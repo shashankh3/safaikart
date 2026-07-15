@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateCoupon = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
+const coupon_logic_1 = require("./coupon.logic");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -23,36 +24,6 @@ exports.validateCoupon = (0, https_1.onCall)(async (request) => {
         return { valid: false, discountMinor: 0, message: 'Invalid coupon code', newTotalMinor: cartTotalMinor };
     }
     const coupon = couponDoc.data();
-    if (!coupon.isActive) {
-        return { valid: false, discountMinor: 0, message: 'Coupon is no longer active', newTotalMinor: cartTotalMinor };
-    }
-    if (coupon.validUntil && coupon.validUntil.toDate() < new Date()) {
-        return { valid: false, discountMinor: 0, message: 'Coupon has expired', newTotalMinor: cartTotalMinor };
-    }
-    if (coupon.usedCount >= (coupon.maxUsage || Infinity)) {
-        return { valid: false, discountMinor: 0, message: 'Coupon usage limit reached', newTotalMinor: cartTotalMinor };
-    }
-    if (coupon.usedBy && coupon.usedBy.includes(uid)) {
-        return { valid: false, discountMinor: 0, message: 'You have already used this coupon', newTotalMinor: cartTotalMinor };
-    }
-    const minAmount = coupon.minimumOrderAmount || 0;
-    if (cartTotalMinor < minAmount) {
-        return { valid: false, discountMinor: 0, message: `Minimum order amount is Rs ${minAmount / 100}`, newTotalMinor: cartTotalMinor };
-    }
-    let discountMinor = 0;
-    if (coupon.type === 'flat') {
-        discountMinor = coupon.discountValue;
-    }
-    else if (coupon.type === 'percent') {
-        discountMinor = Math.floor((cartTotalMinor * coupon.discountValue) / 100);
-    }
-    if (discountMinor > cartTotalMinor)
-        discountMinor = cartTotalMinor;
-    return {
-        valid: true,
-        discountMinor,
-        message: 'Coupon applied',
-        newTotalMinor: cartTotalMinor - discountMinor
-    };
+    return (0, coupon_logic_1.validateCouponApplicability)(coupon, uid, cartTotalMinor);
 });
 //# sourceMappingURL=validateCoupon.js.map
