@@ -1,4 +1,4 @@
-import { Unsubscribe } from 'firebase/firestore';
+import {Unsubscribe} from '@react-native-firebase/firestore';
 import { OrdersRepository } from '../infrastructure/OrdersRepository';
 import { Order } from '../domain/Order';
 

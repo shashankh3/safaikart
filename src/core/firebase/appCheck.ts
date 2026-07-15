@@ -11,10 +11,6 @@ try {
     apple: {
       provider: __DEV__ ? 'debug' : 'appAttestWithDeviceCheckFallback',
     },
-    web: {
-      provider: 'reCAPTCHAEnterprise',
-      siteKey: 'UNKNOWN',
-    },
   });
 
   appCheck().initializeAppCheck({ provider, isTokenAutoRefreshEnabled: true });

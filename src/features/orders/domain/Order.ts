@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import {FirebaseFirestoreTypes} from '@react-native-firebase/firestore';
 import { OrderStatus } from './OrderStatus';
 
 export interface Order {
@@ -19,10 +19,10 @@ export interface Order {
   addressSnapshot: AddressSnapshot;
   pickupSlotId: string;
   pickupSlotSnapshot: PickupSlotSnapshot;
-  editableUntil?: Timestamp;
+  editableUntil?: FirebaseFirestoreTypes.Timestamp;
   estimatedDeliveryDate?: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt: FirebaseFirestoreTypes.Timestamp;
+  updatedAt: FirebaseFirestoreTypes.Timestamp;
 }
 
 export interface OrderItem {

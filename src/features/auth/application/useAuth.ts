@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import {FirebaseAuthTypes} from '@react-native-firebase/auth';
 import { setupAuthListener, logoutUser } from '../../../core/firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import {doc, getDoc} from '@react-native-firebase/firestore';
 import { db } from '../../../app/config/firebase';
 
 import { CartStorage } from '../../cart/infrastructure/CartStorage';

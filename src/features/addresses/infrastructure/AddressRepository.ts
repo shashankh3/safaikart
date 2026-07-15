@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, where, orderBy, setDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import {collection, doc, getDoc, getDocs, query, where, orderBy, setDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp, FirebaseFirestoreTypes} from '@react-native-firebase/firestore';
 import { db } from '../../../app/config/firebase';
 import { Address, AddressDraft } from '../domain/Address';
 

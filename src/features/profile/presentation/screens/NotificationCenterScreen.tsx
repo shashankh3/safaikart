@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import {collection, query, where, orderBy, getDocs} from '@react-native-firebase/firestore';
+import { httpsCallable } from '@react-native-firebase/functions';
 import { db, auth, functions } from '../../../../app/config/firebase';
 import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';

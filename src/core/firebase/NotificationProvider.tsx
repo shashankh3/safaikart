@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { requestNotificationPermission, getFcmToken, saveFcmToken, setupNotificationListeners } from './messaging';
-import { onAuthStateChanged } from 'firebase/auth';
+import {onAuthStateChanged} from '@react-native-firebase/auth';
 import { auth } from '../../app/config/firebase';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 

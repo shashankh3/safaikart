@@ -1,4 +1,4 @@
-import { doc, onSnapshot } from 'firebase/firestore';
+import {doc, onSnapshot} from '@react-native-firebase/firestore';
 import { db } from '../../../app/config/firebase';
 import { PaymentRepository } from '../infrastructure/PaymentRepository';
 

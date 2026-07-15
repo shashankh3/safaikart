@@ -1,8 +1,8 @@
-import { FirestoreDataConverter, DocumentData, QueryDocumentSnapshot, SnapshotOptions } from 'firebase/firestore';
+import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import { Order, CartItem } from '../../types';
 
-export const orderConverter: FirestoreDataConverter<Order> = {
-  toFirestore(order: Order): DocumentData {
+export const orderConverter: any = {
+  toFirestore(order: Order): any {
     return {
       userId: order.userId,
       status: order.status,
@@ -25,10 +25,11 @@ export const orderConverter: FirestoreDataConverter<Order> = {
     };
   },
   fromFirestore(
-    snapshot: QueryDocumentSnapshot,
-    options: SnapshotOptions
+    snapshot: FirebaseFirestoreTypes.QueryDocumentSnapshot,
+    options: FirebaseFirestoreTypes.SnapshotOptions
+
   ): Order {
-    const data = snapshot.data(options)!;
+    const data = snapshot.data()!;
     return {
       id: snapshot.id,
       userId: data.userId,

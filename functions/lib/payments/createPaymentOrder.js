@@ -57,7 +57,7 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayKeySecret] 
                 razorpayKeyId: RAZORPAY_KEY_ID,
                 amountMinor: payment.amountMinor,
                 currency: payment.currency,
-                checkoutUrl: `https://safaikart-checkout.web.app/checkout?order_id=${payment.razorpayOrderId}` // Placeholder for WebView path
+                checkoutUrl: `https://safaikart-6c4e4.web.app/checkout/index.html?order_id=${payment.razorpayOrderId}&key_id=${RAZORPAY_KEY_ID}&amount=${payment.amountMinor}&currency=${payment.currency}`
             };
         }
     }
@@ -112,9 +112,7 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayKeySecret] 
             paymentStatus: 'PAYMENT_CREATED',
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
-        // We generate a simple HTML checkout page hosted on Firebase Hosting (or returned as data URI)
-        // For WebView, it's often easier to just inject HTML string or use a hosted page.
-        const checkoutUrl = `https://safaikart-checkout.web.app/checkout?order_id=${rzpOrder.id}`;
+        const checkoutUrl = `https://safaikart-6c4e4.web.app/checkout/index.html?order_id=${rzpOrder.id}&key_id=${RAZORPAY_KEY_ID}&amount=${amountMinor}&currency=INR`;
         return {
             razorpayOrderId: rzpOrder.id,
             razorpayKeyId: RAZORPAY_KEY_ID,

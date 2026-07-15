@@ -1,12 +1,14 @@
 import messaging from '@react-native-firebase/messaging';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { auth } from '../../app/config/firebase';
+import { httpsCallable } from '@react-native-firebase/functions';
+import { functions } from '../../app/config/firebase';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -33,7 +35,6 @@ export async function getFcmToken() {
 
 export async function saveFcmToken(token: string) {
   try {
-    const functions = getFunctions();
     const saveTokenCallable = httpsCallable(functions, 'saveFcmToken');
     await saveTokenCallable({ token });
   } catch (error) {

@@ -38,7 +38,7 @@ const Tab = createMaterialTopTabNavigator<any>();
 const Stack = createNativeStackNavigator<any>();
 
 const prefix = Linking.createURL('/');
-const linking = {
+const linking: import('@react-navigation/native').LinkingOptions<any> = {
   prefixes: [prefix, 'safaikart://'],
   config: {
     screens: {

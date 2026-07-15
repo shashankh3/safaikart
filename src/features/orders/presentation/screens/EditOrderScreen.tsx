@@ -8,7 +8,7 @@ import { SIZES } from '../../../../shared/theme/spacing';
 import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressable';
 import { OrdersRepository } from '../../infrastructure/OrdersRepository';
 import { Order, OrderItem } from '../../domain/Order';
-import { httpsCallable, getFunctions } from 'firebase/functions';
+import { httpsCallable, getFunctions } from '@react-native-firebase/functions';
 
 type RouteParams = RouteProp<{ EditOrder: { orderId: string } }, 'EditOrder'>;
 

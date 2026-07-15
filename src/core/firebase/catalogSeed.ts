@@ -1,5 +1,5 @@
 import { db } from './firestore';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import {collection, doc, writeBatch} from '@react-native-firebase/firestore';
 
 export const CATEGORIES = [
   { id: "dry_cleaning", name: "Dry Cleaning", slug: "dry-cleaning", icon: "shirt-outline", isActive: true, sortOrder: 1 },

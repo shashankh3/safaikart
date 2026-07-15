@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import {collection, doc, getDoc, getDocs, query, where, orderBy} from '@react-native-firebase/firestore';
 import { db } from '../../../app/config/firebase';
 import { Order } from '../domain/Order';
 

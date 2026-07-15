@@ -2,12 +2,15 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.editOrderItems = void 0;
 const https_1 = require("firebase-functions/v2/https");
+const params_1 = require("firebase-functions/params");
 const admin = require("firebase-admin");
+const razorpayKeySecret = (0, params_1.defineSecret)('RAZORPAY_KEY_SECRET');
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.editOrderItems = (0, https_1.onCall)(async (request) => {
+exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayKeySecret] }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {
@@ -18,6 +21,9 @@ exports.editOrderItems = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError('invalid-argument', 'Order ID and items array are required.');
     }
     const orderRef = db.collection('orders').doc(orderId);
+    let refundAmountMinor = 0;
+    let razorpayPaymentId = null;
+    let newFinalAmountMinor = 0;
     await db.runTransaction(async (transaction) => {
         const orderDoc = await transaction.get(orderRef);
         if (!orderDoc.exists) {
@@ -107,20 +113,40 @@ exports.editOrderItems = (0, https_1.onCall)(async (request) => {
                 }
             }
         }
-        const newFinalAmountMinor = newSubtotalMinor + orderData.deliveryFeeMinor - newDiscountMinor;
+        newFinalAmountMinor = newSubtotalMinor + orderData.deliveryFeeMinor - newDiscountMinor;
         // Partial Refund or Additional Payment Logic
         const amountDiff = newFinalAmountMinor - orderData.finalAmountMinor;
         if (orderData.status === 'CONFIRMED' && amountDiff !== 0) {
             if (amountDiff < 0) {
                 // We owe the customer a refund
-                console.log(`[Razorpay] Mocking partial refund of Rs ${Math.abs(amountDiff) / 100} for order ${orderId}`);
-                // In a real scenario, call Razorpay refund API here.
+                refundAmountMinor = Math.abs(amountDiff);
+                const paymentsSnapshot = await transaction.get(db.collection('payments')
+                    .where('orderId', '==', orderId)
+                    .where('status', '==', 'VERIFIED'));
+                if (!paymentsSnapshot.empty) {
+                    const payment = paymentsSnapshot.docs[0].data();
+                    razorpayPaymentId = payment.razorpayPaymentId;
+                }
             }
             else {
-                // Customer owes us more. 
-                // In a complex flow, this would revert status to PAYMENT_PENDING for the difference.
-                // For simplicity, we just log it and update the order amount.
-                console.log(`[Razorpay] Customer owes Rs ${amountDiff / 100} more for order ${orderId}`);
+                // Customer owes us more. Create a pending payment doc.
+                const newPaymentRef = db.collection('payments').doc();
+                transaction.set(newPaymentRef, {
+                    orderId: orderId,
+                    userId: uid,
+                    provider: 'razorpay',
+                    razorpayOrderId: null,
+                    razorpayPaymentId: null,
+                    amountMinor: amountDiff,
+                    currency: 'INR',
+                    method: 'upi',
+                    status: 'PENDING',
+                    webhookVerified: false,
+                    clientCallbackReceived: false,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    verifiedAt: null
+                });
+                transaction.update(orderRef, { paymentStatus: 'PAYMENT_PENDING' });
             }
         }
         // Recalculate Estimated Delivery Date if items changed
@@ -146,6 +172,28 @@ exports.editOrderItems = (0, https_1.onCall)(async (request) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
     });
+    if (refundAmountMinor > 0 && razorpayPaymentId) {
+        const keySecret = razorpayKeySecret.value();
+        const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${keySecret}`).toString('base64');
+        const response = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refund`, {
+            method: 'POST',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ amount: refundAmountMinor })
+        });
+        if (response.ok) {
+            const refundData = await response.json();
+            await orderRef.update({
+                refundId: refundData.id,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        else {
+            console.error('Refund failed:', await response.text());
+        }
+    }
     return { success: true };
 });
 //# sourceMappingURL=editOrderItems.js.map

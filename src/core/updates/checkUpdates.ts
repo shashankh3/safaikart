@@ -1,6 +1,6 @@
 import * as Updates from 'expo-updates';
 import { Alert } from 'react-native';
-import { doc, getDoc } from 'firebase/firestore';
+import {doc, getDoc} from '@react-native-firebase/firestore';
 import { db } from '../../app/config/firebase';
 import Constants from 'expo-constants';
 

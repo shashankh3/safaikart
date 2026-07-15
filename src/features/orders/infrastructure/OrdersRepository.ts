@@ -1,5 +1,5 @@
-import { collection, doc, query, where, orderBy, getDocs, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import {collection, doc, query, where, orderBy, getDocs, getDoc, onSnapshot, Unsubscribe} from '@react-native-firebase/firestore';
+import { httpsCallable } from '@react-native-firebase/functions';
 import { db, auth, functions } from '../../../app/config/firebase';
 import { Order } from '../domain/Order';
 

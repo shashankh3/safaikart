@@ -1,4 +1,4 @@
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
 import { db } from '../../../app/config/firebase';
 
 const functions = getFunctions();

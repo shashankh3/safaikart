@@ -1,5 +1,5 @@
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import {collection, getDocs, query, where, orderBy} from '@react-native-firebase/firestore';
+import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
 import { db } from '../../../app/config/firebase';
 import { PickupSlot } from '../domain/PickupSlot';
 

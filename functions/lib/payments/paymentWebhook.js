@@ -35,9 +35,27 @@ exports.paymentWebhook = (0, https_1.onRequest)({ secrets: [razorpayWebhookSecre
         }
         // 5. Parse Event
         const event = JSON.parse(rawBody.toString());
-        if (event.event !== 'payment.captured' && event.event !== 'payment.failed') {
+        if (event.event !== 'payment.captured' && event.event !== 'payment.failed' && event.event !== 'refund.processed') {
             // Ignore other events
             response.status(200).send('Event ignored');
+            return;
+        }
+        if (event.event === 'refund.processed') {
+            const refund = event.payload.refund.entity;
+            const rzpPaymentId = refund.payment_id;
+            const paymentsQuery = await db.collection('payments').where('razorpayPaymentId', '==', rzpPaymentId).get();
+            if (paymentsQuery.empty) {
+                console.warn(`Payment record not found for Razorpay Payment: ${rzpPaymentId}`);
+                response.status(200).send('Record not found');
+                return;
+            }
+            const paymentRecord = paymentsQuery.docs[0].data();
+            const ordRef = db.collection('orders').doc(paymentRecord.orderId);
+            await ordRef.update({
+                status: 'REFUNDED',
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            response.status(200).send('OK');
             return;
         }
         const payment = event.payload.payment.entity;

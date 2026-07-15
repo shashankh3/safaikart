@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import {FirebaseFirestoreTypes} from '@react-native-firebase/firestore';
 import { PaymentStatus } from './PaymentStatus';
 
 export interface Payment {
@@ -14,6 +14,6 @@ export interface Payment {
   status: PaymentStatus;
   webhookVerified: boolean;
   clientCallbackReceived: boolean;
-  createdAt: Timestamp;
-  verifiedAt: Timestamp | null;
+  createdAt: FirebaseFirestoreTypes.Timestamp;
+  verifiedAt: FirebaseFirestoreTypes.Timestamp | null;
 }

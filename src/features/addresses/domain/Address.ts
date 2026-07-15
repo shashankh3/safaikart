@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import {FirebaseFirestoreTypes} from '@react-native-firebase/firestore';
 
 export interface Address {
   id: string;
@@ -13,8 +13,8 @@ export interface Address {
   pincode: string;
   geo?: { lat: number; lng: number };
   isDefault: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt: FirebaseFirestoreTypes.Timestamp;
+  updatedAt: FirebaseFirestoreTypes.Timestamp;
 }
 
 export type AddressDraft = Omit<Address, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
