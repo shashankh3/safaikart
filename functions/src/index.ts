@@ -20,3 +20,7 @@ export { editOrderItems } from './orders/editOrderItems';
 export { saveFcmToken } from './notifications/saveFcmToken';
 export { sendOrderStatusNotification } from './notifications/sendOrderStatusNotification';
 export { markNotificationRead } from './notifications/markNotificationRead';
+
+// Admin
+export { adminUpdateOrderStatus } from './admin/adminUpdateOrderStatus';
+export { adminConfirmOrderPrice } from './admin/adminConfirmOrderPrice';

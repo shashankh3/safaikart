@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.markNotificationRead = exports.sendOrderStatusNotification = exports.saveFcmToken = exports.editOrderItems = exports.cancelOrder = exports.onUserCreate = exports.paymentWebhook = exports.retryPayment = exports.verifyPaymentStatus = exports.createPaymentOrder = void 0;
+exports.adminConfirmOrderPrice = exports.adminUpdateOrderStatus = exports.markNotificationRead = exports.sendOrderStatusNotification = exports.saveFcmToken = exports.editOrderItems = exports.cancelOrder = exports.onUserCreate = exports.paymentWebhook = exports.retryPayment = exports.verifyPaymentStatus = exports.createPaymentOrder = void 0;
 const v2_1 = require("firebase-functions/v2");
 // All v2 functions deploy to asia-south1 (Mumbai)
 (0, v2_1.setGlobalOptions)({ region: 'asia-south1' });
@@ -42,4 +42,9 @@ var sendOrderStatusNotification_1 = require("./notifications/sendOrderStatusNoti
 Object.defineProperty(exports, "sendOrderStatusNotification", { enumerable: true, get: function () { return sendOrderStatusNotification_1.sendOrderStatusNotification; } });
 var markNotificationRead_1 = require("./notifications/markNotificationRead");
 Object.defineProperty(exports, "markNotificationRead", { enumerable: true, get: function () { return markNotificationRead_1.markNotificationRead; } });
+// Admin
+var adminUpdateOrderStatus_1 = require("./admin/adminUpdateOrderStatus");
+Object.defineProperty(exports, "adminUpdateOrderStatus", { enumerable: true, get: function () { return adminUpdateOrderStatus_1.adminUpdateOrderStatus; } });
+var adminConfirmOrderPrice_1 = require("./admin/adminConfirmOrderPrice");
+Object.defineProperty(exports, "adminConfirmOrderPrice", { enumerable: true, get: function () { return adminConfirmOrderPrice_1.adminConfirmOrderPrice; } });
 //# sourceMappingURL=index.js.map

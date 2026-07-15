@@ -39,7 +39,7 @@ export default function AdminDashboardScreen({ navigation }: any) {
           </TouchableOpacity>
 
           {/* Order Manager Card */}
-          <TouchableOpacity onPress={() => alert('Order Manager coming soon!')}>
+          <TouchableOpacity onPress={() => navigation.navigate('AdminOrderManager')}>
             <YStack backgroundColor={COLORS.white} borderRadius={16} padding={20} elevation={4} shadowColor="#000" shadowOpacity={0.05} shadowRadius={8} shadowOffset={{ width: 0, height: 4 }}>
               <XStack alignItems="center" marginBottom={12}>
                 <YStack width={48} height={48} borderRadius={24} backgroundColor="#FBE9E7" alignItems="center" justifyContent="center">

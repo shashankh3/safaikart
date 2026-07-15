@@ -10,6 +10,10 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
+    }
+
     function affectsOnly(allowed) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
     }
@@ -22,7 +26,7 @@ service cloud.firestore {
 
     // ===== PROFILES =====
     match /profiles/{userId} {
-      allow read: if isOwner(userId);
+      allow read: if isOwner(userId) || isAdmin();
 
       allow update: if isOwner(userId)
         && request.resource.data.userId == resource.data.userId
@@ -44,7 +48,7 @@ service cloud.firestore {
 
     // ===== ADDRESSES =====
     match /addresses/{addressId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid;
       allow update: if isSignedIn()
@@ -74,13 +78,13 @@ service cloud.firestore {
 
     // ===== ORDERS =====
     match /orders/{orderId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create, update, delete: if false;
     }
 
     // ===== PAYMENTS =====
     match /payments/{paymentId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create, update, delete: if false;
     }
 
