@@ -41,3 +41,8 @@ service-account.json
 # generated native folders
 /ios
 /android
+
+# secrets & local artifacts
+google-play-service-account.json
+firestore-debug.log
+*-debug.log

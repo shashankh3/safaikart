@@ -19,15 +19,26 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "permissions": ["NOTIFICATIONS"],
-      "useNextNotificationsApi": true
+      "permissions": [
+        "POST_NOTIFICATIONS",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-font",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0F301F"
+        }
+      ],
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "@react-native-firebase/crashlytics",
@@ -47,6 +58,21 @@
           "enforceContrast": false
         }
       ]
-    ]
+    ],
+    "extra": {
+      "expo-navigation-bar": {
+        "enforceContrast": false
+      },
+      "eas": {
+        "projectId": "c8689aa7-cbb2-4aad-a348-8ce979a8b0c1"
+      }
+    },
+    "owner": "avyan146",
+    "updates": {
+      "url": "https://u.expo.dev/c8689aa7-cbb2-4aad-a348-8ce979a8b0c1"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }
