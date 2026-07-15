@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafaiKart Checkout</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f7f9fc; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loader"></div>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const order_id = urlParams.get('order_id');
+        const key_id = urlParams.get('key_id');
+        const amount = urlParams.get('amount');
+        const currency = urlParams.get('currency');
+        const name = urlParams.get('name') || "SafaiKart";
+        const description = urlParams.get('description') || "Service Payment";
+        const prefill_name = urlParams.get('prefill_name') || "";
+        const prefill_contact = urlParams.get('prefill_contact') || "";
+        const prefill_email = urlParams.get('prefill_email') || "";
+
+        if (!order_id || !key_id) {
+            document.body.innerHTML = "<h3>Error: Missing checkout parameters.</h3>";
+        } else {
+            const options = {
+                "key": key_id,
+                "amount": amount,
+                "currency": currency,
+                "name": name,
+                "description": description,
+                "order_id": order_id,
+                "handler": function (response) {
+                    // Send success message to React Native WebView
+                    if (window.ReactNativeWebView) {
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                            status: 'success',
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature
+                        }));
+                    }
+                },
+                "prefill": {
+                    "name": prefill_name,
+                    "email": prefill_email,
+                    "contact": prefill_contact
+                },
+                "theme": {
+                    "color": "#3399cc"
+                },
+                "modal": {
+                    "ondismiss": function() {
+                        if (window.ReactNativeWebView) {
+                            window.ReactNativeWebView.postMessage(JSON.stringify({
+                                status: 'dismissed'
+                            }));
+                        }
+                    }
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            
+            rzp.on('payment.failed', function (response){
+                if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                        status: 'failed',
+                        error: response.error
+                    }));
+                }
+            });
+
+            // Automatically open
+            rzp.open();
+            
+            // Hide loader once opened
+            document.getElementById('loading').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -3,9 +3,6 @@ import { View, Text, TextInput, Button, StyleSheet, Alert, ActivityIndicator } f
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { sendPhoneOtp } from '../../../../core/firebase/auth';
-import { auth } from '../../../../app/config/firebase';
-import { signInAnonymously } from 'firebase/auth';
-
 export default function PhoneLoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,16 +16,12 @@ export default function PhoneLoginScreen() {
     
     setLoading(true);
     try {
-      // In a real Expo Native app, you need expo-firebase-recaptcha. 
-      // For web, RecaptchaVerifier from firebase/auth works.
-      // Since this might fail on native without a verifier, we fallback to anonymous auth for testing.
-      // const confirmation = await sendPhoneOtp('+91' + phoneNumber, appVerifier);
-      // navigation.navigate('OtpVerification', { phoneNumber, confirmation });
-      
-      // MOCK: bypass to OtpVerification
-      navigation.navigate('OtpVerification', { phoneNumber, confirmation: null });
-    } catch (e) {
-      Alert.alert('Error', 'Failed to send OTP');
+      const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : '+91' + phoneNumber;
+      const confirmation = await sendPhoneOtp(formattedNumber);
+      navigation.navigate('OtpVerification', { phoneNumber: formattedNumber, confirmation });
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert('Error', e?.message || 'Failed to send OTP');
     } finally {
       setLoading(false);
     }

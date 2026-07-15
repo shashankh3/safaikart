@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.markNotificationRead = exports.sendOrderStatusNotification = exports.saveFcmToken = exports.editOrderItems = exports.cancelOrder = exports.paymentWebhook = exports.retryPayment = exports.verifyPaymentStatus = exports.createPaymentOrder = void 0;
+exports.markNotificationRead = exports.sendOrderStatusNotification = exports.saveFcmToken = exports.editOrderItems = exports.cancelOrder = exports.onUserCreate = exports.paymentWebhook = exports.retryPayment = exports.verifyPaymentStatus = exports.createPaymentOrder = void 0;
 const v2_1 = require("firebase-functions/v2");
 // All v2 functions deploy to asia-south1 (Mumbai)
 (0, v2_1.setGlobalOptions)({ region: 'asia-south1' });
@@ -28,6 +28,9 @@ var retryPayment_1 = require("./payments/retryPayment");
 Object.defineProperty(exports, "retryPayment", { enumerable: true, get: function () { return retryPayment_1.retryPayment; } });
 var paymentWebhook_1 = require("./payments/paymentWebhook");
 Object.defineProperty(exports, "paymentWebhook", { enumerable: true, get: function () { return paymentWebhook_1.paymentWebhook; } });
+// Auth
+var onUserCreate_1 = require("./auth/onUserCreate");
+Object.defineProperty(exports, "onUserCreate", { enumerable: true, get: function () { return onUserCreate_1.onUserCreate; } });
 // Orders & Notifications
 var cancelOrder_1 = require("./orders/cancelOrder");
 Object.defineProperty(exports, "cancelOrder", { enumerable: true, get: function () { return cancelOrder_1.cancelOrder; } });

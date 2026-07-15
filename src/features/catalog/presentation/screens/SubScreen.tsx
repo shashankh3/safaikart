@@ -1,16 +1,12 @@
 import React from 'react';
 import { TouchableOpacity, ScrollView } from 'react-native';
 import { YStack, XStack, ZStack, Text } from '../../../../shared/ui/primitives/Stacks';
-
-
-
-
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function SubScreen({ route, navigation }) {
+export default function SubScreen({ route, navigation }: any) {
   const { title } = route.params || { title: 'Details' };
   const insets = useSafeAreaInsets();
 
@@ -24,24 +20,6 @@ export default function SubScreen({ route, navigation }) {
         <YStack width={40} />
       </XStack>
       <ScrollView contentContainerStyle={{ padding: SIZES.padding }} showsVerticalScrollIndicator={false}>
-        {title === 'My Addresses' && (
-          <YStack>
-            <YStack backgroundColor={COLORS.cardBg} padding={16} borderRadius={16} elevation={2} shadowColor="#000" shadowOffset={{ width: 0, height: 2 }} shadowOpacity={0.05} shadowRadius={4} marginBottom={16} borderWidth={1} borderColor={COLORS.darkGreen}>
-              <XStack alignItems="center" marginBottom={8}>
-                <Ionicons name="home" size={18} color={COLORS.darkGreen} />
-                <Text marginLeft={8} fontWeight="800" fontSize={16} color={COLORS.black}>Home</Text>
-                <YStack backgroundColor="#E8F5E9" paddingHorizontal={8} paddingVertical={2} borderRadius={10} marginLeft="auto">
-                  <Text fontSize={10} color={COLORS.darkGreen} fontWeight="700">DEFAULT</Text>
-                </YStack>
-              </XStack>
-              <Text fontSize={13} color={COLORS.textSecondary} lineHeight={20}>123 Cleaning Avenue, Sparkle Sector, New Delhi 110001, India</Text>
-            </YStack>
-            <TouchableOpacity style={{ borderStyle: 'dashed', borderWidth: 2, borderColor: '#CCC', padding: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="add-circle-outline" size={24} color={COLORS.textSecondary} />
-              <Text marginTop={8} color={COLORS.textSecondary} fontWeight="600">Add New Address</Text>
-            </TouchableOpacity>
-          </YStack>
-        )}
 
         {title === 'Payment Methods' && (
           <YStack>

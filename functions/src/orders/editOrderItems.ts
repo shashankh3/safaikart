@@ -1,5 +1,9 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
+
+const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -7,7 +11,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const editOrderItems = onCall(async (request) => {
+export const editOrderItems = onCall({ secrets: [razorpayKeySecret] }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError('unauthenticated', 'User must be logged in to edit an order.');
@@ -19,6 +23,10 @@ export const editOrderItems = onCall(async (request) => {
   }
 
   const orderRef = db.collection('orders').doc(orderId);
+
+  let refundAmountMinor = 0;
+  let razorpayPaymentId: string | null = null;
+  let newFinalAmountMinor = 0;
 
   await db.runTransaction(async (transaction) => {
     const orderDoc = await transaction.get(orderRef);
@@ -116,20 +124,40 @@ export const editOrderItems = onCall(async (request) => {
       }
     }
 
-    const newFinalAmountMinor = newSubtotalMinor + orderData.deliveryFeeMinor - newDiscountMinor;
+    newFinalAmountMinor = newSubtotalMinor + orderData.deliveryFeeMinor - newDiscountMinor;
     
     // Partial Refund or Additional Payment Logic
     const amountDiff = newFinalAmountMinor - orderData.finalAmountMinor;
     if (orderData.status === 'CONFIRMED' && amountDiff !== 0) {
       if (amountDiff < 0) {
         // We owe the customer a refund
-        console.log(`[Razorpay] Mocking partial refund of Rs ${Math.abs(amountDiff) / 100} for order ${orderId}`);
-        // In a real scenario, call Razorpay refund API here.
+        refundAmountMinor = Math.abs(amountDiff);
+        const paymentsSnapshot = await transaction.get(db.collection('payments')
+            .where('orderId', '==', orderId)
+            .where('status', '==', 'VERIFIED'));
+        if (!paymentsSnapshot.empty) {
+            const payment = paymentsSnapshot.docs[0].data();
+            razorpayPaymentId = payment.razorpayPaymentId;
+        }
       } else {
-        // Customer owes us more. 
-        // In a complex flow, this would revert status to PAYMENT_PENDING for the difference.
-        // For simplicity, we just log it and update the order amount.
-        console.log(`[Razorpay] Customer owes Rs ${amountDiff / 100} more for order ${orderId}`);
+        // Customer owes us more. Create a pending payment doc.
+        const newPaymentRef = db.collection('payments').doc();
+        transaction.set(newPaymentRef, {
+            orderId: orderId,
+            userId: uid,
+            provider: 'razorpay',
+            razorpayOrderId: null,
+            razorpayPaymentId: null,
+            amountMinor: amountDiff,
+            currency: 'INR',
+            method: 'upi',
+            status: 'PENDING',
+            webhookVerified: false,
+            clientCallbackReceived: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            verifiedAt: null
+        });
+        transaction.update(orderRef, { paymentStatus: 'PAYMENT_PENDING' });
       }
     }
 
@@ -156,6 +184,29 @@ export const editOrderItems = onCall(async (request) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
   });
+
+  if (refundAmountMinor > 0 && razorpayPaymentId) {
+      const keySecret = razorpayKeySecret.value();
+      const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${keySecret}`).toString('base64');
+      const response = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refund`, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ amount: refundAmountMinor })
+      });
+
+      if (response.ok) {
+        const refundData = await response.json();
+        await orderRef.update({
+          refundId: refundData.id,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } else {
+        console.error('Refund failed:', await response.text());
+      }
+  }
 
   return { success: true };
 });

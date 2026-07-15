@@ -17,6 +17,8 @@ import OrderTrackingScreen from '../../features/orders/presentation/screens/Orde
 import SubScreen from '../../features/catalog/presentation/screens/SubScreen';
 import AuthNavigator from './AuthNavigator';
 import ServiceDetailsScreen from '../../features/catalog/presentation/screens/ServiceDetailsScreen';
+import AddressListScreen from '../../features/addresses/presentation/screens/AddressListScreen';
+import AddressFormScreen from '../../features/addresses/presentation/screens/AddressFormScreen';
 
 import StickyCart from '../../features/cart/presentation/components/StickyCart';
 import AnimatedPressable from '../../shared/ui/components/AnimatedPressable';
@@ -29,9 +31,26 @@ import { COLORS } from '../../shared/theme/colors';
 import { SIZES } from '../../shared/theme/spacing';
 import { useAuth } from '../../features/auth/application/useAuth';
 import { ActivityIndicator } from 'react-native';
+import * as Linking from 'expo-linking';
+import { setupNotificationListeners, getFcmToken, saveFcmToken, requestNotificationPermission } from '../../core/firebase/messaging';
 
 const Tab = createMaterialTopTabNavigator<any>();
 const Stack = createNativeStackNavigator<any>();
+
+const prefix = Linking.createURL('/');
+const linking = {
+  prefixes: [prefix, 'safaikart://'],
+  config: {
+    screens: {
+      MainTabs: {
+        screens: {
+          Orders: 'orders',
+        }
+      },
+      OrderTracking: 'order/:orderId',
+    }
+  }
+};
 
 const CustomTabBar = ({ state, descriptors, navigation, insets, blurTargetRef }: any) => {
   return (
@@ -114,6 +133,37 @@ function BottomTabs() {
 
 export default function AppNavigator() {
   const { user, loading } = useAuth();
+  const navigationRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const setupNotifications = async () => {
+      const hasPermission = await requestNotificationPermission();
+      if (hasPermission) {
+        const token = await getFcmToken();
+        if (token) {
+          await saveFcmToken(token);
+        }
+      }
+    };
+    
+    setupNotifications();
+
+    const cleanup = setupNotificationListeners(
+      (notification) => {
+        console.log('Notification received in foreground:', notification);
+      },
+      (response) => {
+        const data = response?.notification?.request?.content?.data || response?.data;
+        if (data?.orderId && navigationRef.current) {
+          navigationRef.current.navigate('OrderTracking', { orderId: data.orderId });
+        }
+      }
+    );
+
+    return () => cleanup();
+  }, [user]);
 
   if (loading) {
     return (
@@ -124,7 +174,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking} ref={navigationRef}>
       <Stack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
         {!user ? (
           <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
@@ -132,6 +182,8 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="MainTabs" component={BottomTabs} />
             <Stack.Screen name="SubScreen" component={SubScreen} />
+            <Stack.Screen name="AddressList" component={AddressListScreen} />
+            <Stack.Screen name="AddressForm" component={AddressFormScreen} />
             <Stack.Screen name="ServiceDetails" component={ServiceDetailsScreen} />
             <Stack.Screen name="CheckoutFlow" component={CheckoutNavigator} />
             <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} />

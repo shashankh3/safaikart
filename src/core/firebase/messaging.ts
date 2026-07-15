@@ -1,28 +1,82 @@
-import * as Device from 'expo-device';
-import Constants, { ExecutionEnvironment } from 'expo-constants';
+import messaging from '@react-native-firebase/messaging';
+import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth } from '../../app/config/firebase';
 
-const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient || Constants.appOwnership === 'expo';
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export async function requestNotificationPermission() {
-  console.log('Push notifications bypassed for Expo Go testing.');
-  return false;
+  const authStatus = await messaging().requestPermission();
+  const enabled =
+    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+  return enabled;
 }
 
 export async function getFcmToken() {
-  return null;
+  try {
+    const token = await messaging().getToken();
+    return token;
+  } catch (error) {
+    console.error('Error getting FCM token:', error);
+    return null;
+  }
 }
 
 export async function saveFcmToken(token: string) {
-  return;
+  try {
+    const functions = getFunctions();
+    const saveTokenCallable = httpsCallable(functions, 'saveFcmToken');
+    await saveTokenCallable({ token });
+  } catch (error) {
+    console.error('Failed to save FCM token:', error);
+  }
 }
 
 export function setupNotificationListeners(
-  onNotificationReceived: any,
-  onNotificationResponse: any
+  onNotificationReceived: (notification: any) => void,
+  onNotificationResponse: (response: any) => void
 ) {
-  return () => {};
-}
+  const unsubscribeOnMessage = messaging().onMessage(async remoteMessage => {
+    // Show local notification when app is in foreground
+    if (remoteMessage.notification) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: remoteMessage.notification.title,
+          body: remoteMessage.notification.body,
+          data: remoteMessage.data,
+        },
+        trigger: null,
+      });
+    }
+    onNotificationReceived(remoteMessage);
+  });
 
+  const unsubscribeOnNotificationResponse = Notifications.addNotificationResponseReceivedListener(response => {
+    onNotificationResponse(response);
+  });
+
+  // Handle background/quit state opens
+  messaging().onNotificationOpenedApp(remoteMessage => {
+    onNotificationResponse({ notification: { request: { content: { data: remoteMessage.data } } } });
+  });
+
+  messaging().getInitialNotification().then(remoteMessage => {
+    if (remoteMessage) {
+      onNotificationResponse({ notification: { request: { content: { data: remoteMessage.data } } } });
+    }
+  });
+
+  return () => {
+    unsubscribeOnMessage();
+    unsubscribeOnNotificationResponse.remove();
+  };
+}

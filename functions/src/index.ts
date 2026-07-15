@@ -11,6 +11,9 @@ export { verifyPaymentStatus } from './payments/verifyPaymentStatus';
 export { retryPayment } from './payments/retryPayment';
 export { paymentWebhook } from './payments/paymentWebhook';
 
+// Auth
+export { onUserCreate } from './auth/onUserCreate';
+
 // Orders & Notifications
 export { cancelOrder } from './orders/cancelOrder';
 export { editOrderItems } from './orders/editOrderItems';

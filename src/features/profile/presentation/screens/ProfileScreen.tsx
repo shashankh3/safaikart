@@ -30,6 +30,8 @@ export default function ProfileScreen({ navigation }: any) {
       Linking.openURL('whatsapp://send?text=Hello SafaiKart! I need some help.&phone=+919691561836');
     } else if (item.title === 'Notifications') {
       navigation.navigate('NotificationCenter');
+    } else if (item.title === 'My Addresses') {
+      navigation.navigate('AddressList');
     } else {
       navigation.navigate('SubScreen', { title: item.title });
     }
@@ -81,7 +83,7 @@ export default function ProfileScreen({ navigation }: any) {
         >
           <XStack padding={SIZES.padding} backgroundColor="rgba(0,0,0,0.1)">
             <YStack marginRight={20} position="relative">
-               <Image source={require('../../../../../assets/soumya_profile.png')} style={{ width: 75, height: 75, borderRadius: 37.5, borderWidth: 2, borderColor: '#D4AF37' }} />
+               <Image source={profile?.photoURL ? { uri: profile.photoURL } : require('../../../../../assets/soumya_profile.png')} style={{ width: 75, height: 75, borderRadius: 37.5, borderWidth: 2, borderColor: '#D4AF37' }} />
                <XStack alignItems="center" backgroundColor="#D4AF37" paddingVertical={4} paddingHorizontal={8} borderRadius={12} position="absolute" bottom={-5} left={10} elevation={4} shadowColor="#000" shadowOffset={{ width: 0, height: 2 }} shadowOpacity={0.3} shadowRadius={3}>
                  <Ionicons name="medal" size={12} color={COLORS.black} />
                  <Text fontSize={9} fontWeight="900" color={COLORS.black} marginLeft={4} letterSpacing={0.5}>GOLD</Text>

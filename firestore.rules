@@ -137,7 +137,8 @@ service cloud.firestore {
 
     // ===== ADMIN USERS =====
     match /adminUsers/{adminUserId} {
-      allow read, write: if false;
+      allow read: if isOwner(adminUserId);
+      allow write: if false;
     }
 
     // ===== AUDIT LOGS =====

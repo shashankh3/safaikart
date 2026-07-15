@@ -1,16 +1,27 @@
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-import { app } from '../../app/config/firebase';
+import appCheck from '@react-native-firebase/app-check';
 
-let appCheck: any = null;
+let appCheckInstance: any = null;
 
 try {
-  appCheck = initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_ENTERPRISE_SITE_KEY'),
-    isTokenAutoRefreshEnabled: true
+  const provider = appCheck().newReactNativeFirebaseAppCheckProvider();
+  provider.configure({
+    android: {
+      provider: __DEV__ ? 'debug' : 'playIntegrity',
+    },
+    apple: {
+      provider: __DEV__ ? 'debug' : 'appAttestWithDeviceCheckFallback',
+    },
+    web: {
+      provider: 'reCAPTCHAEnterprise',
+      siteKey: 'UNKNOWN',
+    },
   });
+
+  appCheck().initializeAppCheck({ provider, isTokenAutoRefreshEnabled: true });
+  appCheckInstance = appCheck();
   console.log('Firebase App Check initialized');
 } catch (error) {
   console.warn('Failed to initialize App Check', error);
 }
 
-export { appCheck };
+export { appCheckInstance as appCheck };

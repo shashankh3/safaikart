@@ -243,8 +243,6 @@ export default function HomeScreen({ navigation }) {
     import('../../domain/seedDatabaseV2').then(({ seedDatabaseV2 }) => {
       seedDatabaseV2();
     });
-    // Temporary: Clear cart in case there's old mock data in AsyncStorage causing the sticky cart to appear
-    if (clearCart) clearCart();
   }, []);
 
   const renderServiceCard = ({ item, index }) => (

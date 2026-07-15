@@ -48,56 +48,6 @@ export class CheckoutRepository {
       } as PickupSlot;
     });
 
-    // Fallback: Generate 7 days of 4 slots if DB is empty
-    if (slots.length === 0) {
-      const generatedSlots: PickupSlot[] = [];
-      const times = [
-        { start: '08:00', end: '10:00' },
-        { start: '10:00', end: '12:00' },
-        { start: '14:00', end: '16:00' },
-        { start: '16:00', end: '18:00' }
-      ];
-      
-      for (let i = 0; i < 7; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() + i);
-        const dateStr = d.toISOString().split('T')[0];
-        const dateLabel = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-        
-        times.forEach((t, j) => {
-          const formatTime = (time: string) => {
-            const [h, m] = time.split(':');
-            let hours = parseInt(h, 10);
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12 || 12;
-            return `${hours}:${m} ${ampm}`;
-          };
-          
-          generatedSlots.push({
-            id: `mock-slot-${i}-${j}`,
-            date: dateStr,
-            startTime: t.start,
-            endTime: t.end,
-            capacity: 20,
-            bookedCount: Math.floor(Math.random() * 20),
-            isActive: true,
-            serviceArea: 'default',
-            available: true,
-            displayLabel: `${formatTime(t.start)} - ${formatTime(t.end)}`,
-            dateLabel,
-            spotsLeft: 20
-          });
-        });
-      }
-      
-      // Calculate spots left and availability for generated slots
-      slots = generatedSlots.map(s => {
-        s.spotsLeft = s.capacity - s.bookedCount;
-        s.available = s.spotsLeft > 0;
-        return s;
-      });
-    }
-
     return slots;
   }
 

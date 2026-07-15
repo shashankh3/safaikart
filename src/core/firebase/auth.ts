@@ -1,12 +1,11 @@
-import { auth } from '../../app/config/firebase';
-import { onAuthStateChanged, User, signOut, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
+import firebaseAuth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 
-export const setupAuthListener = (callback: (user: User | null) => void) => {
-  return onAuthStateChanged(auth, callback);
+export const setupAuthListener = (callback: (user: FirebaseAuthTypes.User | null) => void) => {
+  return firebaseAuth().onAuthStateChanged(callback);
 };
 
-export const logoutUser = () => signOut(auth);
+export const logoutUser = () => firebaseAuth().signOut();
 
-export const sendPhoneOtp = async (phoneNumber: string, appVerifier: any): Promise<ConfirmationResult> => {
-  return signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+export const sendPhoneOtp = async (phoneNumber: string): Promise<FirebaseAuthTypes.ConfirmationResult> => {
+  return firebaseAuth().signInWithPhoneNumber(phoneNumber);
 };

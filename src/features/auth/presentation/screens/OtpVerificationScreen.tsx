@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { signInAnonymously } from 'firebase/auth';
-import { auth } from '../../../../app/config/firebase';
+import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 
 export default function OtpVerificationScreen() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { phoneNumber, confirmation } = route.params || {};
+  const { phoneNumber, confirmation } = route.params as { phoneNumber: string, confirmation: FirebaseAuthTypes.ConfirmationResult };
 
   const handleVerifyOtp = async () => {
     if (otp.length < 6) {
@@ -19,15 +18,15 @@ export default function OtpVerificationScreen() {
     
     setLoading(true);
     try {
-      if (confirmation) {
-        await confirmation.confirm(otp);
-      } else {
-        // Mock success with anonymous login to bypass auth screen and test MainTabs
-        await signInAnonymously(auth);
+      if (!confirmation) {
+        throw new Error('Confirmation object is missing. Please try sending OTP again.');
       }
+      
+      await confirmation.confirm(otp);
       // RootNavigator will automatically redirect due to auth state change!
-    } catch (e) {
-      Alert.alert('Error', 'Invalid OTP');
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert('Error', e?.message || 'Invalid OTP');
     } finally {
       setLoading(false);
     }

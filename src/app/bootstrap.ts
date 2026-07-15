@@ -1,4 +1,5 @@
 import { Platform, UIManager } from 'react-native';
+import crashlytics from '@react-native-firebase/crashlytics';
 import './config/firebase'; // Ensure Firebase is initialized
 
 export const bootstrap = async () => {
@@ -8,10 +9,11 @@ export const bootstrap = async () => {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
 
-    // 2. Setup Global Error Handlers (Console only for Expo Go)
+    // 2. Setup Global Error Handlers (Native Crashlytics)
     const defaultErrorHandler = ErrorUtils.getGlobalHandler();
     ErrorUtils.setGlobalHandler((error: any, isFatal?: boolean) => {
       console.error('Global Error:', error);
+      crashlytics().recordError(error);
       if (defaultErrorHandler) {
         defaultErrorHandler.call(global, error, isFatal);
       }
@@ -20,6 +22,7 @@ export const bootstrap = async () => {
     const defaultRejectionHandler = global.onunhandledrejection;
     global.onunhandledrejection = (event: PromiseRejectionEvent) => {
       console.error('Unhandled Promise Rejection:', event.reason);
+      crashlytics().recordError(event.reason);
       if (defaultRejectionHandler) {
         defaultRejectionHandler.call(global, event);
       }
