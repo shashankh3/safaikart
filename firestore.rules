@@ -39,7 +39,6 @@ service cloud.firestore {
           'displayName',
           'photoURL',
           'defaultAddressId',
-          'fcmTokens',
           'updatedAt'
         ]);
 
@@ -61,13 +60,13 @@ service cloud.firestore {
     // ===== CATEGORIES =====
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
     // ===== SERVICES =====
     match /services/{serviceId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
     // ===== CARTS =====
@@ -131,7 +130,7 @@ service cloud.firestore {
     // ===== APP CONFIG =====
     match /appConfig/{docId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
     // ===== RATE LIMITS =====
