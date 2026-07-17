@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// SafaiKart Cloud Storage rules.
+//
+// Photo proofs (pickup/delivery) live under orderPhotos/{orderId}/… and
+// are uploaded by admins from the console.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.admin == true;
+    }
+
+    // Order photo proofs — admins read/write, customers may read their own
+    // order's photos.
+    match /orderPhotos/{orderId}/{allPaths=**} {
+      allow read: if isAdmin()
+        || (isSignedIn()
+            && firestore.get(/databases/(default)/documents/orders/$(orderId)).data.userId
+               == request.auth.uid);
+      allow write: if isAdmin()
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Banners / marketing assets — public read, admin write.
+    match /banners/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // User avatars — owner uploads, public read.
+    match /avatars/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Default deny.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
