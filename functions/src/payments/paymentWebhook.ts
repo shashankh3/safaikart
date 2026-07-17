@@ -23,6 +23,14 @@ export const paymentWebhook = onRequest({ secrets: [razorpayWebhookSecret] }, as
       return;
     }
 
+    // D2: Log all incoming webhook payloads
+    await db.collection('auditLogs').add({
+      action: 'WEBHOOK_RECEIVED',
+      payload: rawBody.toString(),
+      signature: signature,
+      at: admin.firestore.FieldValue.serverTimestamp()
+    });
+
     // 2. Load secret
     const webhookSecret = razorpayWebhookSecret.value();
 
@@ -45,19 +53,32 @@ export const paymentWebhook = onRequest({ secrets: [razorpayWebhookSecret] }, as
     if (event.event === 'refund.processed') {
       const refund = event.payload.refund.entity;
       const rzpPaymentId = refund.payment_id;
+      const refundId = refund.id;
       
-      const paymentsQuery = await db.collection('payments').where('razorpayPaymentId', '==', rzpPaymentId).get();
-      if (paymentsQuery.empty) {
-        console.warn(`Payment record not found for Razorpay Payment: ${rzpPaymentId}`);
-        response.status(200).send('Record not found');
-        return;
-      }
-      const paymentRecord = paymentsQuery.docs[0].data();
-      const ordRef = db.collection('orders').doc(paymentRecord.orderId);
-      
-      await ordRef.update({
-        status: 'REFUNDED',
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      await db.runTransaction(async (tx) => {
+        const paymentsQuery = await tx.get(db.collection('payments').where('razorpayPaymentId', '==', rzpPaymentId));
+        if (paymentsQuery.empty) {
+          console.warn(`Payment record not found for Razorpay Payment: ${rzpPaymentId}`);
+          return;
+        }
+        
+        const paymentRecord = paymentsQuery.docs[0].data();
+        const ordRef = db.collection('orders').doc(paymentRecord.orderId);
+        const ordDoc = await tx.get(ordRef);
+        
+        if (ordDoc.exists) {
+          const ordData = ordDoc.data()!;
+          if (ordData.status === 'REFUNDED' || ordData.refundId === refundId) {
+            return; // Idempotent check
+          }
+          
+          tx.update(ordRef, {
+            status: 'REFUNDED',
+            paymentStatus: 'REFUNDED',
+            refundId: refundId,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
       });
       response.status(200).send('OK');
       return;

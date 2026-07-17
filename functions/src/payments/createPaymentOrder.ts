@@ -1,23 +1,13 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
-
-// Define secrets (must be created in Google Cloud Secret Manager)
-const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
+import { getRazorpayAuthHeader, getRazorpayKeyId, razorpayKeySecret } from './razorpayClient';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
 const db = admin.firestore();
-
-// We need the Razorpay Key ID (public key). It can be stored in environment variables,
-// but for simplicity and security we can also define it as a secret or param.
-// For now, let's assume it's passed from the client or stored in a public config document.
-// Actually, the spec says "Load RAZORPAY_KEY_SECRET from Secret Manager".
-// And "Return: { razorpayOrderId, razorpayKeyId: RAZORPAY_KEY_ID, amountMinor, currency }"
-// Let's create a param for RAZORPAY_KEY_ID since it's public but environment specific.
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder'; // User should set this in env
 
 export const createPaymentOrder = onCall({ secrets: [razorpayKeySecret] }, async (request) => {
   const uid = request.auth?.uid;
@@ -61,10 +51,10 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeySecret] }, async
       // Return existing razorpay order to avoid duplicates if it's still valid
       return {
         razorpayOrderId: payment.razorpayOrderId,
-        razorpayKeyId: RAZORPAY_KEY_ID,
+        razorpayKeyId: getRazorpayKeyId(),
         amountMinor: payment.amountMinor,
         currency: payment.currency,
-        checkoutUrl: `https://safaikart-6c4e4.web.app/checkout/index.html?order_id=${payment.razorpayOrderId}&key_id=${RAZORPAY_KEY_ID}&amount=${payment.amountMinor}&currency=${payment.currency}`
+        checkoutUrl: `https://safaikart-6c4e4.web.app/checkout/index.html?order_id=${payment.razorpayOrderId}&key_id=${getRazorpayKeyId()}&amount=${payment.amountMinor}&currency=${payment.currency}`
       };
     }
   }
@@ -75,7 +65,7 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeySecret] }, async
   // 4. Call Razorpay API
   const amountMinor = order.finalAmountMinor;
   
-  const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${keySecret}`).toString('base64');
+  const authHeader = getRazorpayAuthHeader();
   
   try {
     const response = await fetch('https://api.razorpay.com/v1/orders', {
@@ -128,11 +118,11 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeySecret] }, async
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    const checkoutUrl = `https://safaikart-6c4e4.web.app/checkout/index.html?order_id=${rzpOrder.id}&key_id=${RAZORPAY_KEY_ID}&amount=${amountMinor}&currency=INR`;
+    const checkoutUrl = `https://safaikart-6c4e4.web.app/checkout/index.html?order_id=${rzpOrder.id}&key_id=${getRazorpayKeyId()}&amount=${amountMinor}&currency=INR`;
 
     return {
       razorpayOrderId: rzpOrder.id,
-      razorpayKeyId: RAZORPAY_KEY_ID,
+      razorpayKeyId: getRazorpayKeyId(),
       amountMinor,
       currency: 'INR',
       checkoutUrl

@@ -4,8 +4,7 @@ import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
-const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+import { getRazorpayAuthHeader, razorpayKeySecret } from '../payments/razorpayClient';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -68,8 +67,7 @@ export const cancelOrder = onCall({ secrets: [razorpayKeySecret] }, async (reque
     });
 
     if (newStatus === 'REFUND_PENDING' && razorpayPaymentId && amountToRefundMinor > 0) {
-      const keySecret = razorpayKeySecret.value();
-      const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${keySecret}`).toString('base64');
+      const authHeader = getRazorpayAuthHeader();
       const response = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refund`, {
         method: 'POST',
         headers: {
@@ -84,12 +82,18 @@ export const cancelOrder = onCall({ secrets: [razorpayKeySecret] }, async (reque
         await orderRef.update({
           status: 'REFUND_INITIATED',
           refundId: refundData.id,
-          updatedAt: FieldValue.serverTimestamp()
+          refundStatus: 'PROCESSED',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
         newStatus = 'REFUND_INITIATED';
       } else {
-        console.error('Refund failed:', await response.text());
-        // Refund failed, status remains REFUND_PENDING
+        const errText = await response.text();
+        console.error('Refund failed during cancelOrder:', errText);
+        await orderRef.update({
+          refundStatus: 'FAILED',
+          refundError: errText,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
       }
     }
 

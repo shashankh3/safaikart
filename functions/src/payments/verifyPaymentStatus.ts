@@ -2,8 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 
-const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+import { getRazorpayAuthHeader, razorpayKeySecret } from './razorpayClient';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -45,8 +44,7 @@ export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret] }, asyn
   }
 
   // Fallback: Manually check Razorpay API
-  const keySecret = razorpayKeySecret.value();
-  const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${keySecret}`).toString('base64');
+  const authHeader = getRazorpayAuthHeader();
   const rzpOrderId = paymentRecord.razorpayOrderId;
 
   try {

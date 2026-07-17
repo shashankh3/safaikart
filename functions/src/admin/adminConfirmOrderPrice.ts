@@ -3,8 +3,7 @@ import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import { assertAdmin } from '../utils/assertAdmin';
 
-const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+import { getRazorpayAuthHeader, razorpayKeySecret } from '../payments/razorpayClient';
 
 export const adminConfirmOrderPrice = onCall({ secrets: [razorpayKeySecret] }, async (request) => {
   assertAdmin(request);
@@ -136,8 +135,7 @@ export const adminConfirmOrderPrice = onCall({ secrets: [razorpayKeySecret] }, a
     });
 
     if (refundAmountMinor > 0 && razorpayPaymentId) {
-      const keySecret = razorpayKeySecret.value();
-      const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${keySecret}`).toString('base64');
+      const authHeader = getRazorpayAuthHeader();
       const response = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refund`, {
         method: 'POST',
         headers: {
@@ -151,10 +149,17 @@ export const adminConfirmOrderPrice = onCall({ secrets: [razorpayKeySecret] }, a
         const refundData = await response.json();
         await orderRef.update({
           refundId: refundData.id,
+          refundStatus: 'PROCESSED',
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
       } else {
-        console.error('Refund failed during adminConfirmOrderPrice:', await response.text());
+        const errText = await response.text();
+        console.error('Refund failed during adminConfirmOrderPrice:', errText);
+        await orderRef.update({
+          refundStatus: 'FAILED',
+          refundError: errText,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
       }
     }
 

@@ -4,8 +4,7 @@ import * as admin from 'firebase-admin';
 import { calculateOrderTotals, PricingItem } from './pricing.logic';
 import { calculateOrderDiff } from './editOrder.logic';
 
-const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+import { getRazorpayAuthHeader, razorpayKeySecret } from '../payments/razorpayClient';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -190,8 +189,7 @@ export const editOrderItems = onCall({ secrets: [razorpayKeySecret] }, async (re
   });
 
   if (refundAmountMinor > 0 && razorpayPaymentId) {
-      const keySecret = razorpayKeySecret.value();
-      const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${keySecret}`).toString('base64');
+      const authHeader = getRazorpayAuthHeader();
       const response = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refund`, {
         method: 'POST',
         headers: {
