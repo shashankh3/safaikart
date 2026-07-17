@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "safaikart-6c4e4"
+  },
+  "targets": {
+    "safaikart-6c4e4": {
+      "hosting": {
+        "safaikart-consumer": [
+          "safaikart-6c4e4"
+        ],
+        "safaikart-admin": [
+          "safaikart-admin"
+        ]
+      }
+    }
+  }
+}

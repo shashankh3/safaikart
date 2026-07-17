@@ -1,5 +1,4 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import { calculateOrderTotals, PricingItem } from './pricing.logic';
 import { calculateOrderDiff } from './editOrder.logic';
@@ -38,6 +37,15 @@ export const editOrderItems = onCall({ secrets: [razorpayKeySecret] }, async (re
     const orderData = orderDoc.data()!;
     if (orderData.userId !== uid) {
       throw new HttpsError('permission-denied', 'Unauthorized to edit this order.');
+    }
+
+    // D7: Rate limiting - prevent edits if updated < 5 minutes ago
+    if (orderData.updatedAt) {
+      const lastUpdated = orderData.updatedAt.toDate();
+      const nowMs = Date.now();
+      if (nowMs - lastUpdated.getTime() < 5 * 60 * 1000) {
+        throw new HttpsError('resource-exhausted', 'Please wait 5 minutes before editing the order again.');
+      }
     }
 
     // Verify 3-minute window

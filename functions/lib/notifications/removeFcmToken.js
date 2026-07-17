@@ -18,14 +18,16 @@ exports.removeFcmToken = (0, https_2.onCall)(async (request) => {
         throw new https_1.HttpsError('invalid-argument', 'Token is required');
     }
     const profileRef = admin.firestore().collection('profiles').doc(uid);
-    const profileDoc = await profileRef.get();
-    if (profileDoc.exists) {
-        const data = profileDoc.data();
-        if (data && data.fcmTokens && Array.isArray(data.fcmTokens)) {
-            const updatedTokens = data.fcmTokens.filter((t) => t.token !== token);
-            await profileRef.update({ fcmTokens: updatedTokens });
+    await admin.firestore().runTransaction(async (transaction) => {
+        const profileDoc = await transaction.get(profileRef);
+        if (profileDoc.exists) {
+            const data = profileDoc.data();
+            if (data && data.fcmTokens && Array.isArray(data.fcmTokens)) {
+                const updatedTokens = data.fcmTokens.filter((t) => t.token !== token);
+                transaction.update(profileRef, { fcmTokens: updatedTokens });
+            }
         }
-    }
+    });
     return { success: true };
 });
 //# sourceMappingURL=removeFcmToken.js.map

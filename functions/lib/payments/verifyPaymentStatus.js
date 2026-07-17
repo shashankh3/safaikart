@@ -2,15 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyPaymentStatus = void 0;
 const https_1 = require("firebase-functions/v2/https");
-const params_1 = require("firebase-functions/params");
 const admin = require("firebase-admin");
-const razorpayKeySecret = (0, params_1.defineSecret)('RAZORPAY_KEY_SECRET');
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+const razorpayClient_1 = require("./razorpayClient");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.verifyPaymentStatus = (0, https_1.onCall)({ secrets: [razorpayKeySecret] }, async (request) => {
+exports.verifyPaymentStatus = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret] }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {
@@ -39,8 +37,7 @@ exports.verifyPaymentStatus = (0, https_1.onCall)({ secrets: [razorpayKeySecret]
         return { paymentStatus: 'FAILED', orderStatus: 'PAYMENT_PENDING' };
     }
     // Fallback: Manually check Razorpay API
-    const keySecret = razorpayKeySecret.value();
-    const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${keySecret}`).toString('base64');
+    const authHeader = (0, razorpayClient_1.getRazorpayAuthHeader)();
     const rzpOrderId = paymentRecord.razorpayOrderId;
     try {
         const response = await fetch(`https://api.razorpay.com/v1/orders/${rzpOrderId}/payments`, {

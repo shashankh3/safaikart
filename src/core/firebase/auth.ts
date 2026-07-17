@@ -14,7 +14,7 @@ export const logoutUser = async () => {
       const functions = getFunctions(app, 'asia-south1');
       const removeFcmToken = httpsCallable(functions, 'removeFcmToken');
       // Fire-and-forget, gracefully handle failure
-      removeFcmToken({ token }).catch(err => console.warn('Failed to remove FCM token:', err));
+      await removeFcmToken({ token }).catch(err => console.warn('Failed to remove FCM token:', err));
     }
   } catch (err) {
     console.warn('Error fetching FCM token on logout:', err);

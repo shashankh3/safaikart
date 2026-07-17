@@ -2,21 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.adminConfirmOrderPrice = void 0;
 const https_1 = require("firebase-functions/v2/https");
-const params_1 = require("firebase-functions/params");
 const admin = require("firebase-admin");
-const razorpayKeySecret = (0, params_1.defineSecret)('RAZORPAY_KEY_SECRET');
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
-exports.adminConfirmOrderPrice = (0, https_1.onCall)({ secrets: [razorpayKeySecret] }, async (request) => {
-    const { auth, data } = request;
-    if (!auth) {
-        throw new https_1.HttpsError('unauthenticated', 'You must be logged in to call this function.');
-    }
+const assertAdmin_1 = require("../utils/assertAdmin");
+const razorpayClient_1 = require("../payments/razorpayClient");
+exports.adminConfirmOrderPrice = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret] }, async (request) => {
+    (0, assertAdmin_1.assertAdmin)(request);
+    const { data } = request;
     const db = admin.firestore();
-    // Verify Admin
-    const adminDoc = await db.collection('adminUsers').doc(auth.uid).get();
-    if (!adminDoc.exists) {
-        throw new https_1.HttpsError('permission-denied', 'You do not have permission to perform this action.');
-    }
     const { orderId, items } = data;
     if (!orderId || !items || !Array.isArray(items)) {
         throw new https_1.HttpsError('invalid-argument', 'orderId and items array are required.');
@@ -47,6 +39,12 @@ exports.adminConfirmOrderPrice = (0, https_1.onCall)({ secrets: [razorpayKeySecr
                 if (item.priceType === 'variable') {
                     const incoming = incomingItemsMap.get(item.serviceId);
                     if (incoming) {
+                        if (!Number.isInteger(incoming.quantity) || incoming.quantity <= 0 || incoming.quantity > 100) {
+                            throw new https_1.HttpsError('invalid-argument', `Invalid quantity for serviceId ${item.serviceId}`);
+                        }
+                        if (!Number.isInteger(incoming.unitPriceMinor) || incoming.unitPriceMinor < 0 || incoming.unitPriceMinor > 5000000) {
+                            throw new https_1.HttpsError('invalid-argument', `Invalid unitPriceMinor for serviceId ${item.serviceId}`);
+                        }
                         // Update quantity and unitPrice from admin input
                         item.quantity = incoming.quantity;
                         item.unitPriceMinor = incoming.unitPriceMinor;
@@ -125,8 +123,7 @@ exports.adminConfirmOrderPrice = (0, https_1.onCall)({ secrets: [razorpayKeySecr
             });
         });
         if (refundAmountMinor > 0 && razorpayPaymentId) {
-            const keySecret = razorpayKeySecret.value();
-            const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${keySecret}`).toString('base64');
+            const authHeader = (0, razorpayClient_1.getRazorpayAuthHeader)();
             const response = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refund`, {
                 method: 'POST',
                 headers: {
@@ -139,11 +136,18 @@ exports.adminConfirmOrderPrice = (0, https_1.onCall)({ secrets: [razorpayKeySecr
                 const refundData = await response.json();
                 await orderRef.update({
                     refundId: refundData.id,
+                    refundStatus: 'PROCESSED',
                     updatedAt: admin.firestore.FieldValue.serverTimestamp()
                 });
             }
             else {
-                console.error('Refund failed during adminConfirmOrderPrice:', await response.text());
+                const errText = await response.text();
+                console.error('Refund failed during adminConfirmOrderPrice:', errText);
+                await orderRef.update({
+                    refundStatus: 'FAILED',
+                    refundError: errText,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
             }
         }
         return { success: true, message: `Prices confirmed for order ${orderId}` };

@@ -1,6 +1,5 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import { onCall } from 'firebase-functions/v2/https';
-import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 

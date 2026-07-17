@@ -109,7 +109,12 @@ export default function ProfileScreen({ navigation }: any) {
           <YStack marginBottom={SIZES.padding}>
             <Text fontSize={14} fontWeight="800" color="#6200EE" marginBottom={12} letterSpacing={0.5} textTransform="uppercase">Management</Text>
             <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} paddingHorizontal={16} paddingVertical={8} elevation={8} shadowColor="#6200EE" shadowOffset={{ width: 0, height: 0 }} shadowOpacity={0.4} shadowRadius={12} borderWidth={1} borderColor="rgba(98,0,238,0.1)">
-              <TouchableOpacity onPress={() => navigation.navigate('AdminDashboard')}>
+              <TouchableOpacity onPress={() => {
+                const adminUrl = __DEV__ ? 'http://localhost:5173' : 'https://admin.safaikart.com';
+                Linking.openURL(adminUrl).catch(() => {
+                  navigation.navigate('AdminDashboard');
+                });
+              }}>
                 <XStack alignItems="center" paddingVertical={12} borderBottomWidth={0}>
                   <YStack width={38} height={38} borderRadius={19} justifyContent="center" alignItems="center" marginRight={16} backgroundColor="#EDE7F6">
                     <Ionicons name="shield" size={20} color="#6200EE" />

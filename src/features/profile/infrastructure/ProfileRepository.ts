@@ -7,7 +7,7 @@ export class ProfileRepository {
     return snap.exists() ? (snap.data() as Profile) : null;
   }
   static async updateProfile(userId: string, data: Partial<Profile>): Promise<void> {
-    const allowedKeys: (keyof Profile)[] = ['displayName', 'photoURL', 'defaultAddressId', 'fcmTokens'];
+    const allowedKeys: (keyof Profile)[] = ['displayName', 'photoURL', 'defaultAddressId'];
     const safeData: any = {};
     for (const key of allowedKeys) {
       if (key in data) {

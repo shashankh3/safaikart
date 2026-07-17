@@ -1,5 +1,4 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import { getRazorpayAuthHeader, getRazorpayKeyId, razorpayKeySecret } from './razorpayClient';
 
@@ -59,8 +58,7 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeySecret] }, async
     }
   }
 
-  // 3. Load Secret
-  const keySecret = razorpayKeySecret.value();
+  // 3. Load Secret (no longer needed directly here, handled by client)
 
   // 4. Call Razorpay API
   const amountMinor = order.finalAmountMinor;

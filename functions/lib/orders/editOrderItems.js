@@ -2,17 +2,15 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.editOrderItems = void 0;
 const https_1 = require("firebase-functions/v2/https");
-const params_1 = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const pricing_logic_1 = require("./pricing.logic");
 const editOrder_logic_1 = require("./editOrder.logic");
-const razorpayKeySecret = (0, params_1.defineSecret)('RAZORPAY_KEY_SECRET');
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+const razorpayClient_1 = require("../payments/razorpayClient");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayKeySecret] }, async (request) => {
+exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret] }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {
@@ -34,6 +32,14 @@ exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayKeySecret] }, a
         const orderData = orderDoc.data();
         if (orderData.userId !== uid) {
             throw new https_1.HttpsError('permission-denied', 'Unauthorized to edit this order.');
+        }
+        // D7: Rate limiting - prevent edits if updated < 5 minutes ago
+        if (orderData.updatedAt) {
+            const lastUpdated = orderData.updatedAt.toDate();
+            const nowMs = Date.now();
+            if (nowMs - lastUpdated.getTime() < 5 * 60 * 1000) {
+                throw new https_1.HttpsError('resource-exhausted', 'Please wait 5 minutes before editing the order again.');
+            }
         }
         // Verify 3-minute window
         if (!orderData.editableUntil) {
@@ -160,8 +166,7 @@ exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayKeySecret] }, a
         });
     });
     if (refundAmountMinor > 0 && razorpayPaymentId) {
-        const keySecret = razorpayKeySecret.value();
-        const authHeader = 'Basic ' + Buffer.from(`${RAZORPAY_KEY_ID}:${keySecret}`).toString('base64');
+        const authHeader = (0, razorpayClient_1.getRazorpayAuthHeader)();
         const response = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refund`, {
             method: 'POST',
             headers: {

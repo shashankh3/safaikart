@@ -13,25 +13,19 @@ const ALLOWED_TRANSITIONS = {
     READY_FOR_DELIVERY: ['OUT_FOR_DELIVERY', 'CANCELLED'],
     OUT_FOR_DELIVERY: ['DELIVERED', 'CANCELLED'],
     DELIVERED: [],
-    CANCELLED: [],
-    REFUND_PENDING: [],
+    CANCELLED: ['REFUNDED'],
+    REFUND_PENDING: ['REFUNDED'],
     REFUNDED: [], // Terminal
 };
+const assertAdmin_1 = require("../utils/assertAdmin");
 exports.adminUpdateOrderStatus = (0, https_1.onCall)(async (request) => {
-    const { auth, data } = request;
-    if (!auth) {
-        throw new https_1.HttpsError('unauthenticated', 'You must be logged in to call this function.');
-    }
+    (0, assertAdmin_1.assertAdmin)(request);
+    const { data } = request;
     const { orderId, newStatus } = data;
     if (!orderId || !newStatus) {
         throw new https_1.HttpsError('invalid-argument', 'orderId and newStatus are required.');
     }
     const db = admin.firestore();
-    // Verify Admin
-    const adminDoc = await db.collection('adminUsers').doc(auth.uid).get();
-    if (!adminDoc.exists) {
-        throw new https_1.HttpsError('permission-denied', 'You do not have permission to perform this action.');
-    }
     const orderRef = db.collection('orders').doc(orderId);
     try {
         await db.runTransaction(async (transaction) => {
