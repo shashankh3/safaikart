@@ -91,7 +91,7 @@ service cloud.firestore {
 
     // ===== COUPONS =====
     match /coupons/{couponId} {
-      allow read, write: if false;
+      allow read, write: if isAdmin();
     }
 
     // ===== PICKUP SLOTS =====
@@ -142,9 +142,18 @@ service cloud.firestore {
 
     // ===== ADMIN USERS =====
     match /adminUsers/{adminUserId} {
-      allow read: if isOwner(adminUserId);
+      allow read: if isOwner(adminUserId) || isAdmin();
       allow write: if false;
     }
+
+    // ===== ADMIN-ONLY INTERNAL COLLECTIONS =====
+    match /zones/{docId} { allow read, write: if isAdmin(); }
+    match /broadcasts/{docId} { allow read, write: if isAdmin(); }
+    match /orderMessages/{docId} { allow read, write: if isAdmin(); }
+    match /expenses/{docId} { allow read, write: if isAdmin(); }
+    match /drivers/{docId} { allow read, write: if isAdmin(); }
+    match /complaints/{docId} { allow read, write: if isAdmin(); }
+    match /banners/{docId} { allow read, write: if isAdmin(); }
 
     // ===== AUDIT LOGS =====
     match /auditLogs/{logId} {

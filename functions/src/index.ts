@@ -8,7 +8,6 @@ export * from './checkout/validateCoupon';
 
 export { createPaymentOrder } from './payments/createPaymentOrder';
 export { verifyPaymentStatus } from './payments/verifyPaymentStatus';
-export { retryPayment } from './payments/retryPayment';
 export { paymentWebhook } from './payments/paymentWebhook';
 
 // Auth
@@ -25,3 +24,5 @@ export { markNotificationRead } from './notifications/markNotificationRead';
 // Admin
 export { adminUpdateOrderStatus } from './admin/adminUpdateOrderStatus';
 export { adminConfirmOrderPrice } from './admin/adminConfirmOrderPrice';
+export { adminAssignDriver } from './admin/adminAssignDriver';
+export { adminSetOrderPhotos } from './admin/adminSetOrderPhotos';
