@@ -11,17 +11,16 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   READY_FOR_DELIVERY: ['OUT_FOR_DELIVERY', 'CANCELLED'],
   OUT_FOR_DELIVERY: ['DELIVERED', 'CANCELLED'],
   DELIVERED: [], // Terminal
-  CANCELLED: [], // Terminal
-  REFUND_PENDING: [], // Handled by other processes
+  CANCELLED: ['REFUNDED'], // Terminal for fulfillment, but can be updated to REFUNDED if money returned
+  REFUND_PENDING: ['REFUNDED'], // Handled by other processes
   REFUNDED: [], // Terminal
 };
 
-export const adminUpdateOrderStatus = onCall(async (request) => {
-  const { auth, data } = request;
+import { assertAdmin } from '../utils/assertAdmin';
 
-  if (!auth) {
-    throw new HttpsError('unauthenticated', 'You must be logged in to call this function.');
-  }
+export const adminUpdateOrderStatus = onCall(async (request) => {
+  assertAdmin(request);
+  const { data } = request;
 
   const { orderId, newStatus } = data;
   if (!orderId || !newStatus) {
@@ -29,12 +28,6 @@ export const adminUpdateOrderStatus = onCall(async (request) => {
   }
 
   const db = admin.firestore();
-
-  // Verify Admin
-  const adminDoc = await db.collection('adminUsers').doc(auth.uid).get();
-  if (!adminDoc.exists) {
-    throw new HttpsError('permission-denied', 'You do not have permission to perform this action.');
-  }
 
   const orderRef = db.collection('orders').doc(orderId);
 

@@ -1,5 +1,5 @@
 const { initializeApp, applicationDefault } = require('firebase-admin/app');
-const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getFirestore } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
 
 try {
@@ -16,30 +16,27 @@ try {
 const uid = process.argv[2];
 
 if (!uid) {
-  console.error('Usage: node makeAdmin.js <UID>');
+  console.error('Usage: node revokeAdmin.js <UID>');
   process.exit(1);
 }
 
 const db = getFirestore();
 const auth = getAuth();
 
-async function makeAdmin() {
+async function revokeAdmin() {
   try {
-    // 1. Set custom claim
-    await auth.setCustomUserClaims(uid, { admin: true, role: 'admin' });
+    // 1. Remove custom claim
+    await auth.setCustomUserClaims(uid, null);
     
-    // 2. Add to adminUsers collection for roster/UI
-    await db.collection('adminUsers').doc(uid).set({
-      role: 'ADMIN',
-      createdAt: FieldValue.serverTimestamp()
-    });
+    // 2. Remove from adminUsers collection
+    await db.collection('adminUsers').doc(uid).delete();
     
-    console.log(`Successfully made user ${uid} an admin with custom claims.`);
+    console.log(`Successfully revoked admin privileges from user ${uid}.`);
     process.exit(0);
   } catch (error) {
-    console.error('Error making user admin:', error);
+    console.error('Error revoking admin privileges:', error);
     process.exit(1);
   }
 }
 
-makeAdmin();
+revokeAdmin();

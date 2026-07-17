@@ -1,24 +1,16 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
+import { assertAdmin } from '../utils/assertAdmin';
 
 const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
 
 export const adminConfirmOrderPrice = onCall({ secrets: [razorpayKeySecret] }, async (request) => {
-  const { auth, data } = request;
-
-  if (!auth) {
-    throw new HttpsError('unauthenticated', 'You must be logged in to call this function.');
-  }
+  assertAdmin(request);
+  const { data } = request;
 
   const db = admin.firestore();
-
-  // Verify Admin
-  const adminDoc = await db.collection('adminUsers').doc(auth.uid).get();
-  if (!adminDoc.exists) {
-    throw new HttpsError('permission-denied', 'You do not have permission to perform this action.');
-  }
 
   const { orderId, items } = data;
   if (!orderId || !items || !Array.isArray(items)) {
@@ -56,6 +48,12 @@ export const adminConfirmOrderPrice = onCall({ secrets: [razorpayKeySecret] }, a
         if (item.priceType === 'variable') {
           const incoming = incomingItemsMap.get(item.serviceId);
           if (incoming) {
+            if (!Number.isInteger(incoming.quantity) || incoming.quantity <= 0 || incoming.quantity > 100) {
+              throw new HttpsError('invalid-argument', `Invalid quantity for serviceId ${item.serviceId}`);
+            }
+            if (!Number.isInteger(incoming.unitPriceMinor) || incoming.unitPriceMinor < 0 || incoming.unitPriceMinor > 5000000) {
+              throw new HttpsError('invalid-argument', `Invalid unitPriceMinor for serviceId ${item.serviceId}`);
+            }
             // Update quantity and unitPrice from admin input
             item.quantity = incoming.quantity;
             item.unitPriceMinor = incoming.unitPriceMinor;
