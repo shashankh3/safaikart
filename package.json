@@ -27,6 +27,7 @@
     "@types/react-native": "^0.72.8",
     "expo": "~56.0.14",
     "expo-blur": "~56.0.3",
+    "expo-build-properties": "^57.0.6",
     "expo-constants": "~56.0.20",
     "expo-dev-client": "~56.0.22",
     "expo-device": "~56.0.4",
@@ -61,7 +62,9 @@
     "web": "expo start --web",
     "test": "jest --selectProjects unit",
     "test:rules": "firebase emulators:exec --only firestore --project safaikart-emulator-tests \"jest --selectProjects rules\"",
-    "test:all": "jest"
+    "test:all": "jest",
+    "dev:admin": "cd admin-console && npm run dev",
+    "build:admin": "cd admin-console && npm run build"
   },
   "private": true,
   "devDependencies": {

@@ -57,6 +57,14 @@
           "backgroundColor": "#00000000",
           "enforceContrast": false
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.24"
+          }
+        }
       ]
     ],
     "extra": {
