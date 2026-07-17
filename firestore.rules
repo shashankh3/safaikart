@@ -11,7 +11,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
+      return isSignedIn() && request.auth.token.admin == true;
     }
 
     function affectsOnly(allowed) {
@@ -72,7 +72,9 @@ service cloud.firestore {
     // ===== CARTS =====
     match /carts/{userId} {
       allow read: if isOwner(userId);
-      allow write: if isOwner(userId);
+      allow write: if isOwner(userId)
+        && request.resource.data.keys().hasOnly(['userId', 'items', 'updatedAt'])
+        && request.resource.data.items.size() <= 50;
     }
 
     // ===== ORDERS =====
@@ -89,8 +91,7 @@ service cloud.firestore {
 
     // ===== COUPONS =====
     match /coupons/{couponId} {
-      allow read: if isSignedIn() && resource.data.isActive == true;
-      allow write: if false;
+      allow read, write: if false;
     }
 
     // ===== PICKUP SLOTS =====
@@ -110,6 +111,7 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
+        && reviewId == request.auth.uid + '_' + request.resource.data.serviceId
         && request.resource.data.keys().hasOnly(['userId', 'rating', 'comment', 'serviceId', 'createdAt'])
         && request.resource.data.rating is int
         && request.resource.data.rating >= 1
@@ -147,6 +149,10 @@ service cloud.firestore {
     // ===== AUDIT LOGS =====
     match /auditLogs/{logId} {
       allow read, write: if false;
+    }
+
+    match /{document=**} { 
+      allow read, write: if false; 
     }
   }
 }

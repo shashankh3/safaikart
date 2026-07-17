@@ -130,7 +130,7 @@ describe('SafaiKart Firestore Security Rules', () => {
   });
 
   // ===== PUBLIC READ ONLY COLLECTIONS =====
-  describe('categories, services, coupons, pickupSlots', () => {
+  describe('categories, services, pickupSlots', () => {
     beforeEach(async () => {
       await testEnv.withSecurityRulesDisabled(async (context) => {
         await context.firestore().collection('categories').doc('active_cat').set({ isActive: true });
@@ -154,13 +154,37 @@ describe('SafaiKart Firestore Security Rules', () => {
 
   // ===== CARTS =====
   describe('carts', () => {
-    it('allows read/write own cart', async () => {
-      await assertSucceeds(alice.firestore().collection('carts').doc('alice_uid').set({ items: [] }));
+    it('allows read/write own cart with valid schema', async () => {
+      await assertSucceeds(alice.firestore().collection('carts').doc('alice_uid').set({ 
+        userId: 'alice_uid',
+        items: [],
+        updatedAt: '2026'
+      }));
       await assertSucceeds(alice.firestore().collection('carts').doc('alice_uid').get());
     });
     it('denies read/write other cart', async () => {
-      await assertFails(bob.firestore().collection('carts').doc('alice_uid').set({ items: [] }));
+      await assertFails(bob.firestore().collection('carts').doc('alice_uid').set({ 
+        userId: 'alice_uid',
+        items: [],
+        updatedAt: '2026'
+      }));
       await assertFails(bob.firestore().collection('carts').doc('alice_uid').get());
+    });
+    it('denies write with unallowed keys', async () => {
+      await assertFails(alice.firestore().collection('carts').doc('alice_uid').set({ 
+        userId: 'alice_uid',
+        items: [],
+        updatedAt: '2026',
+        injectedAdminField: true
+      }));
+    });
+    it('denies write with more than 50 items', async () => {
+      const items = Array.from({length: 51}).map((_, i) => ({ serviceId: 's'+i }));
+      await assertFails(alice.firestore().collection('carts').doc('alice_uid').set({ 
+        userId: 'alice_uid',
+        items: items,
+        updatedAt: '2026'
+      }));
     });
   });
 
@@ -208,8 +232,8 @@ describe('SafaiKart Firestore Security Rules', () => {
     it('allows any auth user to read reviews', async () => {
       await assertSucceeds(alice.firestore().collection('reviews').doc('rev1').get());
     });
-    it('allows creating a review for oneself with valid fields', async () => {
-      await assertSucceeds(alice.firestore().collection('reviews').doc('rev2').set({
+    it('allows creating a review for oneself with valid fields and correct doc ID', async () => {
+      await assertSucceeds(alice.firestore().collection('reviews').doc('alice_uid_s1').set({
         userId: 'alice_uid',
         rating: 5,
         comment: 'Great',
@@ -237,7 +261,7 @@ describe('SafaiKart Firestore Security Rules', () => {
       }));
     });
     it('denies creating a review for another user', async () => {
-      await assertFails(alice.firestore().collection('reviews').doc('rev3').set({
+      await assertFails(alice.firestore().collection('reviews').doc('bob_uid_s1').set({
         userId: 'bob_uid',
         rating: 5,
         comment: 'Great',
@@ -298,12 +322,15 @@ describe('SafaiKart Firestore Security Rules', () => {
     });
   });
 
-  // ===== HIDDEN COLLECTIONS =====
-  describe('rateLimits, adminUsers, auditLogs', () => {
+  // ===== HIDDEN COLLECTIONS & WILDCARDS =====
+  describe('rateLimits, adminUsers, auditLogs, coupons, wildcards', () => {
     it('denies read/write completely', async () => {
       await assertFails(alice.firestore().collection('rateLimits').doc('r1').get());
       await assertFails(alice.firestore().collection('adminUsers').doc('a1').set({ admin: true }));
       await assertFails(alice.firestore().collection('auditLogs').doc('log1').get());
+      await assertFails(alice.firestore().collection('coupons').doc('c1').get());
+      await assertFails(alice.firestore().collection('someUnlistedCollection').doc('doc1').get());
+      await assertFails(alice.firestore().collection('someUnlistedCollection').doc('doc1').set({ foo: 'bar' }));
     });
   });
 });
