@@ -1,0 +1,56 @@
+appId: com.safaikart.app
+---
+# Authentication Flow
+- launchApp
+- assertVisible: "SafaiKart"
+- tapOn: "Phone Number"
+- inputText: "9999999999"
+- tapOn: "Send OTP"
+- assertVisible: "Enter OTP"
+- inputText: "123456"
+- tapOn: "Verify"
+- assertVisible: "Dry Cleaning" # Verify Home screen loaded
+
+# Catalog Browsing
+- assertVisible: "Steam Press"
+- assertVisible: "Sofa/Household"
+- tapOn: "Shoe Cleaning"
+- assertVisible: "Sneaker Deep Clean"
+- tapOn: "Add to Cart"
+- assertVisible: "1 item" # Cart badge updates
+
+# Direct Checkout (Buy Now)
+- tapOn: "Premium Shoe Spa"
+- tapOn: "Buy Now"
+- assertVisible: "Checkout" # Bypassed cart
+
+# Checkout Flow
+- assertVisible: "Select Address"
+- tapOn: "Home"
+- assertVisible: "Select Pickup Slot"
+- tapOn: "Tomorrow 9 AM - 12 PM"
+- tapOn: "Apply Coupon"
+- inputText: "TEST50"
+- tapOn: "Apply"
+- assertVisible: "Discount Applied"
+- tapOn: "Pay Now"
+
+# Payment Flow (Razorpay Test)
+- assertVisible: "Razorpay Checkout"
+- tapOn: "UPI"
+- tapOn: "Pay"
+- tapOn: "Success" # Simulate test success
+- assertVisible: "Payment Success"
+
+# Order Tracking
+- tapOn: "Go to Orders"
+- assertVisible: "Order #"
+- tapOn: "Order #"
+- assertVisible: "Order Placed" # Timeline pulsing
+
+# Edit/Cancel Window
+- assertVisible: "Edit Order"
+- tapOn: "Cancel Order"
+- assertVisible: "Are you sure?"
+- tapOn: "Yes, Cancel"
+- assertVisible: "Order Cancelled"
