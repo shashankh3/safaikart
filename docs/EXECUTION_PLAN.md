@@ -33,7 +33,7 @@ npx firebase-tools deploy --only functions --project safaikart-6c4e4
 
 ---
 
-## TASK 1 — Real phone-OTP auth (replaces the anonymous-auth mock)
+## [DONE] TASK 1 — Real phone-OTP auth (replaces the anonymous-auth mock)
 
 **Why first:** every order/address/profile is currently tied to a throwaway anonymous UID, and
 `isAdmin` (email check in `src/features/auth/application/useAuth.ts:18`) can never be true, so the
@@ -76,7 +76,7 @@ configuration (test numbers, reCAPTCHA keys), and any rules changes proposed.
 
 ---
 
-## TASK 2 — Complete the Razorpay payment path
+## [DONE] TASK 2 — Complete the Razorpay payment path
 
 **Current state:**
 - `functions/src/payments/createPaymentOrder.ts:67,133` points the client WebView at
@@ -120,7 +120,7 @@ final checkout-page URL shape.
 
 ---
 
-## TASK 3 — Restore native Firebase (google-services, FCM, Crashlytics, App Check)
+## [DONE] TASK 3 — Restore native Firebase (google-services, FCM, Crashlytics, App Check)
 
 **Current state:** commit `a3fb26b` removed `@react-native-firebase/{app,crashlytics,app-check}`
 for Expo Go compatibility; `src/core/firebase/messaging.ts:9-27` is a full no-op stub (real
@@ -190,7 +190,7 @@ no runtime-path hits; `npx tsc --noEmit` clean; each screen renders with real/em
 
 ---
 
-## TASK 5 — Admin order manager + variable-price confirmation
+## [DONE] TASK 5 — Admin order manager + variable-price confirmation
 
 **Why:** WORKFLOW.md assumes an admin advances order statuses (PICKED_UP → IN_PROCESS → … →
 DELIVERED) and confirms variable prices (`priceConfirmed: false` orders), but
@@ -246,7 +246,7 @@ found in git history.
 
 ---
 
-## TASK 7 — Tests + CI
+## [DONE] TASK 7 — Tests + CI
 
 **Current state:** exactly one test file (`tests/rules/firestore.test.ts`, rules-only);
 jest.config.js `testMatch` restricted to `tests/rules/**`; rules tests need Java JDK 17

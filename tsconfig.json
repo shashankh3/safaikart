@@ -5,5 +5,12 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "types": ["jest", "node"]
-  }
+  },
+  "exclude": [
+    "admin-console",
+    "production_artifacts",
+    "scripts",
+    "functions",
+    "node_modules"
+  ]
 }

@@ -11,7 +11,6 @@ import Header from '../../../../shared/ui/components/Header';
 import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressable';
 import StickyCart from '../../../../features/cart/presentation/components/StickyCart';
 
-import NotificationModal from '../../../../shared/ui/feedback/NotificationModal';
 import { useCart } from '../../../../features/cart/presentation/hooks/useCart';
 import { useCategoriesQuery, useServicesQuery, useCatalogV2Query } from '../../application/useServicesQuery';
 import * as Haptics from 'expo-haptics';
@@ -220,7 +219,6 @@ export default function HomeScreen({ navigation }) {
 
   const { width } = useWindowDimensions();
   const [activeCategory, setActiveCategory] = useState("All");
-  const [notifVisible, setNotifVisible] = useState(false);
   const flatListRef = useRef(null);
   const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
   const [carouselWidth, setCarouselWidth] = useState(0);
@@ -238,12 +236,7 @@ export default function HomeScreen({ navigation }) {
     return () => clearInterval(timer);
   }, [currentOfferIndex]);
 
-  // TEMPORARY: Seed the database with the new 6-category JSON when the screen loads
-  useEffect(() => {
-    import('../../domain/seedDatabaseV2').then(({ seedDatabaseV2 }) => {
-      seedDatabaseV2();
-    });
-  }, []);
+
 
   const renderServiceCard = ({ item, index }) => (
     <YStack 
@@ -319,7 +312,7 @@ export default function HomeScreen({ navigation }) {
           
           <AnimatedPressable onPress={() => {
             if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setNotifVisible(true);
+            navigation.navigate('NotificationCenter');
           }} style={{ position: 'relative', backgroundColor: COLORS.cardBg, width: 48, height: 48, justifyContent: 'center', alignItems: 'center', borderRadius: 24, elevation: 2, shadowColor: COLORS.cardShadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 }}>
             <Ionicons name="notifications" size={22} color={COLORS.darkGreen} />
             <YStack position="absolute" top={10} right={12} backgroundColor="#D92D20" borderRadius={6} width={10} height={10} justifyContent="center" alignItems="center" borderWidth={1.5} borderColor={COLORS.white} />
@@ -464,7 +457,6 @@ export default function HomeScreen({ navigation }) {
         </YStack>
       </ScrollView>
       {totalItems > 0 ? <StickyCart /> : null}
-      <NotificationModal visible={notifVisible} onClose={() => setNotifVisible(false)} />
     </YStack>
   );
 }
