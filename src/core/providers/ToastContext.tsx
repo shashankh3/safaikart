@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, ReactNode } from 'react';
 import { View, Text, StyleSheet, Animated, SafeAreaView } from 'react-native';
-import { COLORS } from '../../../shared/theme/colors';
+import { COLORS } from '../../shared/theme/colors';
 
 interface ToastContextType {
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;

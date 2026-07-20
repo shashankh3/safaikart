@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Alert, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView, WebViewNavigation } from 'react-native-webview';
+import { WebView, WebViewNavigation, WebViewMessageEvent } from 'react-native-webview';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';
 import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressable';
 import { PaymentRepository } from '../../infrastructure/PaymentRepository';
 import { StartUpiPaymentUseCase } from '../../application/startUpiPayment.usecase';
-import { RazorpayPaymentProvider } from '../../infrastructure/RazorpayPaymentProvider';
 
 type PaymentScreenRouteProp = RouteProp<{ Payment: { orderId: string; amount: number } }, 'Payment'>;
 
@@ -37,13 +36,44 @@ export default function PaymentScreen() {
     }
   };
 
-  const handleNavigationStateChange = async (navState: WebViewNavigation) => {
-    // Check if the URL is our callback/return URL
-    if (RazorpayPaymentProvider.isCallbackUrl(navState.url)) {
-      setCheckoutUrl(null); // Close WebView
-      const paymentId = RazorpayPaymentProvider.extractPaymentIdFromUrl(navState.url);
+  // Handle messages sent from the checkout WebView via postMessage
+  const handleWebViewMessage = async (event: WebViewMessageEvent) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
       
-      // We got a callback. Untrusted, but let's report it and move to pending.
+      if (data.status === 'success') {
+        setCheckoutUrl(null); // Close WebView
+        
+        // Report to backend for immediate verification
+        if (razorpayOrderId && data.razorpay_payment_id) {
+          await paymentRepository.reportClientCallback(razorpayOrderId, data.razorpay_payment_id);
+        }
+        
+        navigation.navigate('PaymentPending', { orderId });
+      } else if (data.status === 'failed') {
+        setCheckoutUrl(null);
+        Alert.alert(
+          'Payment Failed', 
+          data.error?.description || 'Your payment could not be processed. Please try again.',
+          [{ text: 'OK' }]
+        );
+        setIsLoading(false);
+      } else if (data.status === 'dismissed') {
+        setCheckoutUrl(null);
+        setIsLoading(false);
+      }
+    } catch (e) {
+      console.error('Failed to parse WebView message:', e);
+    }
+  };
+
+  // Fallback: also watch URL changes for redirect-based callbacks
+  const handleNavigationStateChange = async (navState: WebViewNavigation) => {
+    if (navState.url.includes('razorpay_payment_id=')) {
+      setCheckoutUrl(null);
+      const match = navState.url.match(/[?&]razorpay_payment_id=([^&]+)/);
+      const paymentId = match?.[1] || null;
+      
       if (razorpayOrderId && paymentId) {
         await paymentRepository.reportClientCallback(razorpayOrderId, paymentId);
       }
@@ -77,13 +107,14 @@ export default function PaymentScreen() {
       <Modal visible={!!checkoutUrl} animationType="slide">
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
           <View style={styles.modalHeader}>
-            <AnimatedPressable onPress={() => setCheckoutUrl(null)}>
+            <AnimatedPressable onPress={() => { setCheckoutUrl(null); setIsLoading(false); }}>
               <Text style={styles.cancelText}>Cancel Payment</Text>
             </AnimatedPressable>
           </View>
           {checkoutUrl && (
             <WebView
               source={{ uri: checkoutUrl }}
+              onMessage={handleWebViewMessage}
               onNavigationStateChange={handleNavigationStateChange}
               startInLoadingState={true}
               renderLoading={() => (

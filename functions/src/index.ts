@@ -6,6 +6,7 @@ if (process.env.SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     tracesSampleRate: 1.0,
+    environment: process.env.FUNCTIONS_EMULATOR === 'true' ? 'local' : (process.env.GCLOUD_PROJECT ? 'production' : 'development')
   });
 }
 
@@ -46,3 +47,7 @@ export { adminConfirmOrderPrice } from './admin/adminConfirmOrderPrice';
 export { adminAssignDriver } from './admin/adminAssignDriver';
 export { adminSetOrderPhotos } from './admin/adminSetOrderPhotos';
 export { healthCheck } from './admin/healthCheck';
+export { generateInvoice } from './admin/generateInvoice';
+
+// Utilities
+export { processDeadLetters } from './utils/dlqHandler';

@@ -649,7 +649,18 @@ function OrdersPage() {
               <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading orders…
             </div>
           ) : filtered.length === 0 ? (
-            <div className="p-16 text-center text-muted-foreground">No orders match.</div>
+            <div className="p-16 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center">
+                <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">No orders found</h3>
+              <p className="text-muted-foreground max-w-sm">We couldn't find any orders matching your current filters. Try adjusting your search criteria.</p>
+              {search && (
+                <Button variant="outline" onClick={() => setSearch("")} className="mt-4">
+                  Clear Search
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

@@ -15,9 +15,9 @@ export const addressSchema = z.object({
 
 export const orderItemSchema = z.object({
   serviceId: z.string(),
-  categoryId: z.string(),
-  name: z.string(),
-  priceMinor: z.number().int().min(0),
+  categoryId: z.string().optional(),
+  name: z.string().optional(),
+  priceMinor: z.number().int().min(0).optional(),
   quantity: z.number().int().min(1).max(99),
   image: z.string().optional()
 });
@@ -25,7 +25,7 @@ export const orderItemSchema = z.object({
 export const createOrderDraftRequest = z.object({
   addressId: z.string().min(1),
   pickupSlotId: z.string().min(1),
-  directItems: z.array(orderItemSchema).optional(),
+  directItems: z.array(orderItemSchema).optional().nullable(),
   couponCode: z.string().optional().nullable(),
   idempotencyKey: z.string().optional()
 });

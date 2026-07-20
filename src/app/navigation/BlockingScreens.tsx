@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS } from '../../../shared/theme/colors';
-import { SIZES } from '../../../shared/theme/spacing';
+import { COLORS } from '../../shared/theme/colors';
+import { SIZES } from '../../shared/theme/spacing';
 import { Ionicons } from '@expo/vector-icons';
-import AnimatedPressable from '../../../shared/ui/components/AnimatedPressable';
+import AnimatedPressable from '../../shared/ui/components/AnimatedPressable';
 import * as Linking from 'expo-linking';
 
 export const MaintenanceScreen = () => (

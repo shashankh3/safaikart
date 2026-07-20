@@ -1,20 +1,15 @@
 import { defineSecret } from 'firebase-functions/params';
 
+export const razorpayKeyId = defineSecret('RAZORPAY_KEY_ID');
 export const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
 
-export function getRazorpayKeyId(): string {
-  const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
-  const keyId = process.env.RAZORPAY_KEY_ID;
+export function getRazorpayAuthHeader(): string {
+  const keyId = razorpayKeyId.value();
+  const keySecret = razorpayKeySecret.value();
   
-  if (!keyId && !isEmulator) {
-     console.warn('RAZORPAY_KEY_ID environment variable is missing. This will fail in production.');
+  if (!keyId || !keySecret) {
+    throw new Error('Razorpay secrets are not properly configured.');
   }
   
-  return keyId || 'rzp_test_placeholder';
-}
-
-export function getRazorpayAuthHeader(): string {
-  const keyId = getRazorpayKeyId();
-  const keySecret = razorpayKeySecret.value();
   return 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
 }

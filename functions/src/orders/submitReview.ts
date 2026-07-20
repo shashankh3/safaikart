@@ -9,8 +9,9 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 import { submitReviewRequest } from '../contracts';
+import { shouldEnforceAppCheck } from '../utils/config';
 
-export const submitReview = onCall({ enforceAppCheck: true }, async (request) => {
+export const submitReview = onCall({ enforceAppCheck: shouldEnforceAppCheck }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError('unauthenticated', 'User must be logged in to submit a review.');

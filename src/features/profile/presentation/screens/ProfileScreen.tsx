@@ -20,15 +20,15 @@ export default function ProfileScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const { logout, isAdmin } = useAuth();
   const { data: profile, isLoading } = useProfileQuery();
-  const handleMenuPress = (item) => {
+  const handleMenuPress = (item: any) => {
     if (item.title === 'Help & Support') {
       navigation.navigate('Support');
     } else if (item.title === 'Notifications') {
       navigation.navigate('NotificationCenter');
     } else if (item.title === 'My Addresses') {
       navigation.navigate('AddressList');
-    } else {
-      navigation.navigate('SubScreen', { title: item.title });
+    } else if (item.title === 'Coupons & Offers') {
+      navigation.navigate('CouponsScreen');
     }
   };
 
@@ -43,7 +43,7 @@ export default function ProfileScreen({ navigation }: any) {
     );
   };
 
-  const renderMenuItem = (item) => (
+  const renderMenuItem = (item: any) => (
     <TouchableOpacity key={item.id} onPress={() => handleMenuPress(item)}>
       <XStack alignItems="center" paddingVertical={12} borderBottomWidth={1} borderBottomColor="#F5F5F5">
         <YStack width={38} height={38} borderRadius={19} justifyContent="center" alignItems="center" marginRight={16} backgroundColor={item.tint}>
@@ -54,6 +54,11 @@ export default function ProfileScreen({ navigation }: any) {
       </XStack>
     </TouchableOpacity>
   );
+
+  const getInitials = (name: string | undefined | null) => {
+    if (!name) return '?';
+    return name.split(/[\s@]/).filter(Boolean).slice(0, 2).map((s: string) => s[0]?.toUpperCase()).join('') || '?';
+  };
 
   return (
     <YStack flex={1} backgroundColor={COLORS.primaryBg}>
@@ -78,11 +83,13 @@ export default function ProfileScreen({ navigation }: any) {
         >
           <XStack padding={SIZES.padding} backgroundColor="rgba(0,0,0,0.1)">
             <YStack marginRight={20} position="relative">
-               <Image source={profile?.photoURL ? { uri: profile.photoURL } : require('../../../../../assets/soumya_profile.png')} style={{ width: 75, height: 75, borderRadius: 37.5, borderWidth: 2, borderColor: '#D4AF37' }} />
-               <XStack alignItems="center" backgroundColor="#D4AF37" paddingVertical={4} paddingHorizontal={8} borderRadius={12} position="absolute" bottom={-5} left={10} elevation={4} shadowColor="#000" shadowOffset={{ width: 0, height: 2 }} shadowOpacity={0.3} shadowRadius={3}>
-                 <Ionicons name="medal" size={12} color={COLORS.black} />
-                 <Text fontSize={9} fontWeight="900" color={COLORS.black} marginLeft={4} letterSpacing={0.5}>GOLD</Text>
-               </XStack>
+               {profile?.photoURL ? (
+                 <Image source={{ uri: profile.photoURL }} style={{ width: 75, height: 75, borderRadius: 37.5, borderWidth: 2, borderColor: '#D4AF37' }} />
+               ) : (
+                 <YStack width={75} height={75} borderRadius={37.5} borderWidth={2} borderColor="#D4AF37" backgroundColor={COLORS.darkGreen} justifyContent="center" alignItems="center">
+                   <Text color={COLORS.white} fontSize={28} fontWeight="bold">{getInitials(profile?.name || profile?.displayName)}</Text>
+                 </YStack>
+               )}
             </YStack>
             <YStack flex={1} justifyContent="center">
               {isLoading ? (

@@ -1,5 +1,4 @@
-import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/context/auth-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
@@ -7,49 +6,70 @@ import { CommandPalette } from "@/components/command-palette";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { canAccessRoute } from "@/lib/rbac";
 import { Loader2, ShieldAlert } from "lucide-react";
+import { getFirebaseAuth, getDb } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+
+// Helper for beforeLoad to resolve current session state
+async function resolveAuthSession() {
+  const auth = getFirebaseAuth();
+  await auth.authStateReady(); // Wait for initial auth state
+  
+  const user = auth.currentUser;
+  if (!user) return { user: null, role: null };
+
+  const db = getDb();
+  const adminSnap = await getDoc(doc(db, "adminUsers", user.uid));
+  if (adminSnap.exists()) {
+    return { user, role: adminSnap.data().role };
+  }
+  return { user, role: "customer" };
+}
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
+  beforeLoad: async ({ location }) => {
+    const session = await resolveAuthSession();
+    
+    if (!session.user) {
+      throw redirect({
+        to: "/login",
+        replace: true,
+      });
+    }
+
+    if (session.role === "customer") {
+      // Customers belong in the app, not the admin console
+      throw redirect({
+        to: "/login", // or a specific unauthorized page
+        replace: true,
+      });
+    }
+
+    // Role-based Access Control (RBAC) at the route level
+    if (!canAccessRoute(session.role, location.pathname)) {
+      throw redirect({
+        to: "/unauthorized", 
+        replace: true,
+      });
+    }
+  },
   component: AuthedLayout,
 });
 
 function AuthedLayout() {
+  // We can still use the context for UI state (e.g. displaying name in header)
   const { user, admin, role, loading } = useAuth();
-  const navigate = useNavigate();
-  const pathname = useRouterState({ select: (r) => r.location.pathname });
 
-  useEffect(() => {
-    if (loading) return;
-    if (!user) navigate({ to: "/login", replace: true });
-    else if (role === "customer") navigate({ to: "/app/orders", replace: true });
-  }, [user, role, loading, navigate]);
-
-  if (role === "error") {
-    return (
-      <div className="min-h-screen grid place-items-center bg-background">
-        <div className="text-center">
-          <ShieldAlert className="h-10 w-10 mx-auto text-rose-500 mb-2" />
-          <div className="font-semibold text-lg text-foreground">Session Error</div>
-          <div className="text-muted-foreground text-sm max-w-sm mt-1">
-            We couldn't load your profile. Please try signing out and signing in again.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading || !user || role === "customer") {
+  if (loading) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
         <div className="flex items-center gap-2 text-muted-foreground text-sm">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Checking your session…
+          Loading console…
         </div>
       </div>
     );
   }
-
-  const allowed = admin ? canAccessRoute(admin.role, pathname) : false;
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -57,18 +77,7 @@ function AuthedLayout() {
       <div className="flex-1 flex flex-col min-w-0">
         <AppHeader />
         <main className="flex-1 px-4 md:px-8 py-6 md:py-8">
-          {allowed ? (
-            <Outlet />
-          ) : (
-            <div className="max-w-md mx-auto mt-16 rounded-2xl border border-border/70 bg-card p-8 text-center shadow-card">
-              <ShieldAlert className="h-10 w-10 mx-auto text-rose-500" />
-              <div className="mt-3 text-lg font-semibold">Access denied</div>
-              <div className="mt-1 text-sm text-muted-foreground">
-                Your role (<span className="font-mono">{admin?.role}</span>) doesn't have access
-                to this page. Ask a Super Admin if you need it.
-              </div>
-            </div>
-          )}
+          <Outlet />
         </main>
       </div>
       <CommandPalette />

@@ -6,6 +6,7 @@ import { validateCouponApplicability, CouponData } from '../checkout/coupon.logi
 import { computeEstimatedDelivery } from '../utils/deliveryLogic';
 import { editOrderItemsRequest } from '../contracts';
 import { getRazorpayAuthHeader, razorpayKeySecret } from '../payments/razorpayClient';
+import { shouldEnforceAppCheck } from '../utils/config';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -13,7 +14,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const editOrderItems = onCall({ secrets: [razorpayKeySecret], region: 'asia-south1', enforceAppCheck: true }, async (request) => {
+export const editOrderItems = onCall({ secrets: [razorpayKeySecret], region: 'asia-south1', enforceAppCheck: shouldEnforceAppCheck }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError('unauthenticated', 'User must be logged in to edit an order.');

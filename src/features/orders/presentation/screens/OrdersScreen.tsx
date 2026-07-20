@@ -9,10 +9,11 @@ import { Order } from '../../domain/Order';
 import { useOrdersQuery } from '../../application/useOrdersQuery';
 import { getOrderStatusMeta } from '../../domain/orderStatusMeta';
 import { Ionicons } from '@expo/vector-icons';
+import Skeleton from '../../../../shared/ui/components/Skeleton';
 
 export default function OrdersScreen() {
   const navigation = useNavigation<any>();
-  const { data: orders = [], isLoading, refetch } = useOrdersQuery();
+  const { data: orders = [], isLoading, isError, refetch } = useOrdersQuery();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -59,9 +60,41 @@ export default function OrdersScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.darkGreen} />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>My Orders</Text>
+        </View>
+        <View style={styles.listContainer}>
+          {[1, 2, 3, 4].map((i) => (
+            <View key={i} style={styles.orderCard}>
+              <View style={styles.cardHeader}>
+                <Skeleton width={120} height={20} />
+                <Skeleton width={80} height={20} borderRadius={12} />
+              </View>
+              <Skeleton width={180} height={14} style={{ marginBottom: SIZES.small }} />
+              <Skeleton width={140} height={16} style={{ marginBottom: SIZES.base }} />
+              <Skeleton width="100%" height={32} borderRadius={8} />
+            </View>
+          ))}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>My Orders</Text>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={'#E51A1A'} />
+          <Text style={styles.emptyText}>Failed to load orders</Text>
+          <AnimatedPressable style={styles.browseBtn} onPress={() => refetch()}>
+            <Text style={styles.browseBtnText}>Retry</Text>
+          </AnimatedPressable>
+        </View>
+      </SafeAreaView>
     );
   }
 

@@ -51,40 +51,51 @@ exports.expirePendingOrders = (0, scheduler_1.onSchedule)({ schedule: 'every 30 
             console.log('No pending orders to expire.');
             return;
         }
-        const batch = db.batch();
         let expiredCount = 0;
-        for (const doc of pendingOrdersQuery.docs) {
-            const orderData = doc.data();
-            // Ensure we don't accidentally expire orders that actually have verified payments
-            const paymentsSnapshot = await db.collection('payments')
-                .where('orderId', '==', doc.id)
-                .where('status', '==', 'VERIFIED')
-                .get();
-            if (!paymentsSnapshot.empty) {
-                // Fix the order status discrepancy
-                console.warn(`Order ${doc.id} is PAYMENT_PENDING but has a VERIFIED payment. Auto-correcting.`);
-                batch.update(doc.ref, {
-                    status: 'CONFIRMED',
-                    paymentStatus: 'VERIFIED',
-                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        // Use Promise.all with transactions for idempotency and concurrency safety
+        await Promise.all(pendingOrdersQuery.docs.map(async (doc) => {
+            try {
+                await db.runTransaction(async (tx) => {
+                    const orderDoc = await tx.get(doc.ref);
+                    if (!orderDoc.exists)
+                        return;
+                    const orderData = orderDoc.data();
+                    // Idempotency guard: verify it's still pending inside the transaction
+                    if (orderData.status !== 'PAYMENT_PENDING') {
+                        return;
+                    }
+                    // Ensure we don't accidentally expire orders that actually have verified payments
+                    const paymentsSnapshot = await tx.get(db.collection('payments')
+                        .where('orderId', '==', doc.id)
+                        .where('status', '==', 'VERIFIED'));
+                    if (!paymentsSnapshot.empty) {
+                        console.warn(`Order ${doc.id} is PAYMENT_PENDING but has a VERIFIED payment. Auto-correcting.`);
+                        tx.update(doc.ref, {
+                            status: 'CONFIRMED',
+                            paymentStatus: 'VERIFIED',
+                            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                        return;
+                    }
+                    // Expire order securely
+                    tx.update(doc.ref, {
+                        status: 'CANCELLED',
+                        cancelReason: 'Expired due to payment timeout',
+                        cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                    // Release pickup slot if present
+                    if (orderData.pickupSlotId) {
+                        const slotRef = db.collection('pickupSlots').doc(orderData.pickupSlotId);
+                        tx.update(slotRef, { bookedCount: admin.firestore.FieldValue.increment(-1) });
+                    }
                 });
-                continue;
+                expiredCount++;
             }
-            // Expire order
-            batch.update(doc.ref, {
-                status: 'CANCELLED',
-                cancelReason: 'Expired due to payment timeout',
-                cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-            // Release pickup slot
-            if (orderData.pickupSlotId) {
-                const slotRef = db.collection('pickupSlots').doc(orderData.pickupSlotId);
-                batch.update(slotRef, { bookedCount: admin.firestore.FieldValue.increment(-1) });
+            catch (err) {
+                console.error(`Failed to process expiration for order ${doc.id}:`, err);
             }
-            expiredCount++;
-        }
-        await batch.commit();
+        }));
         console.log(`Expired ${expiredCount} pending orders.`);
     }
     catch (error) {

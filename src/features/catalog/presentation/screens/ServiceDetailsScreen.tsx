@@ -61,9 +61,10 @@ export default function ServiceDetailsScreen({ route, navigation }: any) {
     // Iterate over all items in the current service
     currentService?.categories?.forEach((cat: any) => {
       cat.items?.forEach((item: any) => {
-        const qty = quantities[item.id] || 0;
+        const itemId = item.id || item.name;
+        const qty = quantities[itemId] || 0;
         if (qty > 0) {
-          const itemAddons = selectedAddons[item.id] || [];
+          const itemAddons = selectedAddons[itemId] || [];
           const addonsPriceMinor = itemAddons.reduce((a: number, addon: any) => a + (addon.priceMinor || 0), 0);
           const itemTotal = ((item.price || item.priceMinor/100 || 0) + (addonsPriceMinor/100)) * qty;
           sum += itemTotal;
@@ -79,17 +80,18 @@ export default function ServiceDetailsScreen({ route, navigation }: any) {
     const itemsToAdd: any[] = [];
     currentService?.categories?.forEach((cat: any) => {
       cat.items?.forEach((item: any) => {
-        const qty = quantities[item.id] || 0;
+        const itemId = item.id || item.name;
+        const qty = quantities[itemId] || 0;
         if (qty > 0) {
           itemsToAdd.push({
-            id: item.id,
-            serviceId: item.id,
+            id: itemId,
+            serviceId: itemId,
             name: item.name,
             price: item.price || item.priceMinor/100 || 0,
             priceType: item.priceType || 'fixed',
             unit: item.unit || 'piece',
             quantity: qty,
-            addons: selectedAddons[item.id] || [],
+            addons: selectedAddons[itemId] || [],
             categoryId: cat.id
           });
         }
@@ -202,14 +204,15 @@ export default function ServiceDetailsScreen({ route, navigation }: any) {
         {/* Content Area (Items) */}
         <YStack padding={20} paddingTop={5}>
           {items.map((item: any) => {
-            const qty = quantities[item.id] || 0;
-            const itemAddons = selectedAddons[item.id] || [];
+            const itemId = item.id || item.name;
+            const qty = quantities[itemId] || 0;
+            const itemAddons = selectedAddons[itemId] || [];
             const hasStarchOption = item.addons && item.addons.length > 0;
             const price = item.price || item.priceMinor/100 || 0;
             const maxPrice = item.maxPrice || item.priceMaxMinor/100 || 0;
             
             return (
-              <YStack key={item.id} backgroundColor={COLORS.white} padding={16} borderRadius={12} marginBottom={12} elevation={2} shadowColor="#000" shadowOpacity={0.05} shadowRadius={8} shadowOffset={{ width: 0, height: 2 }}>
+              <YStack key={itemId} backgroundColor={COLORS.white} padding={16} borderRadius={12} marginBottom={12} elevation={2} shadowColor="#000" shadowOpacity={0.05} shadowRadius={8} shadowOffset={{ width: 0, height: 2 }}>
                 <XStack justifyContent="space-between" alignItems="center">
                   <YStack flex={1}>
                     <Text fontSize={16} fontWeight="bold" marginBottom={4}>{item.name}</Text>
@@ -221,11 +224,11 @@ export default function ServiceDetailsScreen({ route, navigation }: any) {
                   </YStack>
                   
                   <XStack alignItems="center" backgroundColor="#F5F5F5" borderRadius={20} padding={4}>
-                    <TouchableOpacity style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center', elevation: 1 }} onPress={() => updateQuantity(item.id, -1)}>
+                    <TouchableOpacity style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center', elevation: 1 }} onPress={() => updateQuantity(itemId, -1)}>
                       <Ionicons name="remove" size={18} color={COLORS.black} />
                     </TouchableOpacity>
                     <Text width={30} textAlign="center" fontSize={16} fontWeight="bold">{qty}</Text>
-                    <TouchableOpacity style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center', elevation: 1 }} onPress={() => updateQuantity(item.id, 1)}>
+                    <TouchableOpacity style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center', elevation: 1 }} onPress={() => updateQuantity(itemId, 1)}>
                       <Ionicons name="add" size={18} color={COLORS.black} />
                     </TouchableOpacity>
                   </XStack>
@@ -237,7 +240,7 @@ export default function ServiceDetailsScreen({ route, navigation }: any) {
                     {item.addons.map((addon: any) => {
                       const isSelected = itemAddons.find((a: any) => a.id === addon.id);
                       return (
-                        <TouchableOpacity key={addon.id} onPress={() => toggleAddon(item.id, addon)}>
+                        <TouchableOpacity key={addon.id} onPress={() => toggleAddon(itemId, addon)}>
                           <XStack alignItems="center" alignSelf="flex-start" backgroundColor={isSelected ? '#E8F5E9' : '#F5F5F5'} paddingVertical={6} paddingHorizontal={12} borderRadius={16} borderWidth={1} borderColor={isSelected ? '#81C784' : '#E0E0E0'}>
                             <Ionicons name={isSelected ? "checkmark-circle" : "add-circle-outline"} size={16} color={isSelected ? COLORS.darkGreen : "#666"} style={{ marginRight: 6 }} />
                             <Text fontSize={12} color={isSelected ? COLORS.darkGreen : "#666"} fontWeight={isSelected ? "bold" : "normal"}>

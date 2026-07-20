@@ -293,7 +293,7 @@ export default function CheckoutScreen({ navigation, route }: any) {
                         onPress={() => removeFromCart(item.serviceId || item.id)}
                         style={{ padding: 4, marginLeft: 16 }}
                       >
-                        <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                        <Ionicons name="trash-outline" size={16} color={'#E51A1A'} />
                       </TouchableOpacity>
                     </XStack>
                   )}

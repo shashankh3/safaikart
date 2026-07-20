@@ -21,47 +21,61 @@ export const expirePendingOrders = onSchedule({ schedule: 'every 30 minutes', ti
       return;
     }
 
-    const batch = db.batch();
     let expiredCount = 0;
 
-    for (const doc of pendingOrdersQuery.docs) {
-      const orderData = doc.data();
+    // Use Promise.all with transactions for idempotency and concurrency safety
+    await Promise.all(
+      pendingOrdersQuery.docs.map(async (doc) => {
+        try {
+          await db.runTransaction(async (tx) => {
+            const orderDoc = await tx.get(doc.ref);
+            if (!orderDoc.exists) return;
+            const orderData = orderDoc.data()!;
 
-      // Ensure we don't accidentally expire orders that actually have verified payments
-      const paymentsSnapshot = await db.collection('payments')
-        .where('orderId', '==', doc.id)
-        .where('status', '==', 'VERIFIED')
-        .get();
+            // Idempotency guard: verify it's still pending inside the transaction
+            if (orderData.status !== 'PAYMENT_PENDING') {
+              return;
+            }
 
-      if (!paymentsSnapshot.empty) {
-        // Fix the order status discrepancy
-        console.warn(`Order ${doc.id} is PAYMENT_PENDING but has a VERIFIED payment. Auto-correcting.`);
-        batch.update(doc.ref, {
-          status: 'CONFIRMED',
-          paymentStatus: 'VERIFIED',
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        continue;
-      }
+            // Ensure we don't accidentally expire orders that actually have verified payments
+            const paymentsSnapshot = await tx.get(
+              db.collection('payments')
+                .where('orderId', '==', doc.id)
+                .where('status', '==', 'VERIFIED')
+            );
 
-      // Expire order
-      batch.update(doc.ref, {
-        status: 'CANCELLED',
-        cancelReason: 'Expired due to payment timeout',
-        cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
+            if (!paymentsSnapshot.empty) {
+              console.warn(`Order ${doc.id} is PAYMENT_PENDING but has a VERIFIED payment. Auto-correcting.`);
+              tx.update(doc.ref, {
+                status: 'CONFIRMED',
+                paymentStatus: 'VERIFIED',
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              });
+              return;
+            }
 
-      // Release pickup slot
-      if (orderData.pickupSlotId) {
-        const slotRef = db.collection('pickupSlots').doc(orderData.pickupSlotId);
-        batch.update(slotRef, { bookedCount: admin.firestore.FieldValue.increment(-1) });
-      }
+            // Expire order securely
+            tx.update(doc.ref, {
+              status: 'CANCELLED',
+              cancelReason: 'Expired due to payment timeout',
+              cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
 
-      expiredCount++;
-    }
+            // Release pickup slot if present
+            if (orderData.pickupSlotId) {
+              const slotRef = db.collection('pickupSlots').doc(orderData.pickupSlotId);
+              tx.update(slotRef, { bookedCount: admin.firestore.FieldValue.increment(-1) });
+            }
+          });
+          
+          expiredCount++;
+        } catch (err) {
+          console.error(`Failed to process expiration for order ${doc.id}:`, err);
+        }
+      })
+    );
 
-    await batch.commit();
     console.log(`Expired ${expiredCount} pending orders.`);
   } catch (error) {
     console.error('Error expiring pending orders:', error);

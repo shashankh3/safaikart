@@ -42,7 +42,8 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 const contracts_1 = require("../contracts");
-exports.submitReview = (0, https_1.onCall)({ enforceAppCheck: true }, async (request) => {
+const config_1 = require("../utils/config");
+exports.submitReview = (0, https_1.onCall)({ enforceAppCheck: config_1.shouldEnforceAppCheck }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {

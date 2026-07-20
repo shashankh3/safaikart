@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logError = exports.logWarn = exports.logInfo = exports.pinoLogger = void 0;
+exports.logError = exports.logWarn = exports.logInfo = exports.createLogger = exports.ContextLogger = exports.pinoLogger = void 0;
 const pino_1 = __importDefault(require("pino"));
 const Sentry = __importStar(require("@sentry/node"));
 // Configure Pino with PII redaction
@@ -44,7 +44,6 @@ exports.pinoLogger = (0, pino_1.default)({
     level: process.env.LOG_LEVEL || 'info',
     formatters: {
         level: (label) => {
-            // Map pino level to GCP Cloud Logging severity
             const severityMap = {
                 trace: 'DEBUG',
                 debug: 'DEBUG',
@@ -68,49 +67,52 @@ exports.pinoLogger = (0, pino_1.default)({
         censor: '[REDACTED]'
     }
 });
-const logInfo = (message, data) => {
-    if (data) {
-        exports.pinoLogger.info(data, message);
+class ContextLogger {
+    constructor(context) {
+        this.context = context;
     }
-    else {
-        exports.pinoLogger.info(message);
+    info(message, data) {
+        exports.pinoLogger.info(Object.assign(Object.assign({}, this.context), data), message);
     }
-};
-exports.logInfo = logInfo;
-const logWarn = (message, data) => {
-    if (data) {
-        exports.pinoLogger.warn(data, message);
+    warn(message, data) {
+        exports.pinoLogger.warn(Object.assign(Object.assign({}, this.context), data), message);
     }
-    else {
-        exports.pinoLogger.warn(message);
-    }
-};
-exports.logWarn = logWarn;
-const logError = (message, error, data) => {
-    // Log to Pino
-    const logData = Object.assign({}, data);
-    if (error instanceof Error) {
-        logData.error = { message: error.message, stack: error.stack };
-    }
-    else if (error) {
-        logData.error = error;
-    }
-    exports.pinoLogger.error(logData, message);
-    // Send to Sentry
-    Sentry.withScope((scope) => {
-        if (data) {
-            scope.setExtras(data);
-        }
+    error(message, error, data) {
+        const logData = Object.assign(Object.assign({}, this.context), data);
         if (error instanceof Error) {
-            Sentry.captureException(error);
+            logData.error = { message: error.message, stack: error.stack };
         }
         else if (error) {
-            Sentry.captureException(new Error(typeof error === 'string' ? error : JSON.stringify(error)));
+            logData.error = error;
         }
-        else {
-            Sentry.captureMessage(message, 'error');
-        }
-    });
+        exports.pinoLogger.error(logData, message);
+        Sentry.withScope((scope) => {
+            scope.setExtras(logData);
+            if (this.context.userId) {
+                scope.setUser({ id: this.context.userId });
+            }
+            if (error instanceof Error) {
+                Sentry.captureException(error);
+            }
+            else if (error) {
+                Sentry.captureException(new Error(typeof error === 'string' ? error : JSON.stringify(error)));
+            }
+            else {
+                Sentry.captureMessage(message, 'error');
+            }
+        });
+    }
+}
+exports.ContextLogger = ContextLogger;
+const createLogger = (context = {}) => {
+    return new ContextLogger(context);
 };
+exports.createLogger = createLogger;
+// Legacy exports for compatibility
+const logInfo = (message, data) => (0, exports.createLogger)().info(message, data);
+exports.logInfo = logInfo;
+const logWarn = (message, data) => (0, exports.createLogger)().warn(message, data);
+exports.logWarn = logWarn;
+const logError = (message, error, data) => (0, exports.createLogger)().error(message, error, data);
 exports.logError = logError;
 //# sourceMappingURL=logger.js.map

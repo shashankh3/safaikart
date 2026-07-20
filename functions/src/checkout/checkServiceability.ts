@@ -9,8 +9,9 @@ const db = admin.firestore();
 
 import { checkServiceabilityRequest } from '../contracts';
 import { zonesCache } from '../utils/cache';
+import { shouldEnforceAppCheck } from '../utils/config';
 
-export const checkServiceability = onCall({ enforceAppCheck: true }, async (request) => {
+export const checkServiceability = onCall({ enforceAppCheck: shouldEnforceAppCheck }, async (request) => {
   let pincode: string;
   try {
     const parsed = checkServiceabilityRequest.parse(request.data);

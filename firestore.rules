@@ -34,6 +34,10 @@ service cloud.firestore {
     function affectsOnly(allowed) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
     }
+    // Limit document size to prevent abuse (max 500 KB)
+    function isReasonableSize() {
+      return request.resource.size() < 500 * 1024;
+    }
 
     // --- adminUsers ------------------------------------------------------
     match /adminUsers/{uid} {
@@ -63,7 +67,12 @@ service cloud.firestore {
     // --- addresses -------------------------------------------------------
     match /addresses/{addressId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() 
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.keys().hasAll(['userId', 'line1', 'pincode'])
+                    && request.resource.data.line1 is string
+                    && request.resource.data.pincode is string
+                    && request.resource.data.pincode.size() == 6;
       allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == resource.data.userId;
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
@@ -94,7 +103,7 @@ service cloud.firestore {
       allow write: if hasAnyAdminRole(['superadmin', 'admin']);
     }
     match /coupons/{id} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.isActive == true);
       allow write: if hasAnyAdminRole(['superadmin', 'admin']);
     }
     match /pickupSlots/{id} {
@@ -133,7 +142,11 @@ service cloud.firestore {
     }
     match /issues/{issueId} {
       allow read: if isAdmin() || isOwner(resource.data.userId);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() 
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.keys().hasAll(['userId', 'subject', 'description'])
+                    && request.resource.data.subject is string
+                    && request.resource.data.subject.size() <= 200;
       allow update: if hasAnyAdminRole(['superadmin', 'admin', 'support', 'ops']);
       allow delete: if false;
 
@@ -157,13 +170,24 @@ service cloud.firestore {
 
     // --- audit + config -------------------------------------------------
     match /auditLogs/{id} {
-      allow read: if isAdmin();
+      allow read: if hasAnyAdminRole(['superadmin', 'admin']);
       allow create: if isAdmin();
-      allow update, delete: if false;
+      allow update, delete: if false; // Immutable audit trail
     }
     match /appConfig/{id} {
       allow read: if true;
       allow write: if isSuperAdmin();
+    }
+
+    // --- webhooks (idempotency tracking) --------------------------------
+    match /webhookEvents/{id} {
+      allow read, write: if false; // Internal to Cloud Functions only
+    }
+
+    // --- dead letters (DLQ) ---------------------------------------------
+    match /deadLetters/{id} {
+      allow read: if hasAnyAdminRole(['superadmin', 'admin']);
+      allow write: if false; // Cloud Functions only
     }
     
     // --- notifications --------------------------------------------------
@@ -173,6 +197,16 @@ service cloud.firestore {
     }
     match /rateLimits/{id} {
       allow read, write: if false; // Internal to Cloud Functions
+    }
+    // --- fcmTokens ------------------------------------------------------
+    match /fcmTokens/{id} {
+      allow read, write: if false; // Cloud Functions only
+    }
+
+    // --- referrals ------------------------------------------------------
+    match /referrals/{id} {
+      allow read: if isAdmin() || isOwner(resource.data.referrerId) || isOwner(resource.data.referredId);
+      allow write: if false; // Cloud Functions only
     }
 
     // Default deny.

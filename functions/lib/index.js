@@ -36,7 +36,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.healthCheck = exports.adminSetOrderPhotos = exports.adminAssignDriver = exports.adminConfirmOrderPrice = exports.adminUpdateOrderStatus = exports.processUserSignup = exports.onBroadcastCreated = exports.deleteOldNotifications = exports.markNotificationRead = exports.sendOrderStatusNotification = exports.removeFcmToken = exports.saveFcmToken = exports.submitReview = exports.expirePendingOrders = exports.editOrderItems = exports.cancelOrder = exports.onUserDelete = exports.deleteAccount = exports.syncAdminRoles = exports.onUserCreate = exports.processRefunds = exports.processRazorpayWebhook = exports.paymentWebhook = exports.verifyPaymentStatus = exports.createPaymentOrder = exports.checkServiceability = void 0;
+exports.processDeadLetters = exports.generateInvoice = exports.healthCheck = exports.adminSetOrderPhotos = exports.adminAssignDriver = exports.adminConfirmOrderPrice = exports.adminUpdateOrderStatus = exports.processUserSignup = exports.onBroadcastCreated = exports.deleteOldNotifications = exports.markNotificationRead = exports.sendOrderStatusNotification = exports.removeFcmToken = exports.saveFcmToken = exports.submitReview = exports.expirePendingOrders = exports.editOrderItems = exports.cancelOrder = exports.onUserDelete = exports.deleteAccount = exports.syncAdminRoles = exports.onUserCreate = exports.processRefunds = exports.processRazorpayWebhook = exports.paymentWebhook = exports.verifyPaymentStatus = exports.createPaymentOrder = exports.checkServiceability = void 0;
 const v2_1 = require("firebase-functions/v2");
 const Sentry = __importStar(require("@sentry/node"));
 // Initialize Sentry if configured
@@ -44,6 +44,7 @@ if (process.env.SENTRY_DSN) {
     Sentry.init({
         dsn: process.env.SENTRY_DSN,
         tracesSampleRate: 1.0,
+        environment: process.env.FUNCTIONS_EMULATOR === 'true' ? 'local' : (process.env.GCLOUD_PROJECT ? 'production' : 'development')
     });
 }
 // All v2 functions deploy to asia-south1 (Mumbai)
@@ -104,4 +105,9 @@ var adminSetOrderPhotos_1 = require("./admin/adminSetOrderPhotos");
 Object.defineProperty(exports, "adminSetOrderPhotos", { enumerable: true, get: function () { return adminSetOrderPhotos_1.adminSetOrderPhotos; } });
 var healthCheck_1 = require("./admin/healthCheck");
 Object.defineProperty(exports, "healthCheck", { enumerable: true, get: function () { return healthCheck_1.healthCheck; } });
+var generateInvoice_1 = require("./admin/generateInvoice");
+Object.defineProperty(exports, "generateInvoice", { enumerable: true, get: function () { return generateInvoice_1.generateInvoice; } });
+// Utilities
+var dlqHandler_1 = require("./utils/dlqHandler");
+Object.defineProperty(exports, "processDeadLetters", { enumerable: true, get: function () { return dlqHandler_1.processDeadLetters; } });
 //# sourceMappingURL=index.js.map

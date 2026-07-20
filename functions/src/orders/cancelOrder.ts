@@ -5,12 +5,13 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { buildStatusHistoryUpdate } from '../utils/statusLogic';
 
 import { getRazorpayAuthHeader, razorpayKeySecret } from '../payments/razorpayClient';
+import { shouldEnforceAppCheck } from '../utils/config';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-export const cancelOrder = onCall({ secrets: [razorpayKeySecret], enforceAppCheck: true }, async (request) => {
+export const cancelOrder = onCall({ secrets: [razorpayKeySecret], enforceAppCheck: shouldEnforceAppCheck }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError('unauthenticated', 'User must be logged in');

@@ -206,9 +206,17 @@ function ComplaintsPage() {
               <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading tickets…
             </div>
           ) : filtered.length === 0 ? (
-            <div className="p-16 text-center text-muted-foreground">
-              <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              No complaints. Docs added to <code className="text-xs">issues</code> will appear here.
+            <div className="p-16 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center">
+                <MessageSquare className="h-8 w-8 text-muted-foreground opacity-60" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">No issues found</h3>
+              <p className="text-muted-foreground max-w-sm">We couldn't find any issues matching your current filter. New complaints raised by users will appear here.</p>
+              {filter !== "ALL" && (
+                <Button variant="outline" onClick={() => setFilter("ALL")} className="mt-4">
+                  Clear Filters
+                </Button>
+              )}
             </div>
           ) : (
             <div className="divide-y divide-border">

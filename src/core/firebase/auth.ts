@@ -15,6 +15,9 @@ export const logoutUser = async () => {
       const removeFcmToken = httpsCallable(functions, 'removeFcmToken');
       // Fire-and-forget, gracefully handle failure
       await removeFcmToken({ token }).catch(err => console.warn('Failed to remove FCM token:', err));
+      
+      // Delete local FCM token to ensure device no longer receives old push notifications
+      await messaging().deleteToken().catch(err => console.warn('Failed to delete local FCM token:', err));
     }
   } catch (err) {
     console.warn('Error fetching FCM token on logout:', err);

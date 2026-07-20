@@ -1,5 +1,4 @@
 import { CheckoutRepository } from '../infrastructure/CheckoutRepository';
-import { createOrderDraftRequest } from '../../../../../functions/src/contracts';
 
 export class CreateOrderDraftUseCase {
   constructor(private checkoutRepository: CheckoutRepository) {}
@@ -9,15 +8,15 @@ export class CreateOrderDraftUseCase {
       throw new Error('Cart is empty');
     }
     
-    // Parse using the shared backend contract
-    const payload = createOrderDraftRequest.parse({
+    if (!params.addressId) throw new Error('Address is required');
+    if (!params.pickupSlotId) throw new Error('Pickup slot is required');
+
+    return await this.checkoutRepository.createOrderDraft({
       addressId: params.addressId,
       pickupSlotId: params.pickupSlotId,
       couponCode: params.couponCode,
       directItems: params.directItems,
       idempotencyKey: params.idempotencyKey
     });
-
-    return await this.checkoutRepository.createOrderDraft(payload);
   }
 }

@@ -156,7 +156,7 @@ no plugin errors; document that verification requires an EAS dev-client build.
 
 ---
 
-## TASK 4 — Remove mock data & wire real screens
+## [DONE] TASK 4 — Remove mock data & wire real screens
 
 **Hit list (all verified in code):**
 1. `src/features/catalog/presentation/screens/SubScreen.tsx:27-80` — fake "My Addresses"
@@ -215,7 +215,7 @@ order end-to-end in the emulator or a test project.
 
 ---
 
-## TASK 6 — Build configuration (app.json / eas.json) for release
+## [DONE — code side; EAS env vars + key rotation pending, see Task 8] TASK 6 — Build configuration (app.json / eas.json) for release
 
 **Gaps (all verified):**
 - No `extra.eas.projectId` and EAS project not initialized → run `eas init` (human may need to

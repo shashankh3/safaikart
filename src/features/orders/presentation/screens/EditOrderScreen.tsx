@@ -50,15 +50,14 @@ export default function EditOrderScreen() {
       
       const payloadItems = items.filter(i => i.quantity > 0).map(i => ({
         serviceId: i.serviceId,
-        categoryId: i.categoryId,
-        name: i.name,
-        priceMinor: i.priceMinor,
+        categoryId: (i as any).categoryId || 'unknown',
+        name: i.nameSnapshot,
+        priceMinor: i.unitPriceMinor || 0,
         quantity: i.quantity,
-        image: i.image
+        image: (i as any).image || ''
       }));
       
-      const { editOrderItemsRequest } = require('../../../../../functions/src/contracts');
-      const payload = editOrderItemsRequest.parse({ orderId, items: payloadItems });
+      const payload = { orderId, items: payloadItems };
 
       await editOrderItemsFn(payload);
       

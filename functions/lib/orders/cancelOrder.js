@@ -40,10 +40,11 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const statusLogic_1 = require("../utils/statusLogic");
 const razorpayClient_1 = require("../payments/razorpayClient");
+const config_1 = require("../utils/config");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
-exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret], enforceAppCheck: true }, async (request) => {
+exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret], enforceAppCheck: config_1.shouldEnforceAppCheck }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {

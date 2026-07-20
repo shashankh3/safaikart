@@ -6,7 +6,6 @@ export const pinoLogger = pino({
   level: process.env.LOG_LEVEL || 'info',
   formatters: {
     level: (label: string) => {
-      // Map pino level to GCP Cloud Logging severity
       const severityMap: Record<string, string> = {
         trace: 'DEBUG',
         debug: 'DEBUG',
@@ -31,44 +30,58 @@ export const pinoLogger = pino({
   }
 });
 
-export const logInfo = (message: string, data?: any) => {
-  if (data) {
-    pinoLogger.info(data, message);
-  } else {
-    pinoLogger.info(message);
-  }
-};
+interface LogContext {
+  userId?: string;
+  orderId?: string;
+  paymentId?: string;
+  [key: string]: any;
+}
 
-export const logWarn = (message: string, data?: any) => {
-  if (data) {
-    pinoLogger.warn(data, message);
-  } else {
-    pinoLogger.warn(message);
-  }
-};
+export class ContextLogger {
+  constructor(private context: LogContext) {}
 
-export const logError = (message: string, error?: any, data?: any) => {
-  // Log to Pino
-  const logData = { ...data };
-  if (error instanceof Error) {
-    logData.error = { message: error.message, stack: error.stack };
-  } else if (error) {
-    logData.error = error;
+  info(message: string, data?: any) {
+    pinoLogger.info({ ...this.context, ...data }, message);
   }
-  
-  pinoLogger.error(logData, message);
 
-  // Send to Sentry
-  Sentry.withScope((scope) => {
-    if (data) {
-      scope.setExtras(data);
-    }
+  warn(message: string, data?: any) {
+    pinoLogger.warn({ ...this.context, ...data }, message);
+  }
+
+  error(message: string, error?: any, data?: any) {
+    const logData: any = { ...this.context, ...data };
+    
     if (error instanceof Error) {
-      Sentry.captureException(error);
+      logData.error = { message: error.message, stack: error.stack };
     } else if (error) {
-       Sentry.captureException(new Error(typeof error === 'string' ? error : JSON.stringify(error)));
-    } else {
-      Sentry.captureMessage(message, 'error');
+      logData.error = error;
     }
-  });
+    
+    pinoLogger.error(logData, message);
+
+    Sentry.withScope((scope) => {
+      scope.setExtras(logData);
+      
+      if (this.context.userId) {
+        scope.setUser({ id: this.context.userId });
+      }
+
+      if (error instanceof Error) {
+        Sentry.captureException(error);
+      } else if (error) {
+        Sentry.captureException(new Error(typeof error === 'string' ? error : JSON.stringify(error)));
+      } else {
+        Sentry.captureMessage(message, 'error');
+      }
+    });
+  }
+}
+
+export const createLogger = (context: LogContext = {}) => {
+  return new ContextLogger(context);
 };
+
+// Legacy exports for compatibility
+export const logInfo = (message: string, data?: any) => createLogger().info(message, data);
+export const logWarn = (message: string, data?: any) => createLogger().warn(message, data);
+export const logError = (message: string, error?: any, data?: any) => createLogger().error(message, error, data);

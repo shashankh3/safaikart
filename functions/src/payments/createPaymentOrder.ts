@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { getRazorpayAuthHeader, getRazorpayKeyId, razorpayKeySecret } from './razorpayClient';
+import { getRazorpayAuthHeader, razorpayKeyId, razorpayKeySecret } from './razorpayClient';
+import { shouldEnforceAppCheck } from '../utils/config';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -8,7 +9,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const createPaymentOrder = onCall({ secrets: [razorpayKeySecret], enforceAppCheck: true }, async (request) => {
+export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeySecret], enforceAppCheck: shouldEnforceAppCheck }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError('unauthenticated', 'User must be logged in.');
@@ -84,10 +85,10 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeySecret], enforce
         const baseUrl = process.env.CHECKOUT_BASE_URL || 'https://safaikart-6c4e4.web.app';
         return {
           razorpayOrderId: payment.razorpayOrderId,
-          razorpayKeyId: getRazorpayKeyId(),
+          razorpayKeyId: razorpayKeyId.value(),
           amountMinor: payment.amountMinor,
           currency: payment.currency,
-          checkoutUrl: `${baseUrl}/checkout/index.html?order_id=${payment.razorpayOrderId}&key_id=${getRazorpayKeyId()}&amount=${payment.amountMinor}&currency=${payment.currency}`
+          checkoutUrl: `${baseUrl}/checkout/index.html?order_id=${payment.razorpayOrderId}&key_id=${razorpayKeyId.value()}&amount=${payment.amountMinor}&currency=${payment.currency}`
         };
       } else {
         // It's a top-up pending payment without a razorpay order yet
@@ -164,11 +165,11 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeySecret], enforce
     });
 
     const baseUrl = process.env.CHECKOUT_BASE_URL || 'https://safaikart-6c4e4.web.app';
-    const checkoutUrl = `${baseUrl}/checkout/index.html?order_id=${rzpOrder.id}&key_id=${getRazorpayKeyId()}&amount=${amountMinor}&currency=INR`;
+    const checkoutUrl = `${baseUrl}/checkout/index.html?order_id=${rzpOrder.id}&key_id=${razorpayKeyId.value()}&amount=${amountMinor}&currency=INR`;
 
     return {
       razorpayOrderId: rzpOrder.id,
-      razorpayKeyId: getRazorpayKeyId(),
+      razorpayKeyId: razorpayKeyId.value(),
       amountMinor,
       currency: 'INR',
       checkoutUrl

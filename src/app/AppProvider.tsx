@@ -1,5 +1,8 @@
 import React, { useEffect, ReactNode } from 'react';
-import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
+import { QueryClient, onlineManager } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 
 export const queryClient = new QueryClient({
@@ -7,9 +10,13 @@ export const queryClient = new QueryClient({
     queries: {
       retry: 2,
       staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 30, // 30 minutes
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours for persistence
     },
   },
+});
+
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
 });
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -23,8 +30,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister: asyncStoragePersister }}
+    >
       {children}
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 };

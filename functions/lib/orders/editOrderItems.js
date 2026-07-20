@@ -42,11 +42,12 @@ const coupon_logic_1 = require("../checkout/coupon.logic");
 const deliveryLogic_1 = require("../utils/deliveryLogic");
 const contracts_1 = require("../contracts");
 const razorpayClient_1 = require("../payments/razorpayClient");
+const config_1 = require("../utils/config");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret], region: 'asia-south1', enforceAppCheck: true }, async (request) => {
+exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret], region: 'asia-south1', enforceAppCheck: config_1.shouldEnforceAppCheck }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {

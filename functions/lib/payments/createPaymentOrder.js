@@ -37,11 +37,12 @@ exports.createPaymentOrder = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const razorpayClient_1 = require("./razorpayClient");
+const config_1 = require("../utils/config");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret], enforceAppCheck: true }, async (request) => {
+exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeyId, razorpayClient_1.razorpayKeySecret], enforceAppCheck: config_1.shouldEnforceAppCheck }, async (request) => {
     var _a, _b;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {
@@ -110,10 +111,10 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
                 const baseUrl = process.env.CHECKOUT_BASE_URL || 'https://safaikart-6c4e4.web.app';
                 return {
                     razorpayOrderId: payment.razorpayOrderId,
-                    razorpayKeyId: (0, razorpayClient_1.getRazorpayKeyId)(),
+                    razorpayKeyId: razorpayClient_1.razorpayKeyId.value(),
                     amountMinor: payment.amountMinor,
                     currency: payment.currency,
-                    checkoutUrl: `${baseUrl}/checkout/index.html?order_id=${payment.razorpayOrderId}&key_id=${(0, razorpayClient_1.getRazorpayKeyId)()}&amount=${payment.amountMinor}&currency=${payment.currency}`
+                    checkoutUrl: `${baseUrl}/checkout/index.html?order_id=${payment.razorpayOrderId}&key_id=${razorpayClient_1.razorpayKeyId.value()}&amount=${payment.amountMinor}&currency=${payment.currency}`
                 };
             }
             else {
@@ -183,10 +184,10 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
         const baseUrl = process.env.CHECKOUT_BASE_URL || 'https://safaikart-6c4e4.web.app';
-        const checkoutUrl = `${baseUrl}/checkout/index.html?order_id=${rzpOrder.id}&key_id=${(0, razorpayClient_1.getRazorpayKeyId)()}&amount=${amountMinor}&currency=INR`;
+        const checkoutUrl = `${baseUrl}/checkout/index.html?order_id=${rzpOrder.id}&key_id=${razorpayClient_1.razorpayKeyId.value()}&amount=${amountMinor}&currency=INR`;
         return {
             razorpayOrderId: rzpOrder.id,
-            razorpayKeyId: (0, razorpayClient_1.getRazorpayKeyId)(),
+            razorpayKeyId: razorpayClient_1.razorpayKeyId.value(),
             amountMinor,
             currency: 'INR',
             checkoutUrl

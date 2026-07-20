@@ -6,8 +6,9 @@ import { getDb } from "@/lib/firebase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Users } from "lucide-react";
 import { formatDate } from "@/lib/format";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/users")({
   ssr: false,
@@ -87,7 +88,18 @@ function UsersPage() {
               <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading users…
             </div>
           ) : filtered.length === 0 ? (
-            <div className="p-16 text-center text-muted-foreground">No users found.</div>
+            <div className="p-16 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center">
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">No users found</h3>
+              <p className="text-muted-foreground max-w-sm">We couldn't find any users matching your current search. Try adjusting your search term.</p>
+              {search && (
+                <Button variant="outline" onClick={() => setSearch("")} className="mt-4">
+                  Clear Search
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

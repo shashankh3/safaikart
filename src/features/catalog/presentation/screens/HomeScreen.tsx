@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ScrollView, Animated, ImageBackground, TextInput, FlatList, TouchableOpacity, Platform, Easing, useWindowDimensions } from 'react-native';
+import { ScrollView, Animated, ImageBackground, TextInput, FlatList, TouchableOpacity, Platform, Easing, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { YStack, XStack, ZStack, Text } from '../../../../shared/ui/primitives/Stacks';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,7 +12,7 @@ import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressabl
 import StickyCart from '../../../../features/cart/presentation/components/StickyCart';
 
 import { useCart } from '../../../../features/cart/presentation/hooks/useCart';
-import { useCategoriesQuery, useServicesQuery } from '../../application/useServicesQuery';
+import { useCatalogV2Query } from '../../application/useServicesQuery';
 import * as Haptics from 'expo-haptics';
 
 const CATEGORIES = [
@@ -178,14 +178,12 @@ const AnimatedServiceIcon = ({ iconName }) => {
 
 export default function HomeScreen({ navigation }) {
   const { totalItems, clearCart } = useCart();
-  const { data: remoteCategories, isLoading: isCategoriesLoading } = useCategoriesQuery();
-  const { data: realServices, isLoading: isCatalogLoading, error: catalogError } = useServicesQuery();
+  const { data: catalogV2, isLoading: isCatalogLoading, error: catalogError, refetch: refetchCatalog } = useCatalogV2Query();
   
   if (catalogError) console.error('Catalog query ERROR:', catalogError);
 
-  const finalCategories = remoteCategories && remoteCategories.length > 0 
-    ? [{ name: "All", icon: "view-grid-outline" }, ...remoteCategories.map(c => ({ name: c.name, icon: c.icon }))] 
-    : CATEGORIES;
+  const finalCategories = CATEGORIES;
+  const realServices = catalogV2?.services || [];
 
   // Create a mapping of UI metadata (icons, images, colors) for specific service names
   const UIMetaMapping: Record<string, any> = {
@@ -431,25 +429,39 @@ export default function HomeScreen({ navigation }) {
 
         {/* Services Grid */}
         {isCatalogLoading ? (
-          <YStack f={1} jc="center" ai="center">
-            <Text>Loading services...</Text>
+          <YStack f={1} jc="center" ai="center" minHeight={200}>
+            <ActivityIndicator size="large" color={COLORS.darkGreen} />
+            <Text color={COLORS.textSecondary} marginTop={12}>Loading services...</Text>
           </YStack>
-        ) : null}
-        <XStack fw="wrap" jc="space-between">
-          {finalServices && finalServices.length > 0 ? (
-            finalServices
-              .filter(item => activeCategory === 'All' || item.chipCategories?.includes(activeCategory))
-              .map((item, index) => (
-                <React.Fragment key={item.id}>
-                  {renderServiceCard({ item, index })}
-                </React.Fragment>
-              ))
-          ) : (
-            <Text color={COLORS.textSecondary} fontSize={16} ta="center" w="100%">
-              No services available at the moment.
-            </Text>
-          )}
-        </XStack>
+        ) : catalogError ? (
+          <YStack f={1} jc="center" ai="center" minHeight={200} padding={20} backgroundColor={COLORS.cardBg} borderRadius={16} borderWidth={1} borderColor={COLORS.border}>
+            <Ionicons name="alert-circle-outline" size={48} color={'#E51A1A'} />
+            <Text color={COLORS.black} fontSize={16} fontWeight="bold" marginTop={12}>Oops! Something went wrong.</Text>
+            <Text color={COLORS.textSecondary} fontSize={14} textAlign="center" marginTop={8}>We couldn't load the services right now. Please check your connection and try again.</Text>
+            <AnimatedPressable 
+              onPress={() => refetchCatalog()}
+              style={{ marginTop: 20, backgroundColor: COLORS.darkGreen, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 }}
+            >
+              <Text color={COLORS.white} fontWeight="bold">Retry</Text>
+            </AnimatedPressable>
+          </YStack>
+        ) : (
+          <XStack fw="wrap" jc="space-between">
+            {finalServices && finalServices.length > 0 ? (
+              finalServices
+                .filter((item: any) => activeCategory === 'All' || item.chipCategories?.includes(activeCategory))
+                .map((item: any, index: number) => (
+                  <React.Fragment key={item.id}>
+                    {renderServiceCard({ item, index })}
+                  </React.Fragment>
+                ))
+            ) : (
+              <Text color={COLORS.textSecondary} fontSize={16} ta="center" w="100%">
+                No services available at the moment.
+              </Text>
+            )}
+          </XStack>
+        )}
 
         
         {/* Padding for sticky cart and floating taskbar */}

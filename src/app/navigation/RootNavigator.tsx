@@ -14,7 +14,7 @@ import OrdersScreen from '../../features/orders/presentation/screens/OrdersScree
 import ProfileScreen from '../../features/profile/presentation/screens/ProfileScreen';
 import NotificationCenterScreen from '../../features/profile/presentation/screens/NotificationCenterScreen';
 import OrderTrackingScreen from '../../features/orders/presentation/screens/OrderTrackingScreen';
-import SubScreen from '../../features/catalog/presentation/screens/SubScreen';
+import CouponsScreen from '../../features/catalog/presentation/screens/CouponsScreen';
 import AuthNavigator from './AuthNavigator';
 import ServiceDetailsScreen from '../../features/catalog/presentation/screens/ServiceDetailsScreen';
 import AddressListScreen from '../../features/addresses/presentation/screens/AddressListScreen';
@@ -25,6 +25,7 @@ import StickyCart from '../../features/cart/presentation/components/StickyCart';
 import AnimatedPressable from '../../shared/ui/components/AnimatedPressable';
 
 import CheckoutNavigator from './CheckoutNavigator';
+import PaymentCallbackScreen from '../../features/payments/presentation/screens/PaymentCallbackScreen';
 
 import { COLORS } from '../../shared/theme/colors';
 import { SIZES } from '../../shared/theme/spacing';
@@ -50,6 +51,7 @@ const linking: import('@react-navigation/native').LinkingOptions<any> = {
         }
       },
       OrderTracking: 'order/:orderId',
+      PaymentCallback: 'payment/:orderId/:status',
     }
   }
 };
@@ -212,13 +214,14 @@ export default function AppNavigator() {
         ) : (
           <>
             <Stack.Screen name="MainTabs" component={BottomTabs} />
-            <Stack.Screen name="SubScreen" component={SubScreen} />
+            <Stack.Screen name="CouponsScreen" component={CouponsScreen} />
             <Stack.Screen name="AddressList" component={AddressListScreen} />
             <Stack.Screen name="AddressForm" component={AddressFormScreen} />
             <Stack.Screen name="ServiceDetails" component={ServiceDetailsScreen} />
             <Stack.Screen name="CheckoutFlow" component={CheckoutNavigator} />
             <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} />
             <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
+            <Stack.Screen name="PaymentCallback" component={PaymentCallbackScreen} />
             <Stack.Screen name="Support" component={SupportScreen} />
           </>
         )}

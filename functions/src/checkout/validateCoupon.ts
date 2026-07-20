@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { validateCouponApplicability, CouponData } from './coupon.logic';
+import { shouldEnforceAppCheck } from '../utils/config';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -8,7 +9,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const validateCoupon = onCall({ enforceAppCheck: true }, async (request) => {
+export const validateCoupon = onCall({ enforceAppCheck: shouldEnforceAppCheck }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError('unauthenticated', 'User must be logged in to validate coupon.');

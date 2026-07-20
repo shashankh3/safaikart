@@ -37,6 +37,7 @@ function CheckoutPage() {
   const [slot, setSlot] = useState("");
   const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
 
   const { data: savedAddresses = [] } = useQuery({
     queryKey: ["addresses", user?.uid],

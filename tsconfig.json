@@ -11,6 +11,8 @@
     "production_artifacts",
     "scripts",
     "functions",
-    "node_modules"
+    "node_modules",
+    "check_db.ts",
+    "tests/e2e"
   ]
 }

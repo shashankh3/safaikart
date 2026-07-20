@@ -42,7 +42,8 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const contracts_1 = require("../contracts");
 const cache_1 = require("../utils/cache");
-exports.checkServiceability = (0, https_1.onCall)({ enforceAppCheck: true }, async (request) => {
+const config_1 = require("../utils/config");
+exports.checkServiceability = (0, https_1.onCall)({ enforceAppCheck: config_1.shouldEnforceAppCheck }, async (request) => {
     let pincode;
     try {
         const parsed = contracts_1.checkServiceabilityRequest.parse(request.data);
