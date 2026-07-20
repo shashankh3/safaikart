@@ -1,14 +1,26 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { assertAdmin } from '../utils/assertAdmin';
+import { z } from 'zod';
+
+const photosSchema = z.object({
+  orderId: z.string().min(1),
+  photos: z.array(z.string().url())
+});
 
 export const adminSetOrderPhotos = onCall(async (request) => {
-  assertAdmin(request);
+  assertAdmin(request, ['superadmin', 'admin', 'ops']);
   const { data, auth } = request;
 
-  const { orderId, photos } = data;
-  if (!orderId || !Array.isArray(photos)) {
-    throw new HttpsError('invalid-argument', 'orderId and photos array are required.');
+  let orderId: string;
+  let photos: string[];
+
+  try {
+    const parsed = photosSchema.parse(data);
+    orderId = parsed.orderId;
+    photos = parsed.photos;
+  } catch (e: any) {
+    throw new HttpsError('invalid-argument', `Validation error: ${e.message}`);
   }
 
   const db = admin.firestore();

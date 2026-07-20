@@ -37,10 +37,11 @@ type Message = {
 };
 
 type Thread = {
+  id: string;
   orderId: string;
   userId?: string;
-  lastMessage: Message;
-  count: number;
+  lastMessageText?: string;
+  lastMessageTime?: unknown;
   unread: number;
 };
 
@@ -55,47 +56,34 @@ function InboxPage() {
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [threadMessages, setThreadMessages] = useState<Message[]>([]);
+
   useEffect(() => {
     const db = getDb();
     const unsub = onSnapshot(
-      query(collection(db, "orderMessages"), orderBy("createdAt", "desc")),
+      query(collection(db, "issues"), orderBy("createdAt", "desc")),
       (snap) => {
-        setMessages(
+        setThreads(
           snap.docs.map(
-            (d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Message,
+            (d) => {
+              const data = d.data();
+              return { 
+                id: d.id, 
+                orderId: data.orderId || d.id, 
+                userId: data.userId,
+                lastMessageText: data.lastMessageText || data.subject || "Issue created",
+                lastMessageTime: data.updatedAt || data.createdAt,
+                unread: data.unreadCount || 0
+              } as Thread;
+            }
           ),
         );
       },
-      () => setMessages([]),
+      () => setThreads([]),
     );
     return unsub;
   }, []);
-
-  const threads: Thread[] = useMemo(() => {
-    if (!messages) return [];
-    const map = new Map<string, Thread>();
-    for (const m of messages) {
-      if (!m.orderId) continue;
-      const cur = map.get(m.orderId);
-      if (!cur) {
-        map.set(m.orderId, {
-          orderId: m.orderId,
-          userId: m.userId,
-          lastMessage: m,
-          count: 1,
-          unread: m.fromAdmin ? 0 : 1,
-        });
-      } else {
-        cur.count += 1;
-        if (!m.fromAdmin) cur.unread += 1;
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => {
-      const at = toDate(a.lastMessage.createdAt)?.getTime() || 0;
-      const bt = toDate(b.lastMessage.createdAt)?.getTime() || 0;
-      return bt - at;
-    });
-  }, [messages]);
 
   const filtered = useMemo(() => {
     if (!search) return threads;
@@ -104,24 +92,33 @@ function InboxPage() {
       (t) =>
         t.orderId.toLowerCase().includes(s) ||
         (t.userId || "").toLowerCase().includes(s) ||
-        (t.lastMessage.text || "").toLowerCase().includes(s),
+        (t.lastMessageText || "").toLowerCase().includes(s),
     );
   }, [threads, search]);
 
-  const thread = useMemo(() => {
-    if (!selected || !messages) return [];
-    return messages
-      .filter((m) => m.orderId === selected)
-      .sort((a, b) => {
-        const at = toDate(a.createdAt)?.getTime() || 0;
-        const bt = toDate(b.createdAt)?.getTime() || 0;
-        return at - bt;
-      });
-  }, [selected, messages]);
+  useEffect(() => {
+    if (!selected) {
+      setThreadMessages([]);
+      return;
+    }
+    const db = getDb();
+    const unsub = onSnapshot(
+      query(collection(db, `issues/${selected}/messages`), orderBy("createdAt", "asc")),
+      (snap) => {
+        setThreadMessages(
+          snap.docs.map(
+            (d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Message,
+          ),
+        );
+      },
+      () => setThreadMessages([]),
+    );
+    return unsub;
+  }, [selected]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [thread]);
+  }, [threadMessages]);
 
   async function send() {
     if (!selected) return;
@@ -132,8 +129,8 @@ function InboxPage() {
     }
     setSending(true);
     try {
-      const userId = threads.find((t) => t.orderId === selected)?.userId;
-      await addDoc(collection(getDb(), "orderMessages"), {
+      const userId = threads.find((t) => t.id === selected)?.userId;
+      await addDoc(collection(getDb(), `issues/${selected}/messages`), {
         orderId: selected,
         userId: userId ?? null,
         fromAdmin: true,
@@ -150,7 +147,7 @@ function InboxPage() {
     }
   }
 
-  if (messages === null) {
+  if (threads.length === 0 && !search) {
     return (
       <div className="p-16 flex items-center justify-center text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading inbox…
@@ -187,10 +184,10 @@ function InboxPage() {
           ) : (
             filtered.map((t) => (
               <button
-                key={t.orderId}
-                onClick={() => setSelected(t.orderId)}
+                key={t.id}
+                onClick={() => setSelected(t.id)}
                 className={`w-full text-left px-4 py-3 border-b border-border hover:bg-muted/40 transition ${
-                  selected === t.orderId ? "bg-brand/5" : ""
+                  selected === t.id ? "bg-brand/5" : ""
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -204,11 +201,10 @@ function InboxPage() {
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground truncate mt-1">
-                  {t.lastMessage.fromAdmin ? "You: " : ""}
-                  {t.lastMessage.text || "—"}
+                  {t.lastMessageText || "—"}
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-1">
-                  {formatDate(t.lastMessage.createdAt)}
+                  {formatDate(t.lastMessageTime)}
                 </div>
               </button>
             ))
@@ -227,11 +223,11 @@ function InboxPage() {
         ) : (
           <>
             <div className="p-4 border-b border-border">
-              <div className="text-sm font-semibold">Order {selected.slice(0, 16)}…</div>
-              <div className="text-xs text-muted-foreground">{thread.length} messages</div>
+              <div className="text-sm font-semibold">Issue {selected.slice(0, 16)}…</div>
+              <div className="text-xs text-muted-foreground">{threadMessages.length} messages</div>
             </div>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[300px]">
-              {thread.map((m) => (
+              {threadMessages.map((m) => (
                 <div
                   key={m.id}
                   className={`flex ${m.fromAdmin ? "justify-end" : "justify-start"}`}

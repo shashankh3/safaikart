@@ -12,7 +12,7 @@ import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressabl
 import StickyCart from '../../../../features/cart/presentation/components/StickyCart';
 
 import { useCart } from '../../../../features/cart/presentation/hooks/useCart';
-import { useCategoriesQuery, useServicesQuery, useCatalogV2Query } from '../../application/useServicesQuery';
+import { useCategoriesQuery, useServicesQuery } from '../../application/useServicesQuery';
 import * as Haptics from 'expo-haptics';
 
 const CATEGORIES = [
@@ -179,9 +179,8 @@ const AnimatedServiceIcon = ({ iconName }) => {
 export default function HomeScreen({ navigation }) {
   const { totalItems, clearCart } = useCart();
   const { data: remoteCategories, isLoading: isCategoriesLoading } = useCategoriesQuery();
-  const { data: catalogV2, isLoading: isCatalogLoading, error: catalogError } = useCatalogV2Query();
-  console.log('CatalogV2 data:', catalogV2);
-  console.log('Catalog loading state:', isCatalogLoading);
+  const { data: realServices, isLoading: isCatalogLoading, error: catalogError } = useServicesQuery();
+  
   if (catalogError) console.error('Catalog query ERROR:', catalogError);
 
   const finalCategories = remoteCategories && remoteCategories.length > 0 
@@ -199,19 +198,19 @@ export default function HomeScreen({ navigation }) {
     // Fallbacks for the 3 current services in the old JSON if the names don't perfectly match yet
     'Dry Cleaning': { img: require('../../../../../assets/laundry_basket.png'), icon: 'washing-machine', chipCategories: ['Clothing'] }
   };
-
-  const finalServices = catalogV2 && catalogV2.services && catalogV2.services.length > 0 
-    ? catalogV2.services.map((s, index) => {
-        const meta = UIMetaMapping[s.name] || services[index % services.length];
+  
+  const finalServices = realServices && realServices.length > 0 
+    ? realServices.map((s, index) => {
+        const meta = UIMetaMapping[s.name || ''] || services[index % services.length];
         return {
           id: s.id,
           title: s.name,
-          category: s.name.toUpperCase(),
+          category: (s.categoryId || s.name || '').toUpperCase(),
           time: '1-2 DAY',
           img: meta.img,
           icon: meta.icon,
           chipCategories: meta.chipCategories,
-          price: 0 // Deep nested pricing in V2
+          price: s.priceMinor ? s.priceMinor / 100 : 0
         };
       })
     : services;
@@ -245,46 +244,47 @@ export default function HomeScreen({ navigation }) {
       marginBottom={16}
     >
       <AnimatedPressable onPress={() => navigation.navigate('ServiceDetails', { service: item })}>
-        <YStack
-          borderRadius={14} 
-          elevation={8} 
-          shadowColor={COLORS.vibrantYellow} 
-          shadowOffset={{ width: 0, height: 0 }} 
-          shadowOpacity={0.6} 
-          shadowRadius={12}
-          bg={COLORS.white} 
-        >
-          <YStack borderRadius={14} overflow="hidden" borderWidth={1} borderColor="#F0F0F0">
+          <YStack
+            borderRadius={16} 
+            elevation={3} 
+            shadowColor="#000" 
+            shadowOffset={{ width: 0, height: 2 }} 
+            shadowOpacity={0.1} 
+            shadowRadius={6}
+            bg={COLORS.white} 
+          >
+            <YStack borderRadius={16} overflow="hidden" borderWidth={1} borderColor="#F3F4F6">
             {/* Top Half: Image */}
             <ImageBackground 
             source={item.img} 
             style={{ width: '100%', height: 160 }}
             imageStyle={{ width: '100%', height: '100%', resizeMode: 'cover' }}
           >
-            <YStack py="$1" px="$2" ai="center" bg="rgba(27,59,34,0.4)">
-              <Text fontSize={12} fontWeight="bold" color={COLORS.white} textAlign="center" textShadowColor="rgba(0,0,0,0.75)" textShadowOffset={{ width: -1, height: 1 }} textShadowRadius={10}>
+            <YStack f={1} jc="center" ai="center" bg="rgba(15, 48, 31, 0.4)" px={16}>
+              <Text fontSize={18} fontWeight="bold" color={COLORS.white} textAlign="center" textShadowColor="rgba(0,0,0,0.5)" textShadowOffset={{ width: 0, height: 2 }} textShadowRadius={4}>
                 {item.title}
               </Text>
-              {item.id === '1' && <Text fontSize={9} color={COLORS.white} mt={0}>10+ item list</Text>}
             </YStack>
           </ImageBackground>
           
           {/* Bottom Half: White Info Section */}
-          <XStack p={6} ai="center">
-            {/* Left Icon */}
-            <YStack bg={COLORS.darkGreen} w={38} h={38} borderRadius={10} jc="center" ai="center">
-              <AnimatedServiceIcon iconName={item.icon} />
-            </YStack>
-            
-            {/* Middle Text */}
-            <YStack f={1} ml={8} mr={4} jc="center">
-              <Text fontSize={11} fontFamily="Inter_900Black" color={COLORS.black} numberOfLines={1}>{item.category}</Text>
-              <Text fontSize={9} fontFamily="Inter_500Medium" color={COLORS.textSecondary} mt={2}>Est. Time: {item.time}</Text>
-            </YStack>
+          <XStack p={16} ai="center" jc="space-between">
+            <XStack ai="center">
+              {/* Left Icon */}
+              <YStack bg={COLORS.darkGreen} w={40} h={40} borderRadius={12} jc="center" ai="center">
+                <AnimatedServiceIcon iconName={item.icon} />
+              </YStack>
+              
+              {/* Middle Text */}
+              <YStack ml={12} jc="center">
+                <Text fontSize={12} fontWeight="bold" color={COLORS.black} letterSpacing={0.5} numberOfLines={1}>{item.category}</Text>
+                <Text fontSize={11} fontWeight="600" color={COLORS.textSecondary} mt={2}>Est. Time: {item.time}</Text>
+              </YStack>
+            </XStack>
 
             {/* Right Button */}
-            <YStack bg={COLORS.vibrantYellow} w={28} h={28} borderRadius={8} jc="center" ai="center">
-              <Ionicons name="add" size={18} color={COLORS.black} />
+            <YStack bg={COLORS.vibrantYellow} w={32} h={32} borderRadius={8} jc="center" ai="center" elevation={1}>
+              <Ionicons name="add" size={20} color={COLORS.darkGreen} />
             </YStack>
           </XStack>
           </YStack>

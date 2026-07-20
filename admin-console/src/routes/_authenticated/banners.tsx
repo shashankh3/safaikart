@@ -29,6 +29,7 @@ import {
 import { Plus, Pencil, Trash2, Loader2, ImageIcon, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/format";
+import { useDialogs } from "@/components/ui/dialog-provider";
 
 export const Route = createFileRoute("/_authenticated/banners")({
   ssr: false,
@@ -67,6 +68,7 @@ function BannersPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const { confirm } = useDialogs();
 
   useEffect(() => {
     const db = getDb();
@@ -145,7 +147,7 @@ function BannersPage() {
   };
 
   const remove = async (b: Banner) => {
-    if (!confirm("Delete this banner?")) return;
+    if (!(await confirm({ title: "Delete this banner?", destructive: true }))) return;
     try {
       await deleteDoc(doc(getDb(), "banners", b.id));
       if (b.imagePath) {

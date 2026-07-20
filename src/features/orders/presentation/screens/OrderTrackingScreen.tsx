@@ -6,7 +6,8 @@ import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';
 import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressable';
 import { Order } from '../../domain/Order';
-import { ORDER_STATUS_FLOW, ORDER_STATUS_LABELS, ORDER_STATUS_ICONS } from '../../domain/OrderStatus';
+import { ORDER_STATUS_FLOW } from '../../domain/OrderStatus';
+import { getOrderStatusMeta } from '../../domain/orderStatusMeta';
 import { GetOrderTrackingUseCase } from '../../application/getOrderTracking.usecase';
 import { CancelOrderUseCase } from '../../application/cancelOrder.usecase';
 import { OrdersRepository } from '../../infrastructure/OrdersRepository';
@@ -204,7 +205,7 @@ export default function OrderTrackingScreen() {
                   <View style={styles.timelineContent}>
                     <View style={styles.statusRow}>
                       <Ionicons 
-                        name={ORDER_STATUS_ICONS[flowStatus] as any} 
+                        name={getOrderStatusMeta(flowStatus).icon as any} 
                         size={20} 
                         color={isCompleted || isCurrent ? COLORS.darkGreen : COLORS.border} 
                       />
@@ -213,7 +214,7 @@ export default function OrderTrackingScreen() {
                         isCurrent && styles.statusLabelCurrent,
                         isFuture && styles.statusLabelFuture
                       ]}>
-                        {ORDER_STATUS_LABELS[flowStatus]}
+                        {getOrderStatusMeta(flowStatus).label}
                       </Text>
                     </View>
                   </View>
@@ -255,6 +256,14 @@ export default function OrderTrackingScreen() {
             )}
           </View>
         )}
+
+        {/* Support Button */}
+        <AnimatedPressable 
+          style={[styles.cancelBtn, { borderColor: COLORS.border, marginTop: SIZES.padding }]} 
+          onPress={() => navigation.navigate('Support', { orderId: order.id })}
+        >
+          <Text style={[styles.cancelBtnText, { color: COLORS.textSecondary }]}>Report an Issue</Text>
+        </AnimatedPressable>
 
       </ScrollView>
     </SafeAreaView>

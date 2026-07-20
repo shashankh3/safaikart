@@ -7,16 +7,12 @@ import {
   doc,
   getDocs,
   limit,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
   where,
   writeBatch,
 } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { getBucket, getDb } from "@/lib/firebase";
+import { useOrdersStream } from "@/hooks/useOrdersStream";
 import { adminUpdateOrderStatus, adminAssignDriver, adminSetOrderPhotos } from "@/lib/admin-callables";
 import { generateInvoicePdf } from "@/lib/invoice";
 import { OrderTimeline, slaBadge } from "@/components/order-timeline";
@@ -63,6 +59,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { logOrderChange } from "@/lib/audit";
+import { useDialogs } from "@/components/ui/dialog-provider";
 
 
 export const Route = createFileRoute("/_authenticated/orders")({
@@ -164,7 +161,7 @@ const BUILTIN_VIEWS: SavedView[] = [
 ];
 
 function OrdersPage() {
-  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [limitCount, setLimitCount] = useState(200);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [selected, setSelected] = useState<Order | null>(null);
@@ -202,8 +199,10 @@ function OrdersPage() {
     setActiveView(v.id);
   };
 
-  const saveCurrentView = () => {
-    const name = prompt("Name this view?");
+  const { confirm: confirmDialog, prompt: promptDialog } = useDialogs();
+
+  const saveCurrentView = async () => {
+    const name = await promptDialog({ title: "Name this view?" });
     if (!name) return;
     const view: SavedView = {
       id: `custom-${Date.now()}`,
@@ -242,44 +241,31 @@ function OrdersPage() {
     return unsub;
   }, []);
 
-  // Real-time subscription
+  const { orders: rawOrdersRaw, loading: ordersLoading } = useOrdersStream({ limitCount });
+  const rawOrders = ordersLoading ? null : rawOrdersRaw;
+
+  // Real-time notifications
   useEffect(() => {
-    const db = getDb();
-    const q = query(
-      collection(db, "orders"),
-      orderBy("createdAt", "desc"),
-      limit(200),
-    );
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const next = snap.docs.map(
-          (d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Order,
+    if (!rawOrders) return;
+    if (seenIds.current) {
+      const newOnes = rawOrders.filter((o) => !seenIds.current!.has(o.id));
+      if (newOnes.length > 0 && newOnes.length <= 5) {
+        newOnes.forEach((o) =>
+          toast.success("New order received", {
+            description: `${o.id.slice(0, 10)}… · ${formatINR(o.finalAmountMinor, o.currency)}`,
+          }),
         );
-        if (seenIds.current) {
-          const newOnes = next.filter((o) => !seenIds.current!.has(o.id));
-          if (newOnes.length > 0 && newOnes.length <= 5) {
-            newOnes.forEach((o) =>
-              toast.success("New order received", {
-                description: `${o.id.slice(0, 10)}… · ${formatINR(o.finalAmountMinor, o.currency)}`,
-              }),
-            );
-          } else if (newOnes.length > 5) {
-            toast.success(`${newOnes.length} new orders received`);
-          }
-        }
-        seenIds.current = new Set(next.map((o) => o.id));
-        setOrders(next);
-      },
-      (err) => toast.error(err.message),
-    );
-    return unsub;
-  }, []);
+      } else if (newOnes.length > 5) {
+        toast.success(`${newOnes.length} new orders received`);
+      }
+    }
+    seenIds.current = new Set(rawOrders.map((o) => o.id));
+  }, [rawOrders]);
 
   const filtered = useMemo(() => {
-    if (!orders) return [];
+    if (!rawOrders) return [];
     const s = search.trim().toLowerCase();
-    return orders.filter((o) => {
+    return rawOrders.filter((o) => {
       if (statusFilter !== "ALL" && o.status !== statusFilter) return false;
       if (!s) return true;
       return (
@@ -288,7 +274,7 @@ function OrdersPage() {
         (o.status || "").toLowerCase().includes(s)
       );
     });
-  }, [orders, search, statusFilter]);
+  }, [rawOrders, search, statusFilter]);
 
   const allVisibleSelected =
     filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id));
@@ -317,7 +303,7 @@ function OrdersPage() {
   const updateStatus = async (id: string, status: string) => {
     setUpdating(true);
     try {
-      const prev = orders?.find((o) => o.id === id)?.status;
+      const prev = rawOrders?.find((o) => o.id === id)?.status;
       // Route via callable — Firestore rules block direct order writes.
       await adminUpdateOrderStatus(id, status);
       void logOrderChange(id, "updated status", { from: prev, to: status });
@@ -334,7 +320,7 @@ function OrdersPage() {
     const driver = drivers.find((d) => d.id === driverId);
     setUpdating(true);
     try {
-      await adminAssignDriver(id, driverId);
+      await adminAssignDriver(id, driverId, driver?.name);
       void logOrderChange(id, "assigned runner", { driverId, driverName: driver?.name });
       toast.success(`Assigned to ${driver?.name || "runner"}`);
       setSelected((prev) =>
@@ -348,7 +334,7 @@ function OrdersPage() {
   };
 
   const refundOrder = async (id: string) => {
-    const reason = prompt("Refund reason?", "Customer request");
+    const reason = await promptDialog({ title: "Refund reason?", defaultValue: "Customer request" });
     if (reason === null) return;
     setUpdating(true);
     try {
@@ -371,14 +357,13 @@ function OrdersPage() {
   const uploadPhoto = async (id: string, file: File, kind: "pickup" | "delivery") => {
     setUpdating(true);
     try {
-      const path = `orderPhotos/${id}/${kind}-${Date.now()}-${file.name.replace(/[^\w.-]/g, "_")}`;
+      const path = `orders/${id}/${kind}-${Date.now()}-${file.name.replace(/[^\w.-]/g, "_")}`;
       const r = storageRef(getBucket(), path);
       await uploadBytes(r, file);
       const url = await getDownloadURL(r);
       const photo = { url, path, kind, uploadedAt: new Date().toISOString() };
-      const currentOrder = orders?.find((o) => o.id === id);
-      const existingPhotos = currentOrder?.photos || [];
-      const newPhotos = [...existingPhotos, photo];
+      const currentPhotos = rawOrders?.find((o) => o.id === id)?.photos || [];
+      const newPhotos = [...currentPhotos, photo];
       await adminSetOrderPhotos(id, newPhotos);
       void logOrderChange(id, `uploaded ${kind} photo`, { path });
       toast.success(`${kind} photo uploaded`);
@@ -395,12 +380,12 @@ function OrdersPage() {
   };
 
   const removePhoto = async (id: string, photo: NonNullable<Order["photos"]>[number]) => {
-    if (!confirm("Remove this photo?")) return;
+    if (!(await confirmDialog({ title: "Remove this photo?", destructive: true }))) return;
     try {
-      const currentOrder = orders?.find((o) => o.id === id);
-      const existingPhotos = currentOrder?.photos || [];
-      const newPhotos = existingPhotos.filter((p) => p.path !== photo.path);
-      await adminSetOrderPhotos(id, newPhotos);
+      await updateDoc(doc(getDb(), "orders", id), {
+        photos: arrayRemove(photo),
+        updatedAt: serverTimestamp(),
+      });
       try {
         await deleteObject(storageRef(getBucket(), photo.path));
       } catch {
@@ -437,7 +422,7 @@ function OrdersPage() {
         else failed += 1;
       });
       okIds.forEach((id) => {
-        const prev = orders?.find((o) => o.id === id)?.status;
+        const prev = rawOrders?.find((o) => o.id === id)?.status;
         void logOrderChange(id, "bulk updated status", { from: prev, to: bulkStatus });
       });
       if (failed > 0) toast.error(`${failed} of ${ids.length} updates failed`);
@@ -487,10 +472,10 @@ function OrdersPage() {
   };
 
   const exportSelection = () => {
-    if (!orders) return;
+    if (!rawOrders) return;
     const rows =
       selectedIds.size > 0
-        ? orders.filter((o) => selectedIds.has(o.id))
+        ? rawOrders.filter((o) => selectedIds.has(o.id))
         : filtered;
     if (rows.length === 0) {
       toast.error("Nothing to export");
@@ -500,7 +485,7 @@ function OrdersPage() {
     toast.success(`Exported ${rows.length} orders`);
   };
 
-  const isLoading = orders === null;
+  const isLoading = rawOrders === null;
 
   const allViews = [...BUILTIN_VIEWS, ...savedViews];
 
@@ -760,6 +745,13 @@ function OrdersPage() {
                   })}
                 </tbody>
               </table>
+              {rawOrders && rawOrders.length >= limitCount && (
+                <div className="p-4 border-t border-border flex justify-center">
+                  <Button variant="outline" onClick={() => setLimitCount(c => c + 200)} className="rounded-xl">
+                    Load more
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

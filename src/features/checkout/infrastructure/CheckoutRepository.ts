@@ -1,4 +1,4 @@
-import {collection, getDocs, query, where, orderBy} from '@react-native-firebase/firestore';
+import {collection, getDocs, query, where, orderBy, doc, getDoc} from '@react-native-firebase/firestore';
 import { httpsCallable } from '@react-native-firebase/functions';
 import { db, functions } from '../../../app/config/firebase';
 import { PickupSlot } from '../domain/PickupSlot';
@@ -54,9 +54,24 @@ export class CheckoutRepository {
     return result.data as { valid: boolean, discountMinor: number, message: string, newTotalMinor: number };
   }
 
-  async createOrderDraft(params: { addressId: string, pickupSlotId: string, couponCode: string | null, directItems?: any[] | null }) {
+  async createOrderDraft(params: { addressId: string, pickupSlotId: string, couponCode: string | null, directItems?: any[] | null, idempotencyKey: string }) {
     const createOrderDraftFn = httpsCallable(functions, 'createOrderDraft');
     const result = await createOrderDraftFn(params);
     return result.data as { orderId: string, finalAmountMinor: number, priceConfirmed: boolean };
+  }
+
+  async getDeliveryFee(): Promise<number> {
+    try {
+      const configDoc = await getDoc(doc(db, 'appConfig', 'public'));
+      if (configDoc.exists) {
+        const data = configDoc.data();
+        if (typeof data?.deliveryFeeMinor === 'number') {
+          return data.deliveryFeeMinor;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch delivery fee config', e);
+    }
+    return 4000; // Fallback sane default
   }
 }

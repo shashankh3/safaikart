@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.rateLimiter = void 0;
+exports.rateLimiter = rateLimiter;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 async function rateLimiter(uid, functionName, maxCalls, windowSeconds) {
@@ -11,18 +11,31 @@ async function rateLimiter(uid, functionName, maxCalls, windowSeconds) {
         const now = Date.now();
         const windowMs = windowSeconds * 1000;
         if (!doc.exists) {
-            transaction.set(rateLimitRef, { calls: [now] });
+            transaction.set(rateLimitRef, {
+                count: 1,
+                windowStart: now,
+                expiresAt: admin.firestore.Timestamp.fromMillis(now + windowMs)
+            });
             return;
         }
         const data = doc.data();
-        const calls = (data === null || data === void 0 ? void 0 : data.calls) || [];
-        const validCalls = calls.filter((timestamp) => now - timestamp < windowMs);
-        if (validCalls.length >= maxCalls) {
+        const windowStart = data.windowStart || 0;
+        if (now - windowStart >= windowMs) {
+            // Reset window
+            transaction.update(rateLimitRef, {
+                count: 1,
+                windowStart: now,
+                expiresAt: admin.firestore.Timestamp.fromMillis(now + windowMs)
+            });
+            return;
+        }
+        const count = data.count || 0;
+        if (count >= maxCalls) {
             throw new functions.https.HttpsError('resource-exhausted', `Rate limit exceeded for ${functionName}. Please try again later.`);
         }
-        validCalls.push(now);
-        transaction.update(rateLimitRef, { calls: validCalls });
+        transaction.update(rateLimitRef, {
+            count: count + 1
+        });
     });
 }
-exports.rateLimiter = rateLimiter;
 //# sourceMappingURL=rateLimiter.js.map

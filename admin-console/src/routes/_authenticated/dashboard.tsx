@@ -91,12 +91,12 @@ async function loadMetrics(): Promise<Metrics> {
   const todayTs = Timestamp.fromDate(startOfDay);
 
   const ordersRef = collection(db, "orders");
-  const usersRef = collection(db, "profile");
+  const usersRef = collection(db, "profiles");
 
   const [weekOrdersSnap, pendingSnap, usersCount] = await Promise.all([
-    getDocs(query(ordersRef, where("createdAt", ">=", weekStartTs))),
-    getCountFromServer(query(ordersRef, where("status", "in", PENDING_STATUSES.slice(0, 10)))),
-    getCountFromServer(usersRef),
+    getDocs(query(ordersRef, where("createdAt", ">=", weekStartTs))).catch(() => null),
+    getCountFromServer(query(ordersRef, where("status", "in", PENDING_STATUSES.slice(0, 10)))).catch(() => null),
+    getCountFromServer(usersRef).catch(() => null),
   ]);
 
   // Init week buckets (oldest -> newest)
@@ -118,12 +118,21 @@ async function loadMetrics(): Promise<Metrics> {
   let todayRevenueMinor = 0;
   let weekRevenueMinor = 0;
 
-  for (const d of weekOrdersSnap.docs) {
+  const NON_REVENUE_STATUSES = new Set(["DRAFT", "CANCELLED", "FAILED", "REFUNDED", "REFUND_PENDING"]);
+
+  for (const d of weekOrdersSnap?.docs ?? []) {
     const data = d.data() as {
+      status?: string;
       finalAmountMinor?: number;
       paymentStatus?: string;
       createdAt?: unknown;
     };
+    
+    // Ignore invalid/cancelled orders completely
+    if (data.status && NON_REVENUE_STATUSES.has(data.status)) {
+      continue;
+    }
+
     const created = toJsDate(data.createdAt);
     if (!created) continue;
     const daysAgo = Math.floor(
@@ -147,8 +156,8 @@ async function loadMetrics(): Promise<Metrics> {
   return {
     todayOrders,
     todayRevenueMinor,
-    pending: pendingSnap.data().count,
-    users: usersCount.data().count,
+    pending: pendingSnap?.data().count ?? 0,
+    users: usersCount?.data().count ?? 0,
     week: buckets,
     weekRevenueMinor,
   };

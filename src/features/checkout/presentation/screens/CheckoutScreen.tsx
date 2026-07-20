@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, TouchableOpacity, View, TextInput, ActivityIndicator, Alert } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
+import { useToast } from '../../../../core/providers/ToastContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { YStack, XStack, Text } from '../../../../shared/ui/primitives/Stacks';
@@ -23,7 +25,8 @@ const validateCouponUseCase = new ValidateCouponUseCase(repository);
 
 export default function CheckoutScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
-  const { cartItems: contextCartItems, totalPrice: contextTotalPrice } = useCart();
+  const { showToast } = useToast();
+  const { cartItems: contextCartItems, totalPrice: contextTotalPrice, setQuantity, removeFromCart } = useCart();
   const { addresses } = useAddresses();
 
   const directItems = route.params?.directItems;
@@ -43,6 +46,9 @@ export default function CheckoutScreen({ navigation, route }: any) {
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [discountMinor, setDiscountMinor] = useState(0);
   const [couponLoading, setCouponLoading] = useState(false);
+
+  // Delivery Fee State
+  const [deliveryFeeMinor, setDeliveryFeeMinor] = useState(4000);
 
   // Placing Order State
   const [placingOrder, setPlacingOrder] = useState(false);
@@ -65,12 +71,33 @@ export default function CheckoutScreen({ navigation, route }: any) {
     }
   }, [addresses, route.params]);
 
+  useEffect(() => {
+    repository.getDeliveryFee().then(fee => setDeliveryFeeMinor(fee));
+  }, []);
+
   const subtotalMinor = calculatedTotalPrice * 100; // Assuming totalPrice is in rupees, converting to paise
-  const deliveryFeeMinor = 4000; // Flat Rs 40
   const finalAmountMinor = subtotalMinor + deliveryFeeMinor - discountMinor;
 
   const hasSteamPress = itemsToProcess.some((item: any) => item.categoryId === 'steam_press');
   const hasVariablePricing = itemsToProcess.some((item: any) => item.priceType === 'variable');
+
+  // A4: Stale Coupon State Revalidation
+  useEffect(() => {
+    if (appliedCoupon && subtotalMinor > 0) {
+      validateCouponUseCase.execute(appliedCoupon, subtotalMinor).then(result => {
+        if (result.valid) {
+          setDiscountMinor(result.discountMinor);
+        } else {
+          setAppliedCoupon(null);
+          setDiscountMinor(0);
+          Alert.alert('Coupon Removed', 'Your cart no longer meets the requirements for this coupon.');
+        }
+      }).catch(() => {
+        setAppliedCoupon(null);
+        setDiscountMinor(0);
+      });
+    }
+  }, [subtotalMinor, appliedCoupon]);
 
   const handleApplyCoupon = async () => {
     if (!couponInput) return;
@@ -97,8 +124,14 @@ export default function CheckoutScreen({ navigation, route }: any) {
   };
 
   const handlePlaceOrder = async () => {
+    const netInfo = await NetInfo.fetch();
+    if (!netInfo.isConnected) {
+      showToast('No internet connection. Please check your network and try again.', 'error');
+      return;
+    }
+
     if (itemsToProcess.length === 0) {
-      Alert.alert('Cart is empty', 'Add items to your cart first.');
+      showToast('Cart is empty', 'error');
       return;
     }
     
@@ -125,12 +158,12 @@ export default function CheckoutScreen({ navigation, route }: any) {
         addressId: validation.data.addressId,
         pickupSlotId: validation.data.pickupSlotId,
         couponCode: validation.data.couponCode || null,
-        directItems: directItems || null
+        directItems: directItems || null,
+        idempotencyKey: Math.random().toString(36).substring(2) + Date.now().toString(36)
       });
 
-      Alert.alert('Success', `Order Draft Created: ${result.orderId}`, [
-        { text: 'OK', onPress: () => navigation.navigate('Payment', { orderId: result.orderId }) }
-      ]);
+      // A3: Success Alert -> Navigation
+      navigation.replace('Payment', { orderId: result.orderId, amount: result.finalAmountMinor });
     } catch (error: any) {
       Alert.alert('Checkout Failed', error.message || 'Something went wrong.');
     } finally {
@@ -238,6 +271,31 @@ export default function CheckoutScreen({ navigation, route }: any) {
                     <Text color={COLORS.textSecondary} fontSize={12} marginTop={2}>{item.quantity} x Rs {item.price} - Variable</Text>
                   ) : (
                     <Text color={COLORS.textSecondary} fontSize={12} marginTop={2}>{item.quantity} x Rs {(item.price * 100 + addonPriceMinor) / 100}</Text>
+                  )}
+                  
+                  {/* Quantity Editor for Cart Items */}
+                  {!directItems && (
+                    <XStack alignItems="center" marginTop={8}>
+                      <TouchableOpacity 
+                        onPress={() => setQuantity(item.serviceId || item.id, item.quantity - 1)}
+                        style={{ padding: 4, backgroundColor: '#F0F0F0', borderRadius: 4 }}
+                      >
+                        <Ionicons name="remove" size={16} color={COLORS.black} />
+                      </TouchableOpacity>
+                      <Text marginHorizontal={12} fontWeight="600">{item.quantity}</Text>
+                      <TouchableOpacity 
+                        onPress={() => setQuantity(item.serviceId || item.id, item.quantity + 1)}
+                        style={{ padding: 4, backgroundColor: '#F0F0F0', borderRadius: 4 }}
+                      >
+                        <Ionicons name="add" size={16} color={COLORS.black} />
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={() => removeFromCart(item.serviceId || item.id)}
+                        style={{ padding: 4, marginLeft: 16 }}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                      </TouchableOpacity>
+                    </XStack>
                   )}
                 </YStack>
                 <YStack alignItems="flex-end">

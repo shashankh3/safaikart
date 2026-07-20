@@ -1,9 +1,13 @@
 import { Platform, UIManager } from 'react-native';
 import crashlytics from '@react-native-firebase/crashlytics';
 import './config/firebase'; // Ensure Firebase is initialized
+import { initializeAppCheckAsync } from '../core/firebase/appCheck';
 
 export const bootstrap = async () => {
   try {
+    // 0. Initialize App Check before other services
+    await initializeAppCheckAsync();
+
     // 1. Enable LayoutAnimation on Android
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);

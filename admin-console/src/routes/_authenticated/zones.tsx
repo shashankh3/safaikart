@@ -18,13 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useDialogs } from "@/components/ui/dialog-provider";
 import { Plus, Pencil, Trash2, Loader2, MapPinned, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,6 +54,7 @@ function ZonesPage() {
   const [editing, setEditing] = useState<Zone | null>(null);
   const [draft, setDraft] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const { confirm } = useDialogs();
 
   useEffect(() => {
     const db = getDb();
@@ -143,7 +139,8 @@ function ZonesPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this zone?")) return;
+    const ok = await confirm({ title: "Delete this zone?", destructive: true });
+    if (!ok) return;
     try {
       await deleteDoc(doc(getDb(), "zones", id));
       toast.success("Zone deleted");

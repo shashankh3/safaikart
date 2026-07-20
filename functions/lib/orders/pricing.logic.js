@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculateOrderTotals = void 0;
+exports.calculateOrderTotals = calculateOrderTotals;
 function calculateOrderTotals(items, coupon, deliveryFeeMinor) {
     let subtotalMinor = 0;
     let priceConfirmed = true;
@@ -57,5 +57,4 @@ function calculateOrderTotals(items, coupon, deliveryFeeMinor) {
         maxDurationHours
     };
 }
-exports.calculateOrderTotals = calculateOrderTotals;
 //# sourceMappingURL=pricing.logic.js.map

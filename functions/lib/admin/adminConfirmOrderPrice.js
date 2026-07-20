@@ -5,14 +5,29 @@ const https_1 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const assertAdmin_1 = require("../utils/assertAdmin");
 const razorpayClient_1 = require("../payments/razorpayClient");
+const zod_1 = require("zod");
+const confirmPriceSchema = zod_1.z.object({
+    orderId: zod_1.z.string().min(1),
+    items: zod_1.z.array(zod_1.z.object({
+        serviceId: zod_1.z.string(),
+        quantity: zod_1.z.number().int().min(1).max(100),
+        unitPriceMinor: zod_1.z.number().int().min(0).max(5000000)
+    }))
+});
 exports.adminConfirmOrderPrice = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret] }, async (request) => {
-    (0, assertAdmin_1.assertAdmin)(request);
+    (0, assertAdmin_1.assertAdmin)(request, ['superadmin', 'admin', 'ops']);
     const { data } = request;
-    const db = admin.firestore();
-    const { orderId, items } = data;
-    if (!orderId || !items || !Array.isArray(items)) {
-        throw new https_1.HttpsError('invalid-argument', 'orderId and items array are required.');
+    let orderId;
+    let items;
+    try {
+        const parsed = confirmPriceSchema.parse(data);
+        orderId = parsed.orderId;
+        items = parsed.items;
     }
+    catch (e) {
+        throw new https_1.HttpsError('invalid-argument', `Validation error: ${e.message}`);
+    }
+    const db = admin.firestore();
     const orderRef = db.collection('orders').doc(orderId);
     let refundAmountMinor = 0;
     let razorpayPaymentId = null;
@@ -136,7 +151,7 @@ exports.adminConfirmOrderPrice = (0, https_1.onCall)({ secrets: [razorpayClient_
                 const refundData = await response.json();
                 await orderRef.update({
                     refundId: refundData.id,
-                    refundStatus: 'PROCESSED',
+                    refundStatus: 'INITIATED',
                     updatedAt: admin.firestore.FieldValue.serverTimestamp()
                 });
             }

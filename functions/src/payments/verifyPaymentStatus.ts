@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { buildStatusHistoryUpdate } from '../utils/statusLogic';
 
 import { getRazorpayAuthHeader, razorpayKeySecret } from './razorpayClient';
 
@@ -23,6 +24,8 @@ export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret] }, asyn
   const paymentsQuery = await db.collection('payments')
     .where('orderId', '==', orderId)
     .where('userId', '==', uid)
+    .where('razorpayOrderId', '!=', null)
+    .orderBy('razorpayOrderId', 'desc')
     .orderBy('createdAt', 'desc')
     .limit(1)
     .get();
@@ -77,18 +80,40 @@ export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret] }, asyn
           if (!payDoc.exists || !ordDoc.exists) return;
           if (payDoc.data()?.status === 'VERIFIED') return;
 
+          const isCancelled = ['CANCELLED', 'REFUND_PENDING', 'REFUNDED'].includes(ordDoc.data()?.status);
+
           tx.update(paymentDocRef, {
             status: 'VERIFIED',
             webhookVerified: false, // Verified via polling
             razorpayPaymentId: capturedPayment.id,
+            requiresRefund: isCancelled ? true : false,
             verifiedAt: admin.firestore.FieldValue.serverTimestamp()
           });
 
-          tx.update(ordRef, {
-            status: 'CONFIRMED',
-            paymentStatus: 'VERIFIED',
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
+          if (!isCancelled) {
+            const ordData = ordDoc.data()!;
+            const statusUpdate = buildStatusHistoryUpdate(ordData, 'CONFIRMED');
+
+            tx.update(ordRef, {
+              ...statusUpdate,
+              paymentStatus: 'VERIFIED',
+            });
+
+            if (ordData.couponCode) {
+              const couponRef = db.collection('coupons').doc(ordData.couponCode);
+              tx.set(couponRef, {
+                usedCount: admin.firestore.FieldValue.increment(1),
+                usedBy: admin.firestore.FieldValue.arrayUnion(ordData.userId)
+              }, { merge: true });
+            }
+          } else {
+             db.collection('auditLogs').add({
+               action: 'LATE_PAYMENT_DETECTED',
+               orderId: ordRef.id,
+               razorpayPaymentId: capturedPayment.id,
+               at: admin.firestore.FieldValue.serverTimestamp()
+             });
+          }
         });
 
         return { paymentStatus: 'VERIFIED', orderStatus: 'CONFIRMED' };

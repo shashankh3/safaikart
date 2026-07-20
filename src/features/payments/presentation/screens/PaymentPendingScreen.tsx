@@ -84,7 +84,7 @@ export default function PaymentPendingScreen() {
                 <Text style={styles.checkBtnText}>Check Status Now</Text>
               </AnimatedPressable>
               
-              <AnimatedPressable style={styles.laterBtn} onPress={() => navigation.navigate('Orders')}>
+              <AnimatedPressable style={styles.laterBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Orders' })}>
                 <Text style={styles.laterBtnText}>I'll check later</Text>
               </AnimatedPressable>
             </>

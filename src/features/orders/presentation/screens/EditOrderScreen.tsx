@@ -50,17 +50,29 @@ export default function EditOrderScreen() {
       
       const payloadItems = items.filter(i => i.quantity > 0).map(i => ({
         serviceId: i.serviceId,
+        categoryId: i.categoryId,
+        name: i.name,
+        priceMinor: i.priceMinor,
         quantity: i.quantity,
-        addons: i.addons || []
+        image: i.image
       }));
+      
+      const { editOrderItemsRequest } = require('../../../../../functions/src/contracts');
+      const payload = editOrderItemsRequest.parse({ orderId, items: payloadItems });
 
-      await editOrderItemsFn({ orderId, items: payloadItems });
+      await editOrderItemsFn(payload);
       
       Alert.alert('Success', 'Order updated successfully!', [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update order.');
+      if (error.code === 'functions/failed-precondition' || error.message?.includes('failed-precondition')) {
+        Alert.alert('Edit Window Closed', 'This order is no longer editable.', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      } else {
+        Alert.alert('Error', error.message || 'Failed to update order.');
+      }
     } finally {
       setIsSaving(false);
     }

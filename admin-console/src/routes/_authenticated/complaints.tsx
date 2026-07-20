@@ -84,7 +84,7 @@ function ComplaintsPage() {
 
   useEffect(() => {
     const db = getDb();
-    const q = query(collection(db, "complaints"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "issues"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(
       q,
       (snap) => {
@@ -139,7 +139,7 @@ function ComplaintsPage() {
     if (!selected) return;
     setSaving(true);
     try {
-      await updateDoc(doc(getDb(), "complaints", selected.id), {
+      await updateDoc(doc(getDb(), "issues", selected.id), {
         reply,
         status: selected.status === "OPEN" || !selected.status ? "IN_PROGRESS" : selected.status,
         updatedAt: serverTimestamp(),
@@ -208,7 +208,7 @@ function ComplaintsPage() {
           ) : filtered.length === 0 ? (
             <div className="p-16 text-center text-muted-foreground">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              No complaints. Docs added to <code className="text-xs">complaints</code> will appear here.
+              No complaints. Docs added to <code className="text-xs">issues</code> will appear here.
             </div>
           ) : (
             <div className="divide-y divide-border">

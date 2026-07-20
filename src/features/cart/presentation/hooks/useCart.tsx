@@ -7,7 +7,7 @@ export const useCart = (): any => useContext(CartContext);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: cart } = useCartQuery();
-  const { addToCart, clearCart } = useCartMutations();
+  const { addToCart, clearCart, setQuantity, removeFromCart } = useCartMutations();
   
   const cartItems = cart?.items || [];
   
@@ -33,12 +33,8 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   const wrappedClearCart = () => clearCart();
 
-  const placeOrder = async () => {};
-  const activeOrder = null;
-  const orderHistory: any[] = [];
-
   return (
-    <CartContext.Provider value={{ cartItems, totalItems, totalPrice, addToCart: wrappedAddToCart, clearCart: wrappedClearCart, activeOrder, placeOrder, orderHistory }}>
+    <CartContext.Provider value={{ cartItems, totalItems, totalPrice, addToCart: wrappedAddToCart, clearCart: wrappedClearCart, setQuantity, removeFromCart }}>
       {children}
     </CartContext.Provider>
   );

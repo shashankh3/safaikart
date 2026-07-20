@@ -13,7 +13,7 @@ export class CheckPaymentStatusUseCase {
     return onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.paymentStatus === 'VERIFIED' && data.status === 'CONFIRMED') {
+        if (data.paymentStatus === 'VERIFIED') {
           onStatusChange('success');
         } else if (data.paymentStatus === 'FAILED') {
           onStatusChange('failed');

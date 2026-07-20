@@ -1,250 +1,187 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { getServiceImage } from "@/lib/images";
-import { useAuth } from "@/context/auth-context";
-import { useCategories, useServices } from "@/hooks/useCatalog";
-import { Sparkles, ArrowRight, Loader2, Star, Shield, Clock } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { SiteHeader } from "@/components/public/site-header";
+import { SiteFooter } from "@/components/public/site-footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { formatINR } from "@/lib/format";
-import { motion } from "framer-motion";
+import { CalendarClock, Sparkles, ShieldCheck, Truck, ArrowRight, Plus } from "lucide-react";
+import { SERVICE_TYPES } from "@/lib/taxonomy";
+import logoAsset from "@/assets/safaikart-logo-full.png.asset.json";
 
-import { useCart } from "@/context/cart-context";
+
 
 export const Route = createFileRoute("/")({
   ssr: false,
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "SafaiKart — Laundry & Dry Cleaning, Picked Up & Delivered" },
+      {
+        name: "description",
+        content:
+          "Book laundry, dry cleaning and steam-press pickups in minutes. Doorstep service, transparent pricing, live tracking.",
+      },
+      { property: "og:title", content: "SafaiKart — Laundry & Dry Cleaning" },
+      {
+        property: "og:description",
+        content: "Doorstep laundry & dry cleaning with live tracking and transparent pricing.",
+      },
+    ],
+  }),
+  component: Landing,
 });
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
-};
-
-const stagger = {
-  visible: { transition: { staggerChildren: 0.1 } }
-};
-
-function Index() {
-  const navigate = useNavigate();
-  const { data: categories, isLoading: categoriesLoading } = useCategories();
-  const { data: services, isLoading: servicesLoading } = useServices();
-  const { addItem } = useCart();
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  const filteredServices = services?.filter(s => 
-    selectedCategory ? s.categoryId === selectedCategory : true
-  ) || [];
-
+function Landing() {
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-brand selection:text-gold">
-      <main className="flex-1 flex flex-col w-full">
-        {/* Hero Section */}
-        <section className="relative w-full bg-brand text-white overflow-hidden py-32 px-4">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
-          <div className="absolute inset-0 bg-gradient-to-b from-brand/50 to-brand"></div>
-          
-          <motion.div 
-            initial="hidden"
-            animate="visible"
-            variants={stagger}
-            className="container mx-auto max-w-5xl relative z-10 flex flex-col items-center text-center space-y-8"
-          >
-            <motion.div variants={fadeUp} className="inline-flex items-center rounded-full border border-gold/30 bg-gold/10 px-4 py-1.5 text-sm font-medium text-gold backdrop-blur-sm">
-              <Sparkles className="mr-2 h-4 w-4" /> Premium Care for Your Garments
-            </motion.div>
-            
-            <motion.h1 variants={fadeUp} className="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight">
-              Flawless Cleaning, <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold to-yellow-200">Delivered to You.</span>
-            </motion.h1>
-            
-            <motion.p variants={fadeUp} className="text-lg md:text-2xl text-white/80 max-w-2xl mx-auto font-light leading-relaxed">
-              Experience the luxury of professional dry cleaning and laundry services with doorstep pickup and delivery.
-            </motion.p>
-            
-            <motion.div variants={fadeUp} className="pt-8 flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-              <Button size="lg" className="rounded-2xl bg-gold text-brand hover:bg-yellow-400 h-16 px-10 text-lg font-bold shadow-xl shadow-gold/20 transition-all hover:scale-105">
-                Explore Services <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-2xl border-white/20 text-white bg-white/5 hover:bg-white/10 h-16 px-10 text-lg font-bold backdrop-blur-sm transition-all">
-                How it Works
-              </Button>
-            </motion.div>
-          </motion.div>
-        </section>
+    <div className="min-h-screen bg-white text-brand">
+      <SiteHeader />
 
-        {/* Features Bar */}
-        <div className="bg-white border-b border-border/40 py-8">
-          <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex items-center justify-center gap-4 text-muted-foreground">
-              <Shield className="h-8 w-8 text-gold" />
-              <div>
-                <h4 className="font-bold text-foreground">Premium Quality</h4>
-                <p className="text-sm">Expert fabric care</p>
-              </div>
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 15% 20%, #F4C73E33 0%, transparent 45%), radial-gradient(circle at 85% 60%, #1B3B2233 0%, transparent 50%)",
+          }}
+        />
+        <div className="relative max-w-7xl mx-auto px-4 md:px-8 pt-10 md:pt-16 pb-12 md:pb-20 grid lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-brand/5 text-brand px-3 py-1 text-xs font-medium">
+              <Sparkles className="h-3.5 w-3.5" /> Doorstep pickup in 60 mins
             </div>
-            <div className="flex items-center justify-center gap-4 text-muted-foreground">
-              <Clock className="h-8 w-8 text-gold" />
-              <div>
-                <h4 className="font-bold text-foreground">Express Delivery</h4>
-                <p className="text-sm">24-48 hour turnaround</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-center gap-4 text-muted-foreground">
-              <Star className="h-8 w-8 text-gold" />
-              <div>
-                <h4 className="font-bold text-foreground">Top Rated</h4>
-                <p className="text-sm">4.9/5 from customers</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Categories Section */}
-        <section className="container mx-auto px-6 py-24">
-          <div className="flex flex-col items-center text-center mb-16 space-y-4">
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-brand">Explore Categories</h2>
-            <div className="h-1.5 w-12 bg-gold rounded-full"></div>
-          </div>
-
-          {categoriesLoading ? (
-            <div className="flex justify-center p-12">
-              <Loader2 className="h-10 w-10 animate-spin text-gold" />
-            </div>
-          ) : (
-            <motion.div 
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={stagger}
-              className="grid grid-cols-2 md:grid-cols-4 gap-6"
-            >
-              {(categories || []).map((cat) => (
-                <motion.div key={cat.id} variants={fadeUp}>
-                  <Card 
-                    onClick={() => {
-                      setSelectedCategory(cat.id === selectedCategory ? null : cat.id);
-                      document.getElementById("services-section")?.scrollIntoView({ behavior: "smooth" });
-                    }}
-                    className={`rounded-3xl border hover:shadow-xl hover:border-gold/50 transition-all cursor-pointer group overflow-hidden ${
-                      selectedCategory === cat.id 
-                        ? "border-gold bg-gold/10 ring-2 ring-gold/20" 
-                        : "border-border/40 bg-white"
-                    }`}
-                  >
-                    <CardContent className="p-8 flex flex-col items-center text-center gap-4 relative">
-                      <div className="absolute inset-0 bg-gradient-to-b from-brand/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="h-16 w-16 rounded-2xl bg-brand/5 text-brand flex items-center justify-center group-hover:scale-110 group-hover:bg-brand group-hover:text-gold transition-all duration-300">
-                        <Sparkles className="h-8 w-8" />
-                      </div>
-                      <span className="font-bold text-lg">{cat.name}</span>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </section>
-
-        {/* Services Section */}
-        <section id="services-section" className="bg-muted/30 py-24">
-          <div className="container mx-auto px-6">
-            <div className="flex justify-between items-end mb-12">
-              <div className="space-y-4">
-                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-brand">
-                  {selectedCategory ? categories?.find(c => c.id === selectedCategory)?.name : "Popular Services"}
-                </h2>
-                <div className="h-1.5 w-12 bg-gold rounded-full"></div>
-              </div>
-              {selectedCategory && (
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setSelectedCategory(null)}
-                  className="text-muted-foreground hover:text-brand font-semibold"
-                >
-                  Clear Filter
+            <h1 className="mt-4 text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight leading-[1.05]">
+              Fresh clothes.<br />
+              <span className="text-brand/70">Zero effort.</span>
+            </h1>
+            <p className="mt-4 md:mt-5 text-brand/70 max-w-lg text-base md:text-lg">
+              Book laundry, dry cleaning and steam-press pickups in seconds. We pick up,
+              clean with care, and deliver back — spotless.
+            </p>
+            <div className="mt-6 md:mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
+              <Link to="/services" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto h-12 px-6 rounded-xl bg-brand text-gold hover:bg-brand/90 font-semibold text-base">
+                  <CalendarClock className="h-5 w-5 mr-2" /> Schedule a pickup
                 </Button>
-              )}
+              </Link>
+              <Link to="/services" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full sm:w-auto h-12 px-6 rounded-xl bg-white dark:bg-white border-brand/30 text-brand hover:bg-brand/5 hover:text-brand">
+                  Browse services <ArrowRight className="h-4 w-4 ml-1.5" />
+                </Button>
+              </Link>
             </div>
+            <div className="mt-6 md:mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-brand/60">
+              <div className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-brand" /> 100% quality guarantee</div>
+              <div className="flex items-center gap-1.5"><Truck className="h-4 w-4 text-brand" /> Free pickup & delivery</div>
+            </div>
+          </div>
 
-            {servicesLoading ? (
-              <div className="flex justify-center p-12">
-                <Loader2 className="h-10 w-10 animate-spin text-gold" />
+          <div className="relative hidden md:block">
+            <div className="aspect-square rounded-3xl overflow-hidden shadow-elevated">
+              <img
+                src="/images/logo.svg"
+                alt="SafaiKart"
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* Services */}
+      <section className="max-w-7xl mx-auto px-4 md:px-8 py-16">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Our services</h2>
+            <p className="text-brand/60 mt-1">Pick a service to see items & pricing.</p>
+          </div>
+          <Link to="/services" className="text-sm text-brand hover:underline">
+            View all →
+          </Link>
+        </div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {SERVICE_TYPES.map((s) => {
+            const Icon = s.icon;
+            const IMG_MAP: Record<string, string> = {
+              "dry-cleaning": "/images/dry_cleaning_suit.png",
+              "steam-press": "/images/steam_press.png",
+              "laundry": "/images/laundry_basket.png",
+              "shoe-care": "/images/shoe_cleaning.png",
+              "household": "/images/sofa_cleaning.png",
+              "premium": "/images/luxury_care.png",
+            };
+            const bgImage = IMG_MAP[s.key] || "/images/laundry_basket.png";
+
+            return (
+              <Link
+                key={s.key}
+                to="/services/$type"
+                params={{ type: s.key }}
+                className="group block rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-md hover:shadow-xl transition-all duration-300"
+              >
+                {/* Top Half: Image */}
+                <div 
+                  className="h-40 w-full relative bg-cover bg-center" 
+                  style={{ backgroundImage: `url(${bgImage})` }}
+                >
+                  <div className="absolute inset-0 bg-brand/40 flex items-center justify-center p-4">
+                    <h3 className="text-white text-lg font-bold text-center drop-shadow-md">
+                      {s.name}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Bottom Half: Info Section */}
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 shrink-0 rounded-xl bg-brand flex items-center justify-center text-white">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-gray-900 uppercase tracking-wider">{s.name}</div>
+                      <div className="text-[11px] font-medium text-gray-500 mt-0.5">Est. Time: 1-2 DAY</div>
+                    </div>
+                  </div>
+                  
+                  {/* Plus Button */}
+                  <div className="h-8 w-8 rounded-lg bg-gold flex items-center justify-center text-brand font-bold shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                    <Plus className="h-5 w-5" />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+
+      {/* How it works */}
+      <section className="bg-brand/5 py-16">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <h2 className="text-3xl font-bold tracking-tight text-center">How it works</h2>
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            {[
+              { n: "1", t: "Schedule pickup", d: "Choose services, pick a time slot, and confirm your address." },
+              { n: "2", t: "We collect & clean", d: "Our runner picks up your clothes. We clean with expert care." },
+              { n: "3", t: "Delivered fresh", d: "Your clothes are delivered back, spotless and ready to wear." },
+            ].map((s) => (
+              <div key={s.n} className="rounded-2xl bg-white p-6 shadow-card">
+                <div className="h-10 w-10 rounded-xl bg-brand text-gold grid place-items-center font-bold">{s.n}</div>
+                <div className="mt-4 text-lg font-semibold">{s.t}</div>
+                <div className="mt-1 text-sm text-brand/60">{s.d}</div>
               </div>
-            ) : (
-              <motion.div 
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-100px" }}
-                variants={stagger}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-              >
-                {filteredServices.slice(0, selectedCategory ? undefined : 6).map((service) => (
-                  <motion.div key={service.id} variants={fadeUp} className="h-full">
-                    <Card className="rounded-3xl border-border/40 overflow-hidden flex flex-col bg-white hover:shadow-2xl hover:shadow-brand/5 transition-all duration-500 group h-full">
-                      <div className="h-48 flex items-center justify-center border-b border-border/30 relative overflow-hidden bg-muted">
-                        <img 
-                          src={getServiceImage(service.name)} 
-                          alt={service.name} 
-                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700 ease-out" 
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      </div>
-                      <CardContent className="p-8 flex-1 flex flex-col">
-                        <div className="flex justify-between items-start mb-4 gap-4">
-                          <h3 className="font-bold text-xl leading-tight text-brand group-hover:text-gold transition-colors">{service.name}</h3>
-                          <span className="font-extrabold text-brand bg-brand/5 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap">
-                            {formatINR(service.priceMinor || 0)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-auto pt-4 font-medium flex items-center">
-                          <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-                          Priced per {service.unit || 'item'}
-                        </p>
-                        <Button 
-                          className="w-full mt-6 rounded-2xl bg-white border-2 border-brand text-brand hover:bg-brand hover:text-gold font-bold h-12 transition-all"
-                          onClick={() => addItem(service, 1)}
-                        >
-                          Add to Cart
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-            {(!selectedCategory && filteredServices.length > 6) && (
-              <Button 
-                onClick={() => document.getElementById("services-section")?.scrollIntoView({ behavior: "smooth" })}
-                variant="outline" 
-                className="w-full mt-8 md:hidden h-14 rounded-2xl border-brand text-brand font-bold"
-              >
-                View All Services
+            ))}
+          </div>
+          <div className="mt-10 text-center">
+            <Link to="/services">
+              <Button className="h-12 px-8 rounded-xl bg-brand text-gold hover:bg-brand/90 font-semibold">
+                Get started
               </Button>
-            )}
-            
-            {filteredServices.length === 0 && (
-              <div className="text-center py-20 text-muted-foreground">
-                <p className="text-xl font-semibold mb-2">No services found in this category.</p>
-                <Button variant="link" onClick={() => setSelectedCategory(null)}>View all services</Button>
-              </div>
-            )}
-          </div>
-        </section>
-      </main>
-      
-      {/* Footer */}
-      <footer className="w-full border-t border-border/40 bg-white py-12">
-        <div className="container mx-auto px-6 text-center flex flex-col items-center">
-          <div className="h-10 w-10 rounded-xl bg-brand/5 text-brand grid place-items-center mb-6">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div className="text-sm font-medium text-muted-foreground">
-            &copy; {new Date().getFullYear()} SafaiKart. Premium Garment Care.
+            </Link>
           </div>
         </div>
-      </footer>
+      </section>
+
+      <SiteFooter />
     </div>
   );
 }

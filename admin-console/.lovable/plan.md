@@ -1,56 +1,111 @@
-Shipping everything non-security from the backlog in two batches. Security stays deferred per your instruction.
 
-## Batch A — Ops & Money depth
+# SafaiKart Customer + Admin Platform
 
-**Orders / fulfillment**
-- Re-attempt flow: mark delivery failed with reason + reschedule slot, tracked on the order doc (`attempts[]`, `lastFailureReason`) with audit log entry.
-- Tip tracking: `tipMinor` field on orders, editable in detail sheet, rolled into settlement totals.
-- GST-ready invoice: update `src/lib/invoice.ts` to show CGST/SGST split, GSTIN field from App Config, HSN column per line item.
+Turn the app into a public-facing site with:
+- **Public landing** at `/` — sells services with an instant "Schedule pickup" CTA.
+- **Guest browsing & cart** — no login required to fill cart.
+- **Customer auth at checkout** — phone OTP, Google sign-in, or email+password.
+- **Customer app** at `/app/*` — order tracking, history, profile, addresses, support.
+- **Admin console** — everything we built moves under `/admin/*`, unchanged in behavior.
+- **Single `/login`** — email+password → admin, OTP/Google → customer.
 
-**Catalog**
-- Add-ons and bundles: new `addons[]` and `bundles[]` sections in `catalog.tsx` with CRUD.
-- Inventory: optional `stock` counter per service, low-stock chip.
-- CSV import: upload CSV of services/customers, preview diff, batched Firestore write.
+## Routing map
 
-**Finance**
-- Expense tracker: new route `/_authenticated/expenses.tsx` with categories (fuel, packaging, salary, misc), monthly totals, netted into settlement page.
+```text
+/                          Landing page (hero, services, how-it-works, CTA)
+/services                  Full catalog (public, uses existing `catalog` collection)
+/service/$slug             Service detail + "Add to cart"
+/cart                      Cart + slot picker + address (guest OK)
+/checkout                  Requires auth → prompts sign-in modal
+/track/$orderId            Public tracking via short link
+/login                     Unified login (OTP / Google / email+password)
+/app/orders                Customer: my orders
+/app/orders/$id            Customer: order detail, timeline, invoice, re-order
+/app/profile               Customer: name, phone, addresses
+/app/support               Customer: contact support, complaint form
+/admin/*                   Existing admin console (moved from /_authenticated/*)
+```
 
-## Batch B — Growth, analytics, polish
+## Auth model
 
-**Growth**
-- Auto customer tags: derived on the fly in CRM (VIP >10 orders, At-risk 45d inactive, New <7d, Complainer >=1 ticket).
-- Win-back campaigns: new route `/_authenticated/winback.tsx` — pick a tag segment, compose message, log broadcast.
-- In-app inbox: `/_authenticated/inbox.tsx` — per-order thread stored in `orderMessages`, admin reply UI.
+- **Firebase Phone Auth** for OTP (requires enabling Phone provider + invisible reCAPTCHA).
+- **Google Sign-in** via `signInWithPopup(GoogleAuthProvider)`.
+- **Email + password** — existing flow, routes to admin if `adminUsers/{uid}` exists, else to customer app.
+- New `customers/{uid}` Firestore doc auto-created on first customer login (name, phone, addresses, createdAt).
+- `AuthContext` extended with `customer` profile alongside `admin`; a `role: "admin" | "customer" | null` derived flag drives routing.
+- Guards:
+  - `/admin/*` → requires `admin` role (existing RBAC preserved).
+  - `/app/*` → requires signed-in customer.
+  - `/checkout` → if unauthenticated, show sign-in modal; on success continues.
 
-**Analytics**
-- Revenue heatmap (weekday x hour) on analytics page.
-- Rider scorecards: per-runner orders delivered, avg SLA, on-time %, complaints.
-- Funnel: created -> paid -> picked -> delivered conversion.
+## Cart & checkout
 
-**Search & UX polish**
-- Global search in ⌘K: fuzzy match across orders (id, phone, address), users, drivers — not just navigation.
-- Keyboard shortcuts help modal (press `?`).
-- Empty-state illustrations across list pages.
-- Mobile table pass: horizontal scroll cues + condensed columns under 768px.
-- Editable profile in Settings (name, photo upload to Storage).
+- Guest cart persisted in `localStorage` (`safaikart:cart`).
+- Checkout writes `orders/{id}` with existing schema (`status: "pending"`, items, address, slot, `userId`).
+- **Razorpay UPI** via hosted Checkout script (`checkout.razorpay.com/v1/checkout.js`):
+  - New Cloud Function `createRazorpayOrder` (asia-south1) → returns `order_id`.
+  - Client opens Razorpay modal; on success, function `verifyRazorpayPayment` verifies signature + marks order paid.
+  - Requires secrets: `RAZORPAY_KEY_ID` (public, in client) + `RAZORPAY_KEY_SECRET` (functions env).
+- COD option also available.
 
-## Backend automations (Cloud Functions, asia-south1)
+## Customer app screens
 
-Scaffolded as `functions/` with clear deploy instructions — you deploy from CLI:
-- Scheduled SLA-breach notifier (writes to `notifications` collection every 15m).
-- Auto-cancel unpaid orders after configurable hours (from App Config).
-- Nightly settlement rollup document.
-- Payment gateway webhook receiver stub (Razorpay-shaped, signature-verified).
+- **My Orders** — real-time list via `onSnapshot` filtered by `userId`; status badges + aging.
+- **Order Detail** — reuses existing timeline component + photo proofs; "Download invoice", "Re-order", "Raise complaint".
+- **Profile** — edit name, saved addresses (array on `customers/{uid}`).
+- **Support** — writes to existing `complaints` collection with `source: "customer"`.
 
-## Technical notes
+## Landing page (service-first)
 
-- All new routes registered in `app-sidebar.tsx` and `command-palette.tsx`.
-- Reuse existing `logOrderChange` audit helper for every write.
-- Zod schemas for CSV import and expense/inbox forms.
-- Charts continue to use `recharts`.
-- No new paid dependencies; `papaparse` (CSV) is the only new npm add.
-- Security bypass in `auth-context.tsx` stays as-is per your instruction.
+Sections: hero with CTA + hero image, service cards (pulled live from `catalog`), how-it-works (3 steps), pricing highlights, testimonials, footer with support links. SEO metadata + og:image on `/`, `/services`, `/service/$slug`.
 
-## Order of execution
+## File changes
 
-Batch A first (ops/money is the highest-leverage), then Batch B (growth/polish), then Functions scaffold. Single continuous run — I'll ping you when done.
+**New**
+- `src/routes/index.tsx` (rewrite: landing)
+- `src/routes/services.tsx`, `src/routes/service.$slug.tsx`, `src/routes/cart.tsx`, `src/routes/checkout.tsx`, `src/routes/track.$orderId.tsx`
+- `src/routes/_customer.tsx` (layout gate for `/app/*`)
+- `src/routes/_customer/app.orders.tsx`, `app.orders.$id.tsx`, `app.profile.tsx`, `app.support.tsx`
+- `src/components/public/{site-header,site-footer,hero,service-grid,how-it-works,testimonials}.tsx`
+- `src/components/auth/sign-in-modal.tsx` (OTP + Google + email tabs)
+- `src/lib/cart.ts` (Zustand or context + localStorage)
+- `src/lib/customer.ts` (customer profile helpers)
+- `src/lib/razorpay.ts` (client loader)
+- `functions/src/razorpay.ts` (create order + verify signature webhook)
+
+**Move / rename**
+- `src/routes/_authenticated.tsx` → `src/routes/_admin.tsx` with path `/admin`
+- `src/routes/_authenticated/*.tsx` → `src/routes/_admin/admin.<name>.tsx` (URL becomes `/admin/<name>`)
+- `src/routes/login.tsx` → unified login with tabs; success redirects by role.
+- Admin sidebar `to=` paths updated to `/admin/*`.
+
+**Edit**
+- `src/context/auth-context.tsx` — add `customer` profile, `role` flag, OTP + Google helpers, auto-create `customers/{uid}` on first customer login.
+- `firestore.rules` — add `customers/{uid}` (self-read/write), allow authenticated customers to create their own `orders` with `userId == auth.uid`, keep admin-only status writes via callable.
+- `src/components/app-sidebar.tsx`, `app-header.tsx`, `command-palette.tsx` — retarget `/admin/*`.
+- `functions/src/index.ts` — export new Razorpay callables + verification.
+- `SECURITY.md` — document customer role, Razorpay secrets, App Check for phone auth.
+
+## Secrets required
+
+- `RAZORPAY_KEY_ID` (client-safe, added as VITE var)
+- `RAZORPAY_KEY_SECRET` (functions env, via `add_secret` at deploy time)
+
+## Firebase Console steps (user must do)
+
+1. Enable **Phone** and **Google** providers in Firebase Auth.
+2. Add production domain to Auth authorized domains.
+3. Deploy updated `firestore.rules` and new Cloud Functions.
+4. Create a Razorpay account and put the key pair into secrets.
+
+## Rollout order
+
+1. Route refactor: move admin under `/admin/*`, keep app compiling.
+2. Landing + services browse (public, read-only).
+3. Cart + guest flow.
+4. Auth expansion (OTP + Google + customer profile + unified login).
+5. Checkout with Razorpay + COD.
+6. Customer app (orders, profile, support).
+7. Firestore rules + functions + docs update.
+
+Scope is large; expect a multi-batch implementation. I'll ship batches 1–4 first so the site is browsable and login works, then 5–7.

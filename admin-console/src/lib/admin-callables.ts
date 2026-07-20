@@ -19,23 +19,23 @@ export async function adminUpdateOrderStatus(
   extra?: Record<string, unknown>,
 ): Promise<unknown> {
   const fn = httpsCallable(getFns(), "adminUpdateOrderStatus");
-  // The backend function expects newStatus instead of status
-  const res = await fn({ orderId, newStatus: status, ...(extra ?? {}) });
+  const res = await fn({ orderId, status, ...(extra ?? {}) });
   return res.data;
 }
 
 export async function adminAssignDriver(
   orderId: string,
-  driverId: string
+  driverId: string,
+  driverName?: string | null,
 ): Promise<unknown> {
   const fn = httpsCallable(getFns(), "adminAssignDriver");
-  const res = await fn({ orderId, driverId });
+  const res = await fn({ orderId, driverId, driverName });
   return res.data;
 }
 
 export async function adminSetOrderPhotos(
   orderId: string,
-  photos: string[]
+  photos: any[],
 ): Promise<unknown> {
   const fn = httpsCallable(getFns(), "adminSetOrderPhotos");
   const res = await fn({ orderId, photos });

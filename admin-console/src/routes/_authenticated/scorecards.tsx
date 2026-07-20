@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot, orderBy, query, limit } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatINR, toDate } from "@/lib/format";
 import { Loader2, Bike, Trophy, Clock, AlertOctagon } from "lucide-react";
+import { useOrdersStream } from "@/hooks/useOrdersStream";
 
 export const Route = createFileRoute("/_authenticated/scorecards")({
   ssr: false,
@@ -28,25 +29,18 @@ type Complaint = { id: string; driverId?: string; driverName?: string };
 const SLA_HOURS = 24;
 
 function ScorecardsPage() {
-  const [orders, setOrders] = useState<Order[] | null>(null);
+  const { orders: rawOrdersRaw, loading } = useOrdersStream({ limitCount: 1000 });
+  const orders = loading ? null : rawOrdersRaw;
   const [complaints, setComplaints] = useState<Complaint[]>([]);
 
   useEffect(() => {
     const db = getDb();
-    const u1 = onSnapshot(
-      query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(1000)),
-      (snap) =>
-        setOrders(
-          snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Order),
-        ),
-    );
     const u2 = onSnapshot(collection(db, "complaints"), (snap) =>
       setComplaints(
         snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Complaint),
       ),
     );
     return () => {
-      u1();
       u2();
     };
   }, []);

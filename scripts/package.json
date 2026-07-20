@@ -1,0 +1,9 @@
+{
+  "name": "safaikart-scripts",
+  "version": "1.0.0",
+  "description": "Admin scripts for SafaiKart",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^12.1.0"
+  }
+}

@@ -80,8 +80,8 @@ const TERMINAL = new Set(["DELIVERED", "CANCELLED", "REFUNDED"]);
 async function loadCRM(): Promise<{ profiles: Profile[]; orders: Order[] }> {
   const db = getDb();
   const [profSnap, ordSnap] = await Promise.all([
-    getDocs(query(collection(db, "profile"), limit(1000))).catch(() =>
-      getDocs(collection(db, "profile")),
+    getDocs(query(collection(db, "profiles"), limit(1000))).catch(() =>
+      getDocs(collection(db, "profiles")),
     ),
     getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(1000))).catch(() =>
       getDocs(collection(db, "orders")),

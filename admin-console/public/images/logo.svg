@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <!-- Dark Green Background -->
+  <rect width="100%" height="100%" fill="#113117"/>
+  
+  <!-- "Safai" in Yellow -->
+  <text x="362" y="320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="800" font-size="76" fill="#F3DE1C" text-anchor="end" letter-spacing="-1.5">Safa</text>
+  
+  <!-- The 'i' without a dot -->
+  <text x="378" y="320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="800" font-size="76" fill="#F3DE1C" text-anchor="middle">ı</text>
+  
+  <!-- "Kart" in White -->
+  <text x="394" y="320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="800" font-size="76" fill="#FFFFFF" text-anchor="start" letter-spacing="-1">Kart</text>
+
+  <!-- Red Teardrop / Leaf over the 'i' -->
+  <path d="M 378 230 C 384 248, 388 256, 388 264 C 388 270, 383 275, 378 275 C 373 275, 368 270, 368 264 C 368 256, 372 248, 378 230 Z" fill="#D92D20"/>
+</svg>

@@ -28,6 +28,7 @@ import { formatINR, formatDate, toDate } from "@/lib/format";
 import { Loader2, Plus, Trash2, Fuel, Package, Users, MoreHorizontal, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
+import { useDialogs } from "@/components/ui/dialog-provider";
 
 export const Route = createFileRoute("/_authenticated/expenses")({
   ssr: false,
@@ -68,6 +69,7 @@ function ExpensesPage() {
   const [amount, setAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const { confirm } = useDialogs();
 
   useEffect(() => {
     const db = getDb();
@@ -134,7 +136,7 @@ function ExpensesPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this expense?")) return;
+    if (!(await confirm({ title: "Delete this expense?", destructive: true }))) return;
     try {
       await deleteDoc(doc(getDb(), "expenses", id));
       toast.success("Deleted");

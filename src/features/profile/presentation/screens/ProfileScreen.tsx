@@ -1,11 +1,7 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, Image, ImageBackground, Alert, Linking } from 'react-native';
 import { YStack, XStack, ZStack, Text } from '../../../../shared/ui/primitives/Stacks';
-
-
-
-
-import { Ionicons } from '@expo/vector-icons';
+import { auth } from '../../../../app/config/firebase';import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';
@@ -16,7 +12,6 @@ import { useProfileQuery } from '../../application/useProfileQuery';
 const menuItems = [
   { id: '0', title: 'Notifications', icon: 'notifications', tint: '#FFE0B2' },
   { id: '1', title: 'My Addresses', icon: 'location', tint: '#E8F5E9' },
-  { id: '2', title: 'Payment Methods', icon: 'card', tint: '#E3F2FD' },
   { id: '3', title: 'Coupons & Offers', icon: 'gift', tint: '#FFF3E0' },
   { id: '4', title: 'Help & Support', icon: 'headset', tint: '#F3E5F5' },
 ];
@@ -27,7 +22,7 @@ export default function ProfileScreen({ navigation }: any) {
   const { data: profile, isLoading } = useProfileQuery();
   const handleMenuPress = (item) => {
     if (item.title === 'Help & Support') {
-      Linking.openURL('whatsapp://send?text=Hello SafaiKart! I need some help.&phone=+919691561836');
+      navigation.navigate('Support');
     } else if (item.title === 'Notifications') {
       navigation.navigate('NotificationCenter');
     } else if (item.title === 'My Addresses') {
@@ -134,14 +129,49 @@ export default function ProfileScreen({ navigation }: any) {
           {menuItems.map(renderMenuItem)}
         </YStack>
 
-        {/* Logout section */}
-        <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} paddingHorizontal={16} paddingVertical={8} elevation={8} shadowColor={COLORS.vibrantYellow} shadowOffset={{ width: 0, height: 0 }} shadowOpacity={0.6} shadowRadius={12} borderWidth={1} borderColor="#FFEBEE">
+        {/* Danger Zone */}
+        <Text fontSize={14} fontWeight="800" color="#FF3B30" marginTop={SIZES.large} marginBottom={12} letterSpacing={0.5} textTransform="uppercase">Danger Zone</Text>
+        
+        <YStack backgroundColor={COLORS.cardBg} borderRadius={SIZES.radius * 1.5} paddingHorizontal={16} paddingVertical={8} elevation={8} shadowColor="#FF3B30" shadowOffset={{ width: 0, height: 0 }} shadowOpacity={0.4} shadowRadius={12} borderWidth={1} borderColor="#FFEBEE">
           <TouchableOpacity onPress={handleLogout}>
+            <XStack alignItems="center" paddingVertical={12} borderBottomWidth={1} borderBottomColor="#F5F5F5">
+              <YStack width={38} height={38} borderRadius={19} justifyContent="center" alignItems="center" marginRight={16} backgroundColor="#FFEBEE">
+                <Ionicons name="log-out" size={20} color="#FF3B30" />
+              </YStack>
+              <Text flex={1} fontSize={15} color="#FF3B30" fontWeight="600">Log Out</Text>
+            </XStack>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => {
+            Alert.alert(
+              "Delete Account",
+              "Are you sure you want to permanently delete your account? This action cannot be undone.",
+              [
+                { text: "Cancel", style: "cancel" },
+                { 
+                  text: "Delete Account", 
+                  style: "destructive", 
+                  onPress: async () => {
+                    try {
+                      // Optionally call a backend endpoint to clean up user data before deleting
+                      await auth.currentUser?.delete();
+                    } catch (e: any) {
+                      if (e.code === 'auth/requires-recent-login') {
+                        Alert.alert('Recent Login Required', 'For security reasons, please log out and log in again before deleting your account.');
+                      } else {
+                        Alert.alert('Error', e.message || 'Failed to delete account.');
+                      }
+                    }
+                  } 
+                }
+              ]
+            );
+          }}>
             <XStack alignItems="center" paddingVertical={12} borderBottomWidth={0}>
               <YStack width={38} height={38} borderRadius={19} justifyContent="center" alignItems="center" marginRight={16} backgroundColor="#FFEBEE">
-                <Ionicons name="log-out" size={20} color="#D32F2F" />
+                <Ionicons name="trash" size={20} color="#FF3B30" />
               </YStack>
-              <Text flex={1} fontSize={15} color="#D32F2F" fontWeight="600">Log Out</Text>
+              <Text flex={1} fontSize={15} color="#FF3B30" fontWeight="600">Delete Account</Text>
             </XStack>
           </TouchableOpacity>
         </YStack>

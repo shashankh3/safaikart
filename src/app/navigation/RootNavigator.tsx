@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Platform, ImageBackground, TouchableOpacity, Animated, View } from 'react-native';
 import { YStack, XStack, ZStack, Text } from '../../shared/ui/primitives/Stacks';
 import * as Haptics from 'expo-haptics';
@@ -19,20 +19,21 @@ import AuthNavigator from './AuthNavigator';
 import ServiceDetailsScreen from '../../features/catalog/presentation/screens/ServiceDetailsScreen';
 import AddressListScreen from '../../features/addresses/presentation/screens/AddressListScreen';
 import AddressFormScreen from '../../features/addresses/presentation/screens/AddressFormScreen';
+import SupportScreen from '../../features/profile/presentation/screens/SupportScreen';
 
 import StickyCart from '../../features/cart/presentation/components/StickyCart';
 import AnimatedPressable from '../../shared/ui/components/AnimatedPressable';
 
 import CheckoutNavigator from './CheckoutNavigator';
-import AdminDashboardScreen from '../../features/admin/presentation/screens/AdminDashboardScreen';
-import CatalogManagerScreen from '../../features/admin/presentation/screens/CatalogManagerScreen';
-import AdminOrderManagerScreen from '../../features/admin/presentation/screens/AdminOrderManagerScreen';
 
 import { COLORS } from '../../shared/theme/colors';
 import { SIZES } from '../../shared/theme/spacing';
 import { useAuth } from '../../features/auth/application/useAuth';
+import { useAppConfig } from '../../features/auth/application/useAppConfig';
+import { MaintenanceScreen, ForceUpdateScreen, BlockedUserScreen } from './BlockingScreens';
 import { ActivityIndicator } from 'react-native';
 import * as Linking from 'expo-linking';
+import Constants from 'expo-constants';
 import { setupNotificationListeners, getFcmToken, saveFcmToken, requestNotificationPermission } from '../../core/firebase/messaging';
 
 const Tab = createMaterialTopTabNavigator<any>();
@@ -133,8 +134,11 @@ function BottomTabs() {
 }
 
 export default function AppNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading, isBlocked } = useAuth();
+  const { config, loading: configLoading } = useAppConfig();
   const navigationRef = useRef<any>(null);
+
+  const [pendingDeepLink, setPendingDeepLink] = useState<{name: string, params: any} | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -157,8 +161,12 @@ export default function AppNavigator() {
       },
       (response) => {
         const data = response?.notification?.request?.content?.data || response?.data;
-        if (data?.orderId && navigationRef.current) {
-          navigationRef.current.navigate('OrderTracking', { orderId: data.orderId });
+        if (data?.orderId) {
+          if (navigationRef.current?.isReady()) {
+            navigationRef.current.navigate('OrderTracking', { orderId: data.orderId });
+          } else {
+            setPendingDeepLink({ name: 'OrderTracking', params: { orderId: data.orderId } });
+          }
         }
       }
     );
@@ -166,7 +174,7 @@ export default function AppNavigator() {
     return () => cleanup();
   }, [user]);
 
-  if (loading) {
+  if (authLoading || configLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.primaryBg }}>
         <ActivityIndicator size="large" color={COLORS.darkGreen} />
@@ -174,8 +182,30 @@ export default function AppNavigator() {
     );
   }
 
+  if (config?.maintenanceMode) {
+    return <MaintenanceScreen />;
+  }
+
+  const currentVersion = parseFloat(Constants.expoConfig?.version || '1.0');
+  if (config?.minAppVersion && config.minAppVersion > currentVersion) {
+    return <ForceUpdateScreen />;
+  }
+
+  if (user && isBlocked) {
+    return <BlockedUserScreen />;
+  }
+
   return (
-    <NavigationContainer linking={linking} ref={navigationRef}>
+    <NavigationContainer 
+      linking={linking} 
+      ref={navigationRef}
+      onReady={() => {
+        if (pendingDeepLink && navigationRef.current) {
+          navigationRef.current.navigate(pendingDeepLink.name, pendingDeepLink.params);
+          setPendingDeepLink(null);
+        }
+      }}
+    >
       <Stack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
         {!user ? (
           <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
@@ -189,9 +219,7 @@ export default function AppNavigator() {
             <Stack.Screen name="CheckoutFlow" component={CheckoutNavigator} />
             <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} />
             <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
-            <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-            <Stack.Screen name="CatalogManager" component={CatalogManagerScreen} />
-            <Stack.Screen name="AdminOrderManager" component={AdminOrderManagerScreen} />
+            <Stack.Screen name="Support" component={SupportScreen} />
           </>
         )}
       </Stack.Navigator>

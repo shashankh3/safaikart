@@ -11,22 +11,37 @@ export async function rateLimiter(uid: string, functionName: string, maxCalls: n
     const windowMs = windowSeconds * 1000;
 
     if (!doc.exists) {
-      transaction.set(rateLimitRef, { calls: [now] });
+      transaction.set(rateLimitRef, { 
+        count: 1,
+        windowStart: now,
+        expiresAt: admin.firestore.Timestamp.fromMillis(now + windowMs)
+      });
       return;
     }
 
-    const data = doc.data();
-    const calls = data?.calls || [];
-    const validCalls = calls.filter((timestamp: number) => now - timestamp < windowMs);
+    const data = doc.data()!;
+    const windowStart = data.windowStart || 0;
 
-    if (validCalls.length >= maxCalls) {
+    if (now - windowStart >= windowMs) {
+      // Reset window
+      transaction.update(rateLimitRef, { 
+        count: 1,
+        windowStart: now,
+        expiresAt: admin.firestore.Timestamp.fromMillis(now + windowMs)
+      });
+      return;
+    }
+
+    const count = data.count || 0;
+    if (count >= maxCalls) {
       throw new functions.https.HttpsError(
         'resource-exhausted',
         `Rate limit exceeded for ${functionName}. Please try again later.`
       );
     }
 
-    validCalls.push(now);
-    transaction.update(rateLimitRef, { calls: validCalls });
+    transaction.update(rateLimitRef, { 
+      count: count + 1
+    });
   });
 }

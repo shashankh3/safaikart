@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { Bell, ShoppingBag, AlertTriangle } from "lucide-react";
@@ -21,6 +21,8 @@ type Notif = {
   at: Date | null;
   amountMinor?: number;
 };
+import { useAuth } from "@/context/auth-context";
+import { hasPermission } from "@/lib/rbac";
 
 export function NotificationsBell() {
   const [items, setItems] = useState<Notif[]>([]);
@@ -29,9 +31,19 @@ export function NotificationsBell() {
   const seenPayments = useRef<Set<string> | null>(null);
   const navigate = useNavigate();
 
+  const { admin } = useAuth();
+  const sessionStart = useMemo(() => new Date(), []);
+
   useEffect(() => {
+    if (!admin || !hasPermission(admin.role, "orders.update")) return;
+
     const db = getDb();
-    const qOrders = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(10));
+    const qOrders = query(
+      collection(db, "orders"),
+      where("createdAt", ">=", sessionStart),
+      orderBy("createdAt", "desc"),
+      limit(20)
+    );
     const unsub1 = onSnapshot(qOrders, (snap) => {
       const list: Notif[] = snap.docs.map((d) => {
         const data = d.data() as Record<string, unknown>;
@@ -58,29 +70,38 @@ export function NotificationsBell() {
       const qPay = query(
         collection(db, "payments"),
         where("status", "==", "FAILED"),
+        where("createdAt", ">=", sessionStart),
         orderBy("createdAt", "desc"),
-        limit(10),
+        limit(20),
       );
-      unsub2 = onSnapshot(qPay, (snap) => {
-        const list: Notif[] = snap.docs.map((d) => {
-          const data = d.data() as Record<string, unknown>;
-          const created =
-            (data.createdAt as { toDate?: () => Date } | undefined)?.toDate?.() ?? null;
-          return {
-            id: `p:${d.id}`,
-            kind: "payment",
-            title: "Payment failed",
-            subtitle: `Order ${String(data.orderId || "").slice(0, 10)}…`,
-            at: created,
-          };
-        });
-        if (seenPayments.current) {
-          const added = list.filter((n) => !seenPayments.current!.has(n.id));
-          if (added.length) setUnread((u) => u + added.length);
-        }
-        seenPayments.current = new Set(list.map((n) => n.id));
-        setItems((prev) => merge(prev, list));
-      });
+      unsub2 = onSnapshot(
+        qPay,
+        (snap) => {
+          const list: Notif[] = snap.docs.map((d) => {
+            const data = d.data() as Record<string, unknown>;
+            const created =
+              (data.createdAt as { toDate?: () => Date } | undefined)?.toDate?.() ?? null;
+            return {
+              id: `p:${d.id}`,
+              kind: "payment",
+              title: "Payment failed",
+              subtitle: `Order ${String(data.orderId || "").slice(0, 10)}…`,
+              at: created,
+            };
+          });
+          if (seenPayments.current) {
+            const added = list.filter((n) => !seenPayments.current!.has(n.id));
+            if (added.length) setUnread((u) => u + added.length);
+          }
+          seenPayments.current = new Set(list.map((n) => n.id));
+          setItems((prev) => merge(prev, list));
+        },
+        () => {
+          // payments collection may be missing an index or blocked by rules — degrade silently
+          unsub2?.();
+          unsub2 = undefined;
+        },
+      );
     } catch {
       // payments collection may not be indexed
     }
@@ -89,7 +110,9 @@ export function NotificationsBell() {
       unsub1();
       unsub2?.();
     };
-  }, []);
+  }, [admin, sessionStart]);
+
+  if (!admin || !hasPermission(admin.role, "orders.update")) return null;
 
   return (
     <DropdownMenu onOpenChange={(o) => o && setUnread(0)}>

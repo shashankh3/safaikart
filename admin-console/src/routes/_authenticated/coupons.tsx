@@ -35,6 +35,7 @@ import {
 import { formatDate, formatINR } from "@/lib/format";
 import { Plus, Pencil, Trash2, Loader2, Ticket } from "lucide-react";
 import { toast } from "sonner";
+import { useDialogs } from "@/components/ui/dialog-provider";
 
 export const Route = createFileRoute("/_authenticated/coupons")({
   ssr: false,
@@ -45,27 +46,26 @@ type Coupon = {
   id: string;
   code: string;
   description?: string;
-  type: "PERCENT" | "FLAT";
-  value: number; // percent or minor units
-  minOrderMinor?: number;
-  maxDiscountMinor?: number;
-  usageLimit?: number;
-  usageCount?: number;
-  active: boolean;
-  expiresAt?: unknown;
+  type: "percent" | "flat";
+  discountValue: number;
+  minimumOrderAmount?: number;
+  maxUsage?: number;
+  usedCount?: number;
+  usedBy?: string[];
+  isActive: boolean;
+  validUntil?: unknown;
   createdAt?: unknown;
 };
 
 const EMPTY: Omit<Coupon, "id"> = {
   code: "",
   description: "",
-  type: "PERCENT",
-  value: 10,
-  minOrderMinor: 0,
-  maxDiscountMinor: 0,
-  usageLimit: 0,
-  usageCount: 0,
-  active: true,
+  type: "percent",
+  discountValue: 10,
+  minimumOrderAmount: 0,
+  maxUsage: 0,
+  usedCount: 0,
+  isActive: true,
 };
 
 function CouponsPage() {
@@ -74,6 +74,7 @@ function CouponsPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Omit<Coupon, "id">>(EMPTY);
   const [saving, setSaving] = useState(false);
+  const { confirm } = useDialogs();
 
   useEffect(() => {
     const db = getDb();
@@ -114,10 +115,9 @@ function CouponsPage() {
       const payload = {
         ...form,
         code: form.code.trim().toUpperCase(),
-        value: Number(form.value) || 0,
-        minOrderMinor: Number(form.minOrderMinor) || 0,
-        maxDiscountMinor: Number(form.maxDiscountMinor) || 0,
-        usageLimit: Number(form.usageLimit) || 0,
+        discountValue: Number(form.discountValue) || 0,
+        minimumOrderAmount: Number(form.minimumOrderAmount) || 0,
+        maxUsage: Number(form.maxUsage) || 0,
       };
       if (editing) {
         await updateDoc(doc(db, "coupons", editing.id), {
@@ -128,7 +128,8 @@ function CouponsPage() {
       } else {
         await addDoc(collection(db, "coupons"), {
           ...payload,
-          usageCount: 0,
+          usedCount: 0,
+          usedBy: [],
           createdAt: serverTimestamp(),
         });
         toast.success("Coupon created");
@@ -144,14 +145,14 @@ function CouponsPage() {
   const toggleActive = async (c: Coupon) => {
     try {
       const db = getDb();
-      await updateDoc(doc(db, "coupons", c.id), { active: !c.active });
+      await updateDoc(doc(db, "coupons", c.id), { isActive: !c.isActive });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Update failed");
     }
   };
 
   const remove = async (c: Coupon) => {
-    if (!confirm(`Delete coupon ${c.code}?`)) return;
+    if (!(await confirm({ title: `Delete coupon ${c.code}?`, destructive: true }))) return;
     try {
       const db = getDb();
       await deleteDoc(doc(db, "coupons", c.id));
@@ -223,23 +224,23 @@ function CouponsPage() {
                           variant="outline"
                           className="bg-gold/20 text-brand border-gold/40 rounded-full font-medium"
                         >
-                          {c.type === "PERCENT"
-                            ? `${c.value}% off`
-                            : `${formatINR(c.value)} off`}
+                          {c.type === "percent"
+                            ? `${c.discountValue}% off`
+                            : `${formatINR(c.discountValue)} off`}
                         </Badge>
                       </td>
                       <td className="px-5 py-3 text-muted-foreground">
-                        {c.minOrderMinor ? formatINR(c.minOrderMinor) : "—"}
+                        {c.minimumOrderAmount ? formatINR(c.minimumOrderAmount) : "—"}
                       </td>
                       <td className="px-5 py-3 text-muted-foreground">
-                        {c.usageCount ?? 0}
-                        {c.usageLimit ? ` / ${c.usageLimit}` : ""}
+                        {c.usedCount ?? 0}
+                        {c.maxUsage ? ` / ${c.maxUsage}` : ""}
                       </td>
                       <td className="px-5 py-3 text-muted-foreground whitespace-nowrap">
                         {formatDate(c.createdAt)}
                       </td>
                       <td className="px-5 py-3 text-center">
-                        <Switch checked={c.active} onCheckedChange={() => toggleActive(c)} />
+                        <Switch checked={c.isActive} onCheckedChange={() => toggleActive(c)} />
                       </td>
                       <td className="px-5 py-3 text-right">
                         <div className="inline-flex gap-1">
@@ -299,23 +300,23 @@ function CouponsPage() {
                 <Label>Type</Label>
                 <Select
                   value={form.type}
-                  onValueChange={(v) => setForm({ ...form, type: v as "PERCENT" | "FLAT" })}
+                  onValueChange={(v) => setForm({ ...form, type: v as "percent" | "flat" })}
                 >
                   <SelectTrigger className="rounded-xl mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PERCENT">Percent %</SelectItem>
-                    <SelectItem value="FLAT">Flat ₹ (minor)</SelectItem>
+                    <SelectItem value="percent">Percent %</SelectItem>
+                    <SelectItem value="flat">Flat ₹ (minor)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>{form.type === "PERCENT" ? "Percent" : "Amount (minor)"}</Label>
+                <Label>{form.type === "percent" ? "Percent" : "Amount (minor)"}</Label>
                 <Input
                   type="number"
-                  value={form.value}
-                  onChange={(e) => setForm({ ...form, value: Number(e.target.value) })}
+                  value={form.discountValue}
+                  onChange={(e) => setForm({ ...form, discountValue: Number(e.target.value) })}
                   className="rounded-xl mt-1"
                 />
               </div>
@@ -325,17 +326,8 @@ function CouponsPage() {
                 <Label>Min order (minor)</Label>
                 <Input
                   type="number"
-                  value={form.minOrderMinor}
-                  onChange={(e) => setForm({ ...form, minOrderMinor: Number(e.target.value) })}
-                  className="rounded-xl mt-1"
-                />
-              </div>
-              <div>
-                <Label>Max discount (minor)</Label>
-                <Input
-                  type="number"
-                  value={form.maxDiscountMinor}
-                  onChange={(e) => setForm({ ...form, maxDiscountMinor: Number(e.target.value) })}
+                  value={form.minimumOrderAmount}
+                  onChange={(e) => setForm({ ...form, minimumOrderAmount: Number(e.target.value) })}
                   className="rounded-xl mt-1"
                 />
               </div>
@@ -344,15 +336,15 @@ function CouponsPage() {
               <Label>Usage limit (0 = unlimited)</Label>
               <Input
                 type="number"
-                value={form.usageLimit}
-                onChange={(e) => setForm({ ...form, usageLimit: Number(e.target.value) })}
+                value={form.maxUsage}
+                onChange={(e) => setForm({ ...form, maxUsage: Number(e.target.value) })}
                 className="rounded-xl mt-1"
               />
             </div>
             <div className="flex items-center gap-2 pt-1">
               <Switch
-                checked={form.active}
-                onCheckedChange={(v) => setForm({ ...form, active: v })}
+                checked={form.isActive}
+                onCheckedChange={(v) => setForm({ ...form, isActive: v })}
               />
               <Label>Active</Label>
             </div>

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculateOrderDiff = void 0;
+exports.calculateOrderDiff = calculateOrderDiff;
 function calculateOrderDiff(oldFinalAmountMinor, newFinalAmountMinor, orderStatus) {
     const amountDiff = newFinalAmountMinor - oldFinalAmountMinor;
     let refundAmountMinor = 0;
@@ -19,5 +19,4 @@ function calculateOrderDiff(oldFinalAmountMinor, newFinalAmountMinor, orderStatu
         additionalPaymentRequired
     };
 }
-exports.calculateOrderDiff = calculateOrderDiff;
 //# sourceMappingURL=editOrder.logic.js.map

@@ -24,7 +24,6 @@ exports.onUserCreate = functions.region('asia-south1').auth.user().onCreate(asyn
         email: user.email || null,
         displayName: user.displayName || 'New User',
         photoURL: user.photoURL || null,
-        role: 'USER',
         isBlocked: false,
         createdAt: now,
         updatedAt: now,

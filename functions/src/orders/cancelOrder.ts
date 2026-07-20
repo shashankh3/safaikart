@@ -2,6 +2,7 @@ import { HttpsError } from 'firebase-functions/v2/https';
 import { onCall } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { buildStatusHistoryUpdate } from '../utils/statusLogic';
 
 import { getRazorpayAuthHeader, razorpayKeySecret } from '../payments/razorpayClient';
 
@@ -9,11 +10,14 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-export const cancelOrder = onCall({ secrets: [razorpayKeySecret] }, async (request) => {
+export const cancelOrder = onCall({ secrets: [razorpayKeySecret], enforceAppCheck: true }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError('unauthenticated', 'User must be logged in');
   }
+
+  const { rateLimiter } = await import('../utils/rateLimiter');
+  await rateLimiter(uid, 'cancelOrder', 5, 3600);
 
   const { orderId, reason } = request.data;
   if (!orderId) {
@@ -57,11 +61,19 @@ export const cancelOrder = onCall({ secrets: [razorpayKeySecret] }, async (reque
         }
       }
 
+      if (orderData?.pickupSlotId) {
+        const slotRef = db.collection('pickupSlots').doc(orderData.pickupSlotId);
+        const slotDoc = await transaction.get(slotRef);
+        if (slotDoc.exists) {
+          transaction.update(slotRef, { bookedCount: FieldValue.increment(-1) });
+        }
+      }
+
+      const statusUpdate = buildStatusHistoryUpdate(orderData, newStatus);
       transaction.update(orderRef, {
-        status: newStatus,
+        ...statusUpdate,
         cancelReason: reason || null,
         cancelledAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp()
       });
     });
 
@@ -78,12 +90,21 @@ export const cancelOrder = onCall({ secrets: [razorpayKeySecret] }, async (reque
 
       if (response.ok) {
         const refundData = await response.json();
-        await orderRef.update({
-          status: 'REFUND_INITIATED',
-          refundId: refundData.id,
-          refundStatus: 'PROCESSED',
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        
+        // Use a transaction to safely append REFUND_INITIATED
+        await db.runTransaction(async (tx) => {
+          const freshDoc = await tx.get(orderRef);
+          if (!freshDoc.exists) return;
+          const freshData = freshDoc.data()!;
+          const refundUpdate = buildStatusHistoryUpdate(freshData, 'REFUND_INITIATED');
+          
+          tx.update(orderRef, {
+            ...refundUpdate,
+            refundId: refundData.id,
+            refundStatus: 'INITIATED',
+          });
         });
+        
         newStatus = 'REFUND_INITIATED';
       } else {
         const errText = await response.text();
@@ -98,6 +119,10 @@ export const cancelOrder = onCall({ secrets: [razorpayKeySecret] }, async (reque
 
     return { success: true, message: 'Order cancelled successfully', newStatus };
   } catch (error: any) {
-    throw new HttpsError('internal', error.message || 'Failed to cancel order');
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    console.error('Unhandled cancelOrder error:', error);
+    throw new HttpsError('internal', 'An unexpected error occurred while cancelling the order.');
   }
 });

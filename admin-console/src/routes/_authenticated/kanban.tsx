@@ -14,6 +14,7 @@ import { Loader2, GripVertical, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useOrdersStream } from "@/hooks/useOrdersStream";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   ssr: false,
@@ -41,35 +42,12 @@ type Order = {
 };
 
 function KanbanPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const db = getDb();
-    const q = query(
-      collection(db, "orders"),
-      where("status", "in", COLUMNS.map((c) => c.key)),
-      orderBy("createdAt", "desc"),
-    );
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const rows = snap.docs.map(
-          (d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Order,
-        );
-        setOrders(rows);
-        setLoading(false);
-      },
-      (err) => {
-        toast.error(err.message || "Realtime feed failed");
-        setLoading(false);
-      },
-    );
-    return () => unsub();
-  }, []);
+  const statuses = useMemo(() => COLUMNS.map((c) => c.key), []);
+  const { orders, loading } = useOrdersStream({ statuses });
 
   const byStatus = useMemo(() => {
     const map: Record<string, Order[]> = {};

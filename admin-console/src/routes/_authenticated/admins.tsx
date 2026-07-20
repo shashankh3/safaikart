@@ -33,6 +33,7 @@ import { Plus, ShieldCheck, Trash2, Loader2, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
 import { ROLES, ROLE_LABEL, hasPermission, type Role } from "@/lib/rbac";
+import { useDialogs } from "@/components/ui/dialog-provider";
 
 export const Route = createFileRoute("/_authenticated/admins")({
   ssr: false,
@@ -57,6 +58,7 @@ function AdminsPage() {
   const [role, setRole] = useState<Role>("admin");
   const canManage = hasPermission(admin?.role, "admins.write");
   const [saving, setSaving] = useState(false);
+  const { confirm } = useDialogs();
 
   useEffect(() => {
     const db = getDb();
@@ -106,7 +108,7 @@ function AdminsPage() {
       toast.error("You cannot remove yourself");
       return;
     }
-    if (!confirm(`Revoke admin access for ${a.email || a.id}?`)) return;
+    if (!(await confirm({ title: `Revoke admin access for ${a.email || a.id}?`, destructive: true }))) return;
     try {
       const db = getDb();
       await deleteDoc(doc(db, "adminUsers", a.id));

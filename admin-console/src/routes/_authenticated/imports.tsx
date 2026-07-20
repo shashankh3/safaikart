@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/imports")({
   component: ImportsPage,
 });
 
-type Kind = "services" | "customers";
+type Kind = "services";
 
 const serviceSchema = z.object({
   categoryId: z.string().trim().min(1).max(64),
@@ -40,15 +40,8 @@ const serviceSchema = z.object({
   stock: z.coerce.number().int().nonnegative().max(1_000_000).optional(),
 });
 
-const customerSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  phoneNumber: z.string().trim().min(6).max(20).optional(),
-  email: z.string().trim().email().max(255).optional().or(z.literal("")),
-});
-
 const TEMPLATES: Record<Kind, string> = {
   services: "categoryId,name,priceMinor,unit,stock\nlaundry,Shirt Wash,4000,piece,\n",
-  customers: "name,phoneNumber,email\nRahul Singh,+919000000000,[email protected]\n",
 };
 
 type Row = Record<string, string>;
@@ -66,7 +59,7 @@ function ImportsPage() {
     const ok: Row[] = [];
     const errors: Array<{ row: number; message: string }> = [];
     rows.forEach((r, i) => {
-      const schema = kind === "services" ? serviceSchema : customerSchema;
+      const schema = serviceSchema;
       const res = schema.safeParse(r);
       if (!res.success) {
         errors.push({ row: i + 2, message: res.error.issues[0]?.message || "Invalid row" });
@@ -104,7 +97,6 @@ function ImportsPage() {
         const chunk = parsed.ok.slice(i, i + chunkSize);
         const batch = writeBatch(db);
         for (const r of chunk) {
-          if (kind === "services") {
             const parsed = serviceSchema.parse(r);
             const ref = doc(collection(db, "services"));
             batch.set(ref, {
@@ -116,18 +108,6 @@ function ImportsPage() {
               createdAt: serverTimestamp(),
               importedBy: admin?.uid ?? null,
             });
-          } else {
-            const parsed = customerSchema.parse(r);
-            const ref = doc(collection(db, "profile"));
-            batch.set(ref, {
-              name: parsed.name,
-              phoneNumber: parsed.phoneNumber ?? null,
-              email: parsed.email || null,
-              createdAt: serverTimestamp(),
-              importedBy: admin?.uid ?? null,
-              imported: true,
-            });
-          }
           count += 1;
         }
         await batch.commit();
@@ -166,7 +146,6 @@ function ImportsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="services">Services</SelectItem>
-                <SelectItem value="customers">Customers</SelectItem>
               </SelectContent>
             </Select>
           </div>

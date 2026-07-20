@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationsBell } from "@/components/notifications-bell";
-import { ThemeToggle } from "@/components/theme-toggle";
+
 
 const TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -92,7 +92,7 @@ export function AppHeader() {
             <kbd className="ml-2 px-1.5 py-0.5 rounded bg-muted font-mono text-[10px]">⌘K</kbd>
           </button>
 
-          <ThemeToggle />
+          
 
           <NotificationsBell />
 

@@ -4,16 +4,33 @@ import { assertAdmin } from '../utils/assertAdmin';
 
 import { getRazorpayAuthHeader, razorpayKeySecret } from '../payments/razorpayClient';
 
+import { z } from 'zod';
+
+const confirmPriceSchema = z.object({
+  orderId: z.string().min(1),
+  items: z.array(z.object({
+    serviceId: z.string(),
+    quantity: z.number().int().min(1).max(100),
+    unitPriceMinor: z.number().int().min(0).max(5000000)
+  }))
+});
+
 export const adminConfirmOrderPrice = onCall({ secrets: [razorpayKeySecret] }, async (request) => {
-  assertAdmin(request);
+  assertAdmin(request, ['superadmin', 'admin', 'ops']);
   const { data } = request;
 
-  const db = admin.firestore();
+  let orderId: string;
+  let items: any[];
 
-  const { orderId, items } = data;
-  if (!orderId || !items || !Array.isArray(items)) {
-    throw new HttpsError('invalid-argument', 'orderId and items array are required.');
+  try {
+    const parsed = confirmPriceSchema.parse(data);
+    orderId = parsed.orderId;
+    items = parsed.items;
+  } catch (e: any) {
+    throw new HttpsError('invalid-argument', `Validation error: ${e.message}`);
   }
+
+  const db = admin.firestore();
 
   const orderRef = db.collection('orders').doc(orderId);
   let refundAmountMinor = 0;
@@ -148,7 +165,7 @@ export const adminConfirmOrderPrice = onCall({ secrets: [razorpayKeySecret] }, a
         const refundData = await response.json();
         await orderRef.update({
           refundId: refundData.id,
-          refundStatus: 'PROCESSED',
+          refundStatus: 'INITIATED',
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
       } else {

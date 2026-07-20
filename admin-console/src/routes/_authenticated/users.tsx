@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { collection, getDocs, limit, orderBy, query, startAfter, QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,33 +23,46 @@ type Profile = {
   phoneNumber?: string;
 };
 
-async function loadProfiles(): Promise<Profile[]> {
+async function loadProfiles({ pageParam = null }: { pageParam?: QueryDocumentSnapshot<DocumentData, DocumentData> | null }): Promise<{ docs: Profile[]; next: QueryDocumentSnapshot<DocumentData, DocumentData> | null }> {
   const db = getDb();
-  // Try ordered by createdAt; fall back to unordered if the field doesn't exist.
   try {
-    const snap = await getDocs(query(collection(db, "profile"), orderBy("createdAt", "desc"), limit(500)));
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as Profile[];
+    let q = query(collection(db, "profiles"), orderBy("createdAt", "desc"), limit(50));
+    if (pageParam) q = query(q, startAfter(pageParam));
+    const snap = await getDocs(q);
+    const docs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as Profile[];
+    return { docs, next: snap.docs[snap.docs.length - 1] || null };
   } catch {
-    const snap = await getDocs(query(collection(db, "profile"), limit(500)));
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as Profile[];
+    let q = query(collection(db, "profiles"), limit(50));
+    if (pageParam) q = query(q, startAfter(pageParam));
+    const snap = await getDocs(q);
+    const docs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as Profile[];
+    return { docs, next: snap.docs[snap.docs.length - 1] || null };
   }
 }
 
 function UsersPage() {
-  const { data, isLoading } = useQuery({ queryKey: ["profiles"], queryFn: loadProfiles });
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["profiles"],
+    queryFn: loadProfiles,
+    getNextPageParam: (lastPage) => lastPage.next,
+    initialPageParam: null as QueryDocumentSnapshot<DocumentData, DocumentData> | null,
+  });
   const [search, setSearch] = useState("");
 
+  const allData = useMemo(() => {
+    return data?.pages.flatMap((p) => p.docs) || [];
+  }, [data]);
+
   const filtered = useMemo(() => {
-    if (!data) return [];
     const s = search.trim().toLowerCase();
-    if (!s) return data;
-    return data.filter(
+    if (!s) return allData;
+    return allData.filter(
       (p) =>
         (p.name || "").toLowerCase().includes(s) ||
         (p.email || "").toLowerCase().includes(s) ||
         (p.id || "").toLowerCase().includes(s),
     );
-  }, [data, search]);
+  }, [allData, search]);
 
   return (
     <div className="space-y-5">
@@ -131,6 +144,19 @@ function UsersPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+          {hasNextPage && !search && (
+            <div className="p-4 border-t border-border flex justify-center">
+              <Button 
+                variant="outline" 
+                onClick={() => fetchNextPage()} 
+                disabled={isFetchingNextPage}
+                className="rounded-xl"
+              >
+                {isFetchingNextPage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Load more
+              </Button>
             </div>
           )}
         </CardContent>

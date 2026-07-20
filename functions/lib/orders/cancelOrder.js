@@ -5,16 +5,19 @@ const https_1 = require("firebase-functions/v2/https");
 const https_2 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const firestore_1 = require("firebase-admin/firestore");
+const statusLogic_1 = require("../utils/statusLogic");
 const razorpayClient_1 = require("../payments/razorpayClient");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
-exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret] }, async (request) => {
+exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret], enforceAppCheck: true }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {
         throw new https_1.HttpsError('unauthenticated', 'User must be logged in');
     }
+    const { rateLimiter } = await Promise.resolve().then(() => require('../utils/rateLimiter'));
+    await rateLimiter(uid, 'cancelOrder', 5, 3600);
     const { orderId, reason } = request.data;
     if (!orderId) {
         throw new https_1.HttpsError('invalid-argument', 'Order ID is required');
@@ -50,12 +53,15 @@ exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayK
                     amountToRefundMinor = payment.amountMinor;
                 }
             }
-            transaction.update(orderRef, {
-                status: newStatus,
-                cancelReason: reason || null,
-                cancelledAt: firestore_1.FieldValue.serverTimestamp(),
-                updatedAt: firestore_1.FieldValue.serverTimestamp()
-            });
+            if (orderData === null || orderData === void 0 ? void 0 : orderData.pickupSlotId) {
+                const slotRef = db.collection('pickupSlots').doc(orderData.pickupSlotId);
+                const slotDoc = await transaction.get(slotRef);
+                if (slotDoc.exists) {
+                    transaction.update(slotRef, { bookedCount: firestore_1.FieldValue.increment(-1) });
+                }
+            }
+            const statusUpdate = (0, statusLogic_1.buildStatusHistoryUpdate)(orderData, newStatus);
+            transaction.update(orderRef, Object.assign(Object.assign({}, statusUpdate), { cancelReason: reason || null, cancelledAt: firestore_1.FieldValue.serverTimestamp() }));
         });
         if (newStatus === 'REFUND_PENDING' && razorpayPaymentId && amountToRefundMinor > 0) {
             const authHeader = (0, razorpayClient_1.getRazorpayAuthHeader)();
@@ -69,11 +75,14 @@ exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayK
             });
             if (response.ok) {
                 const refundData = await response.json();
-                await orderRef.update({
-                    status: 'REFUND_INITIATED',
-                    refundId: refundData.id,
-                    refundStatus: 'PROCESSED',
-                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                // Use a transaction to safely append REFUND_INITIATED
+                await db.runTransaction(async (tx) => {
+                    const freshDoc = await tx.get(orderRef);
+                    if (!freshDoc.exists)
+                        return;
+                    const freshData = freshDoc.data();
+                    const refundUpdate = (0, statusLogic_1.buildStatusHistoryUpdate)(freshData, 'REFUND_INITIATED');
+                    tx.update(orderRef, Object.assign(Object.assign({}, refundUpdate), { refundId: refundData.id, refundStatus: 'INITIATED' }));
                 });
                 newStatus = 'REFUND_INITIATED';
             }
@@ -90,7 +99,11 @@ exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayK
         return { success: true, message: 'Order cancelled successfully', newStatus };
     }
     catch (error) {
-        throw new https_1.HttpsError('internal', error.message || 'Failed to cancel order');
+        if (error instanceof https_1.HttpsError) {
+            throw error;
+        }
+        console.error('Unhandled cancelOrder error:', error);
+        throw new https_1.HttpsError('internal', 'An unexpected error occurred while cancelling the order.');
     }
 });
 //# sourceMappingURL=cancelOrder.js.map

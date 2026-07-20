@@ -38,7 +38,7 @@ function ReferralsPage() {
 
   useEffect(() => {
     const db = getDb();
-    const unsubP = onSnapshot(query(collection(db, "profile"), limit(1000)), (snap) => {
+    const unsubP = onSnapshot(query(collection(db, "profiles"), limit(1000)), (snap) => {
       setProfiles(
         snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Profile),
       );

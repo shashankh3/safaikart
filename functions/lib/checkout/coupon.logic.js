@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateCouponApplicability = void 0;
+exports.validateCouponApplicability = validateCouponApplicability;
 function validateCouponApplicability(coupon, uid, cartTotalMinor, now = new Date()) {
     if (!coupon.isActive) {
         return { valid: false, discountMinor: 0, message: 'Coupon is no longer active', newTotalMinor: cartTotalMinor };
@@ -34,5 +34,4 @@ function validateCouponApplicability(coupon, uid, cartTotalMinor, now = new Date
         newTotalMinor: cartTotalMinor - discountMinor
     };
 }
-exports.validateCouponApplicability = validateCouponApplicability;
 //# sourceMappingURL=coupon.logic.js.map

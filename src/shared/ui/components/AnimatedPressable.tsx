@@ -26,6 +26,7 @@ export default function AnimatedPressable({ children, style, onPress, scaleTo = 
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      hitSlop={props.hitSlop || { top: 12, bottom: 12, left: 12, right: 12 }}
       {...props}
     >
       <Animated.View style={[style, { transform: [{ scale: scaleValue }] }]}>

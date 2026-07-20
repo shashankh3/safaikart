@@ -1,6 +1,7 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { buildOrderNotification } from '../utils/notificationLogic';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -12,12 +13,13 @@ export const sendOrderStatusNotification = onDocumentUpdated('orders/{orderId}',
 
   if (!before || !after) return;
 
-  // Only trigger if status changed
-  if (before.status === after.status) return;
+  const notificationContent = buildOrderNotification(before, after, event.params.orderId);
+  if (!notificationContent) return;
+
+  const { title, body, type } = notificationContent;
 
   const orderId = event.params.orderId;
   const userId = after.userId;
-  const newStatus = after.status;
 
   // Fetch user's tokens
   const profileDoc = await admin.firestore().collection('profiles').doc(userId).get();
@@ -29,46 +31,6 @@ export const sendOrderStatusNotification = onDocumentUpdated('orders/{orderId}',
 
   // Extract just the token strings
   const tokens = tokensData.map((t: any) => t.token);
-
-  let title = 'SafaiKart Order Update';
-  let body = '';
-  let type = 'order_update';
-
-  switch (newStatus) {
-    case 'CONFIRMED':
-      title = 'Order Confirmed';
-      body = `Order #SK-${orderId.substring(0, 4).toUpperCase()} confirmed! Pickup: ${after.pickupSlotSnapshot?.date || 'soon'}.`;
-      break;
-    case 'PICKED_UP':
-      title = 'Order Picked Up';
-      body = `Items picked up for order #SK-${orderId.substring(0, 4).toUpperCase()}. Cleaning in progress.`;
-      break;
-    case 'CLEANING_IN_PROGRESS':
-      title = 'Cleaning in Progress';
-      body = `Your items are being cleaned. We'll notify you when they're ready.`;
-      break;
-    case 'READY_FOR_DELIVERY':
-      title = 'Ready for Delivery';
-      body = `Items ready for delivery! Order #SK-${orderId.substring(0, 4).toUpperCase()}.`;
-      break;
-    case 'OUT_FOR_DELIVERY':
-      title = 'Out for Delivery';
-      body = `Your order is out for delivery. Expected soon.`;
-      break;
-    case 'DELIVERED':
-      title = 'Order Delivered';
-      body = `Order #SK-${orderId.substring(0, 4).toUpperCase()} delivered! Thank you for choosing SafaiKart.`;
-      break;
-    case 'CANCELLED':
-    case 'REFUND_PENDING':
-    case 'REFUNDED':
-      title = 'Order Cancelled';
-      body = `Your order #SK-${orderId.substring(0, 4).toUpperCase()} was cancelled. Please collect your items.`;
-      type = 'order_cancelled';
-      break;
-    default:
-      return; // Skip notification for other statuses
-  }
 
   const deepLink = `safaikart://order/${orderId}`;
 
@@ -93,7 +55,7 @@ export const sendOrderStatusNotification = onDocumentUpdated('orders/{orderId}',
 
   const message = {
     notification: { title, body },
-    data: { orderId, status: newStatus, type, deepLink },
+    data: { orderId, type, deepLink },
     tokens,
   };
 
@@ -111,10 +73,12 @@ export const sendOrderStatusNotification = onDocumentUpdated('orders/{orderId}',
     });
 
     if (failedTokens.length > 0) {
-      const remainingTokens = tokensData.filter((t: any) => !failedTokens.includes(t.token));
-      await admin.firestore().collection('profiles').doc(userId).update({
-        fcmTokens: remainingTokens
-      });
+      const tokensToRemove = tokensData.filter((t: any) => failedTokens.includes(t.token));
+      if (tokensToRemove.length > 0) {
+        await admin.firestore().collection('profiles').doc(userId).update({
+          fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove)
+        });
+      }
     }
 
   } catch (error) {

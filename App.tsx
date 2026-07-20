@@ -12,11 +12,10 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { CartProvider } from './src/features/cart/presentation/hooks/useCart';
 import { AppProvider } from './src/app/AppProvider';
 import { NotificationProvider } from './src/core/firebase/NotificationProvider';
+import { ToastProvider } from './src/core/providers/ToastContext';
 import { ErrorBoundary } from './src/app/ErrorBoundary';
 import { bootstrap } from './src/app/bootstrap';
 import Constants from 'expo-constants';
-
-bootstrap();
 
 const isExpoGo = Constants.appOwnership === 'expo';
 
@@ -53,6 +52,14 @@ function App() {
     ...MaterialIcons.font,
   });
 
+  const [bootstrapReady, setBootstrapReady] = React.useState(false);
+
+  useEffect(() => {
+    bootstrap().then(() => {
+      setBootstrapReady(true);
+    });
+  }, []);
+
   useEffect(() => {
     if (Platform.OS === 'android') {
       try {
@@ -62,52 +69,22 @@ function App() {
         (NavigationBar as any).setBehaviorAsync('overlay-swipe');
       } catch (e) {}
     }
-    if (fontsLoaded) {
+    if (fontsLoaded && bootstrapReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, bootstrapReady]);
 
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const isLargeScreen = Platform.OS === 'web' && windowWidth > 450;
-
-  if (!fontsLoaded) return null;
-
-  // Calculate dynamic scale to fit the mobile container inside the browser window
-  // with a small padding (e.g., 0.95) to account for taskbars or margins.
-  const scale = isLargeScreen 
-    ? Math.min((windowWidth * 0.95) / MOBILE_WIDTH, (windowHeight * 0.95) / MOBILE_HEIGHT, 1) 
-    : 1;
+  if (!fontsLoaded || !bootstrapReady) return null;
 
   return (
     <SafeAreaProvider>
       <YStack 
         flex={1} 
-        backgroundColor={isLargeScreen ? '#f5f5f5' : COLORS.primaryBg}
-        alignItems="center"
-        justifyContent="center"
+        backgroundColor={COLORS.primaryBg}
       >
-        <View 
-          style={{
-            flex: isLargeScreen ? undefined : 1,
-            width: isLargeScreen ? MOBILE_WIDTH : '100%',
-            height: isLargeScreen ? MOBILE_HEIGHT : '100%',
-            backgroundColor: COLORS.primaryBg,
-            ...(isLargeScreen ? {
-              transform: [{ scale }],
-              borderWidth: 1,
-              borderColor: '#ddd',
-              borderRadius: 24,
-              overflow: 'hidden',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.15,
-              shadowRadius: 20,
-              elevation: 10,
-            } : {})
-          }}
-        >
-          <StatusBar style="auto" />
-          <AppProvider>
+        <StatusBar style="auto" />
+        <AppProvider>
+          <ToastProvider>
             <CartProvider>
               <NotificationProvider>
                 <ErrorBoundary>
@@ -115,8 +92,8 @@ function App() {
                 </ErrorBoundary>
               </NotificationProvider>
             </CartProvider>
-          </AppProvider>
-        </View>
+          </ToastProvider>
+        </AppProvider>
       </YStack>
     </SafeAreaProvider>
   );

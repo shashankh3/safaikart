@@ -1,4 +1,4 @@
-import { db, doc, getDoc, setDoc } from '../../../core/firebase/firestore';
+import { db, doc, getDoc, setDoc, serverTimestamp } from '../../../core/firebase/firestore';
 import { Cart } from '../domain/Cart';
 
 export class CartRepository {
@@ -7,6 +7,6 @@ export class CartRepository {
     return snap.exists() ? (snap.data() as Cart) : null;
   }
   static async saveRemoteCart(userId: string, cart: Cart): Promise<void> {
-    await setDoc(doc(db, 'carts', userId), { ...cart, updatedAt: new Date() }, { merge: true });
+    await setDoc(doc(db, 'carts', userId), { ...cart, updatedAt: serverTimestamp() }, { merge: true });
   }
 }

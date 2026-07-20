@@ -27,6 +27,7 @@ import {
 import { formatDate } from "@/lib/format";
 import { Megaphone, Send, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useDialogs } from "@/components/ui/dialog-provider";
 
 export const Route = createFileRoute("/_authenticated/broadcasts")({
   ssr: false,
@@ -51,6 +52,7 @@ function BroadcastsPage() {
   const [audience, setAudience] = useState<Broadcast["audience"]>("ALL");
   const [channel, setChannel] = useState<Broadcast["channel"]>("IN_APP");
   const [sending, setSending] = useState(false);
+  const { confirm } = useDialogs();
 
   useEffect(() => {
     const db = getDb();
@@ -90,7 +92,7 @@ function BroadcastsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this broadcast?")) return;
+    if (!(await confirm({ title: "Delete this broadcast?", destructive: true }))) return;
     try {
       await deleteDoc(doc(getDb(), "broadcasts", id));
       toast.success("Deleted");

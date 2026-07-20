@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ServicesRouteImport } from './routes/services'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as CartRouteImport } from './routes/cart'
+import { Route as CustomerRouteImport } from './routes/_customer'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ServicesIndexRouteImport } from './routes/services.index'
+import { Route as ServicesTypeRouteImport } from './routes/services.$type'
 import { Route as AuthenticatedZonesRouteImport } from './routes/_authenticated/zones'
 import { Route as AuthenticatedWinbackRouteImport } from './routes/_authenticated/winback'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
@@ -43,10 +49,35 @@ import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAppConfigRouteImport } from './routes/_authenticated/app-config'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedAdminsRouteImport } from './routes/_authenticated/admins'
+import { Route as ServicesTypeIndexRouteImport } from './routes/services.$type.index'
+import { Route as ServicesTypeGenderRouteImport } from './routes/services.$type.$gender'
+import { Route as CustomerAppSupportRouteImport } from './routes/_customer/app.support'
+import { Route as CustomerAppProfileRouteImport } from './routes/_customer/app.profile'
+import { Route as CustomerAppOrdersRouteImport } from './routes/_customer/app.orders'
+import { Route as CustomerAppOrdersIdRouteImport } from './routes/_customer/app.orders.$id'
 
+const ServicesRoute = ServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerRoute = CustomerRouteImport.update({
+  id: '/_customer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -57,6 +88,16 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesIndexRoute = ServicesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ServicesRoute,
+} as any)
+const ServicesTypeRoute = ServicesTypeRouteImport.update({
+  id: '/$type',
+  path: '/$type',
+  getParentRoute: () => ServicesRoute,
 } as any)
 const AuthenticatedZonesRoute = AuthenticatedZonesRouteImport.update({
   id: '/zones',
@@ -213,10 +254,43 @@ const AuthenticatedAdminsRoute = AuthenticatedAdminsRouteImport.update({
   path: '/admins',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ServicesTypeIndexRoute = ServicesTypeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ServicesTypeRoute,
+} as any)
+const ServicesTypeGenderRoute = ServicesTypeGenderRouteImport.update({
+  id: '/$gender',
+  path: '/$gender',
+  getParentRoute: () => ServicesTypeRoute,
+} as any)
+const CustomerAppSupportRoute = CustomerAppSupportRouteImport.update({
+  id: '/app/support',
+  path: '/app/support',
+  getParentRoute: () => CustomerRoute,
+} as any)
+const CustomerAppProfileRoute = CustomerAppProfileRouteImport.update({
+  id: '/app/profile',
+  path: '/app/profile',
+  getParentRoute: () => CustomerRoute,
+} as any)
+const CustomerAppOrdersRoute = CustomerAppOrdersRouteImport.update({
+  id: '/app/orders',
+  path: '/app/orders',
+  getParentRoute: () => CustomerRoute,
+} as any)
+const CustomerAppOrdersIdRoute = CustomerAppOrdersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => CustomerAppOrdersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cart': typeof CartRoute
+  '/checkout': typeof CheckoutRoute
   '/login': typeof LoginRoute
+  '/services': typeof ServicesRouteWithChildren
   '/admins': typeof AuthenticatedAdminsRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/app-config': typeof AuthenticatedAppConfigRoute
@@ -248,9 +322,19 @@ export interface FileRoutesByFullPath {
   '/users': typeof AuthenticatedUsersRoute
   '/winback': typeof AuthenticatedWinbackRoute
   '/zones': typeof AuthenticatedZonesRoute
+  '/services/$type': typeof ServicesTypeRouteWithChildren
+  '/services/': typeof ServicesIndexRoute
+  '/app/orders': typeof CustomerAppOrdersRouteWithChildren
+  '/app/profile': typeof CustomerAppProfileRoute
+  '/app/support': typeof CustomerAppSupportRoute
+  '/services/$type/$gender': typeof ServicesTypeGenderRoute
+  '/services/$type/': typeof ServicesTypeIndexRoute
+  '/app/orders/$id': typeof CustomerAppOrdersIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cart': typeof CartRoute
+  '/checkout': typeof CheckoutRoute
   '/login': typeof LoginRoute
   '/admins': typeof AuthenticatedAdminsRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
@@ -283,12 +367,23 @@ export interface FileRoutesByTo {
   '/users': typeof AuthenticatedUsersRoute
   '/winback': typeof AuthenticatedWinbackRoute
   '/zones': typeof AuthenticatedZonesRoute
+  '/services': typeof ServicesIndexRoute
+  '/app/orders': typeof CustomerAppOrdersRouteWithChildren
+  '/app/profile': typeof CustomerAppProfileRoute
+  '/app/support': typeof CustomerAppSupportRoute
+  '/services/$type/$gender': typeof ServicesTypeGenderRoute
+  '/services/$type': typeof ServicesTypeIndexRoute
+  '/app/orders/$id': typeof CustomerAppOrdersIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/_customer': typeof CustomerRouteWithChildren
+  '/cart': typeof CartRoute
+  '/checkout': typeof CheckoutRoute
   '/login': typeof LoginRoute
+  '/services': typeof ServicesRouteWithChildren
   '/_authenticated/admins': typeof AuthenticatedAdminsRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/app-config': typeof AuthenticatedAppConfigRoute
@@ -320,12 +415,23 @@ export interface FileRoutesById {
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/winback': typeof AuthenticatedWinbackRoute
   '/_authenticated/zones': typeof AuthenticatedZonesRoute
+  '/services/$type': typeof ServicesTypeRouteWithChildren
+  '/services/': typeof ServicesIndexRoute
+  '/_customer/app/orders': typeof CustomerAppOrdersRouteWithChildren
+  '/_customer/app/profile': typeof CustomerAppProfileRoute
+  '/_customer/app/support': typeof CustomerAppSupportRoute
+  '/services/$type/$gender': typeof ServicesTypeGenderRoute
+  '/services/$type/': typeof ServicesTypeIndexRoute
+  '/_customer/app/orders/$id': typeof CustomerAppOrdersIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/cart'
+    | '/checkout'
     | '/login'
+    | '/services'
     | '/admins'
     | '/analytics'
     | '/app-config'
@@ -357,9 +463,19 @@ export interface FileRouteTypes {
     | '/users'
     | '/winback'
     | '/zones'
+    | '/services/$type'
+    | '/services/'
+    | '/app/orders'
+    | '/app/profile'
+    | '/app/support'
+    | '/services/$type/$gender'
+    | '/services/$type/'
+    | '/app/orders/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/cart'
+    | '/checkout'
     | '/login'
     | '/admins'
     | '/analytics'
@@ -392,11 +508,22 @@ export interface FileRouteTypes {
     | '/users'
     | '/winback'
     | '/zones'
+    | '/services'
+    | '/app/orders'
+    | '/app/profile'
+    | '/app/support'
+    | '/services/$type/$gender'
+    | '/services/$type'
+    | '/app/orders/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/_customer'
+    | '/cart'
+    | '/checkout'
     | '/login'
+    | '/services'
     | '/_authenticated/admins'
     | '/_authenticated/analytics'
     | '/_authenticated/app-config'
@@ -428,21 +555,61 @@ export interface FileRouteTypes {
     | '/_authenticated/users'
     | '/_authenticated/winback'
     | '/_authenticated/zones'
+    | '/services/$type'
+    | '/services/'
+    | '/_customer/app/orders'
+    | '/_customer/app/profile'
+    | '/_customer/app/support'
+    | '/services/$type/$gender'
+    | '/services/$type/'
+    | '/_customer/app/orders/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  CustomerRoute: typeof CustomerRouteWithChildren
+  CartRoute: typeof CartRoute
+  CheckoutRoute: typeof CheckoutRoute
   LoginRoute: typeof LoginRoute
+  ServicesRoute: typeof ServicesRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/services': {
+      id: '/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_customer': {
+      id: '/_customer'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof CustomerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -458,6 +625,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/services/': {
+      id: '/services/'
+      path: '/'
+      fullPath: '/services/'
+      preLoaderRoute: typeof ServicesIndexRouteImport
+      parentRoute: typeof ServicesRoute
+    }
+    '/services/$type': {
+      id: '/services/$type'
+      path: '/$type'
+      fullPath: '/services/$type'
+      preLoaderRoute: typeof ServicesTypeRouteImport
+      parentRoute: typeof ServicesRoute
     }
     '/_authenticated/zones': {
       id: '/_authenticated/zones'
@@ -676,6 +857,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/services/$type/': {
+      id: '/services/$type/'
+      path: '/'
+      fullPath: '/services/$type/'
+      preLoaderRoute: typeof ServicesTypeIndexRouteImport
+      parentRoute: typeof ServicesTypeRoute
+    }
+    '/services/$type/$gender': {
+      id: '/services/$type/$gender'
+      path: '/$gender'
+      fullPath: '/services/$type/$gender'
+      preLoaderRoute: typeof ServicesTypeGenderRouteImport
+      parentRoute: typeof ServicesTypeRoute
+    }
+    '/_customer/app/support': {
+      id: '/_customer/app/support'
+      path: '/app/support'
+      fullPath: '/app/support'
+      preLoaderRoute: typeof CustomerAppSupportRouteImport
+      parentRoute: typeof CustomerRoute
+    }
+    '/_customer/app/profile': {
+      id: '/_customer/app/profile'
+      path: '/app/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof CustomerAppProfileRouteImport
+      parentRoute: typeof CustomerRoute
+    }
+    '/_customer/app/orders': {
+      id: '/_customer/app/orders'
+      path: '/app/orders'
+      fullPath: '/app/orders'
+      preLoaderRoute: typeof CustomerAppOrdersRouteImport
+      parentRoute: typeof CustomerRoute
+    }
+    '/_customer/app/orders/$id': {
+      id: '/_customer/app/orders/$id'
+      path: '/$id'
+      fullPath: '/app/orders/$id'
+      preLoaderRoute: typeof CustomerAppOrdersIdRouteImport
+      parentRoute: typeof CustomerAppOrdersRoute
+    }
   }
 }
 
@@ -751,10 +974,69 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface CustomerAppOrdersRouteChildren {
+  CustomerAppOrdersIdRoute: typeof CustomerAppOrdersIdRoute
+}
+
+const CustomerAppOrdersRouteChildren: CustomerAppOrdersRouteChildren = {
+  CustomerAppOrdersIdRoute: CustomerAppOrdersIdRoute,
+}
+
+const CustomerAppOrdersRouteWithChildren =
+  CustomerAppOrdersRoute._addFileChildren(CustomerAppOrdersRouteChildren)
+
+interface CustomerRouteChildren {
+  CustomerAppOrdersRoute: typeof CustomerAppOrdersRouteWithChildren
+  CustomerAppProfileRoute: typeof CustomerAppProfileRoute
+  CustomerAppSupportRoute: typeof CustomerAppSupportRoute
+}
+
+const CustomerRouteChildren: CustomerRouteChildren = {
+  CustomerAppOrdersRoute: CustomerAppOrdersRouteWithChildren,
+  CustomerAppProfileRoute: CustomerAppProfileRoute,
+  CustomerAppSupportRoute: CustomerAppSupportRoute,
+}
+
+const CustomerRouteWithChildren = CustomerRoute._addFileChildren(
+  CustomerRouteChildren,
+)
+
+interface ServicesTypeRouteChildren {
+  ServicesTypeGenderRoute: typeof ServicesTypeGenderRoute
+  ServicesTypeIndexRoute: typeof ServicesTypeIndexRoute
+}
+
+const ServicesTypeRouteChildren: ServicesTypeRouteChildren = {
+  ServicesTypeGenderRoute: ServicesTypeGenderRoute,
+  ServicesTypeIndexRoute: ServicesTypeIndexRoute,
+}
+
+const ServicesTypeRouteWithChildren = ServicesTypeRoute._addFileChildren(
+  ServicesTypeRouteChildren,
+)
+
+interface ServicesRouteChildren {
+  ServicesTypeRoute: typeof ServicesTypeRouteWithChildren
+  ServicesIndexRoute: typeof ServicesIndexRoute
+}
+
+const ServicesRouteChildren: ServicesRouteChildren = {
+  ServicesTypeRoute: ServicesTypeRouteWithChildren,
+  ServicesIndexRoute: ServicesIndexRoute,
+}
+
+const ServicesRouteWithChildren = ServicesRoute._addFileChildren(
+  ServicesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  CustomerRoute: CustomerRouteWithChildren,
+  CartRoute: CartRoute,
+  CheckoutRoute: CheckoutRoute,
   LoginRoute: LoginRoute,
+  ServicesRoute: ServicesRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,0 +1,371 @@
+{
+  "businessId": "safaikart_01",
+  "businessName": "SafaiKart",
+  "currency": "INR",
+  "services": {
+    "dry_cleaning": {
+      "displayName": "Dry Cleaning",
+      "estimatedTime": "1-2 DAY",
+      "preOrderNote": "Please check your garments for any damage before placing the order.",
+      "termsAndConditions": [
+        "While SafaiKart handles every item with care, SafaiKart is not liable for normal wear and tear that may occur during the process.",
+        "Stain removal is not guaranteed. Safaikart uses the best available cleaning agents to treat stains; however, if a stain persists after cleaning, Safaikart shall not be liable.",
+        "Colour fading or loss may occur during the cleaning process, as different fabrics and dye agents may not respond uniformly to cleaning. Safaikart shall not be liable for any such colour fading or loss."
+      ],
+      "categories": {
+        "men": {
+          "displayName": "Men",
+          "subCategories": {
+            "top_wear": [
+              { "id": "dc_m_tw_001", "name": "Shirt", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_002", "name": "T-shirt", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_003", "name": "Sleeveless Shirt", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_004", "name": "Sweatshirt", "price": 150, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_005", "name": "Hoodie", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_006", "name": "Jacket (Leather)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_007", "name": "Jacket (Bomber)", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_008", "name": "Jacket (Varsity)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_009", "name": "Jacket (Sports)", "price": 210, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_010", "name": "Jacket (Nehru)", "price": 150, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_011", "name": "Jacket (Pathani Band Gala)", "price": 450, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_012", "name": "Tuxedo Jacket", "price": 450, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_013", "name": "Denim jacket", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_014", "name": "Winter Jacket", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_015", "name": "Long Jacket", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_016", "name": "Trench Coat", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_017", "name": "Biker jacket (Heavy with pads)", "price": 550, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_018", "name": "Shacket", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_019", "name": "Blazer", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_020", "name": "Waist coat", "price": 150, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_021", "name": "Flannel shirts", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_022", "name": "Sherwani (Light)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_023", "name": "Sherwani (Heavy)", "price": 450, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_024", "name": "Sherwani (Groom)", "price": 650, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_025", "name": "Kurta (Light)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_026", "name": "Kurta (Plain)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_027", "name": "Kurta (Heavy)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_028", "name": "Kurta (Embroidered)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_029", "name": "Kurta (Chikan)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_030", "name": "Kurta (Manyavar)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_031", "name": "Safari suit", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": "Shirt only" },
+              { "id": "dc_m_tw_032", "name": "Indo-western top wear (Light)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_tw_033", "name": "Indo-western top wear (Heavy)", "price": 450, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null }
+            ],
+            "bottom_wear": [
+              { "id": "dc_m_bw_001", "name": "Pant", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_002", "name": "Jeans", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_003", "name": "Trousers", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_004", "name": "Cargo Pants", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_005", "name": "Pyjama (Light)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_006", "name": "Pyjama (Heavy)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_007", "name": "Pyjama (Embroidered)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_008", "name": "Chudidar (Light)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_009", "name": "Chudidar (Heavy)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_010", "name": "Lungi (Normal)", "price": 130, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_011", "name": "Lungi (Pleated)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_012", "name": "Lower", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_013", "name": "Half pant", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_m_bw_014", "name": "Shorts", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null }
+            ]
+          }
+        },
+        "women": {
+          "displayName": "Women",
+          "subCategories": {
+            "top_wear": [
+              { "id": "dc_w_tw_001", "name": "Top (Light)", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_002", "name": "Top (Heavy)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_003", "name": "Long top (Light)", "price": 150, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_004", "name": "Long top (Heavy)", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_005", "name": "Shirt (Light)", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_006", "name": "Shirt (Heavy)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_007", "name": "T-shirt", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_008", "name": "Sweatshirt", "price": 150, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_009", "name": "Hoodie", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_010", "name": "Jacket (Leather)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_011", "name": "Jacket (Bomber)", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_012", "name": "Jacket (Varsity)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_013", "name": "Jacket (Sports)", "price": 210, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_014", "name": "Denim jacket", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_015", "name": "Winter Jacket", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_016", "name": "Long Jacket", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_017", "name": "Trench coat", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_018", "name": "Biker jacket (Heavy with pads)", "price": 550, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_019", "name": "Kurti (Light)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_020", "name": "Kurti (Heavy)", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_021", "name": "Long kurti (Light)", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_022", "name": "Long Kurti (Heavy)", "price": 330, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_023", "name": "Anarkali Kurti (Light)", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_024", "name": "Anarkali Kurti (Heavy)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_025", "name": "Saree (Light)", "price": 300, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_026", "name": "Saree (Cotton)", "price": 300, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_027", "name": "Saree (Silk Light)", "price": 400, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_028", "name": "Saree (Silk Heavy)", "price": 550, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_029", "name": "Saree (Heavy)", "price": 400, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_030", "name": "Saree (Embroidered)", "price": 400, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_031", "name": "Kanjivaram Saree", "price": 400, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_032", "name": "Dulhan saree", "price": 450, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_033", "name": "Saree Banarasi (Light)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_034", "name": "Saree Banarasi (Heavy)", "price": 450, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_035", "name": "Dupatta (Light)", "price": 80, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_036", "name": "Dupatta (Heavy)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_037", "name": "Blouse (Light)", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_tw_038", "name": "Blouse (Heavy)", "price": 120, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null }
+            ],
+            "bottom_wear": [
+              { "id": "dc_w_bw_001", "name": "Pant", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_002", "name": "Jeans", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_003", "name": "Trousers", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_004", "name": "Cargo Pants", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_005", "name": "Pyjama (Light)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_006", "name": "Pyjama (Heavy)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_007", "name": "Pyjama (Embroidered)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_008", "name": "Chudidar (Light)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_009", "name": "Chudidar (Heavy)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_010", "name": "Lower", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_011", "name": "Half pant", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_012", "name": "Shorts", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_013", "name": "Sharara (Light)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_014", "name": "Sharara (Heavy)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_015", "name": "Lehenga (Light)", "price": 450, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_016", "name": "Lehenga (Heavy)", "price": 650, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_017", "name": "Lehenga (Heavy Cane)", "price": 810, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_018", "name": "Skirt (Light)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_019", "name": "Skirt (Heavy)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_020", "name": "Palazzo (Light)", "price": 150, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_bw_021", "name": "Palazzo (Heavy)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null }
+            ],
+            "dress": [
+              { "id": "dc_w_dr_001", "name": "Western One piece (Light)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_dr_002", "name": "Western One piece (Heavy)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_dr_003", "name": "Gown (Light)", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_dr_004", "name": "Gown (Heavy)", "price": 450, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_dr_005", "name": "Jumpsuit", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "dc_w_dr_006", "name": "Co-ord set (Light)", "price": 270, "priceType": "fixed", "unit": "per_set", "isActive": true, "note": null },
+              { "id": "dc_w_dr_007", "name": "Co-ord set (Heavy)", "price": 360, "priceType": "fixed", "unit": "per_set", "isActive": true, "note": null }
+            ]
+          }
+        }
+      }
+    },
+    "steam_press": {
+      "displayName": "Steam Press",
+      "estimatedTime": "1-2 DAY",
+      "preOrderNote": "Please check your garments for any damage before placing the order.",
+      "termsAndConditions": [
+        "While SafaiKart handles every item with care, SafaiKart is not liable for normal wear and tear that may occur during the process.",
+        "Colour fading or loss may occur during the cleaning process, as different fabrics and dye agents may not respond uniformly to cleaning. Safaikart shall not be liable for any such colour fading or loss.",
+        "This service DOES NOT include sofa covers, curtains, shoes, carpets/rug, doormats, tie, Undergarments, bike/car covers, shawls, party wear, dohard/blanket/comforter/quilts/blanket or mattress covers, bathrobe, waterproof baby sheet, pillow/cushions."
+      ],
+      "categories": {
+        "men": {
+          "displayName": "Men",
+          "subCategories": {
+            "top_wear": [
+              { "id": "sp_m_tw_001", "name": "Shirt", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_002", "name": "T-shirt", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_003", "name": "Sleeveless Shirt", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_004", "name": "Sweatshirt", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_005", "name": "Hoodie", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_006", "name": "Jacket (Nehru)", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_007", "name": "Jacket (Pathani Band Gala)", "price": 120, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_008", "name": "Tuxedo Jacket", "price": 150, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": "jacket only" },
+              { "id": "sp_m_tw_009", "name": "Blazer", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_010", "name": "Waist coat", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_011", "name": "Flannel shirt", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_012", "name": "Sherwani (Light)", "price": 150, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_013", "name": "Sherwani (Heavy)", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_014", "name": "Sherwani (Groom)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_015", "name": "Kurta (Light)", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_016", "name": "Kurta (Plain)", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_017", "name": "Kurta (Heavy)", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_018", "name": "Kurta (Embroidered)", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_019", "name": "Kurta (Chikan)", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_020", "name": "Kurta (Manyavar)", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_021", "name": "Safari suit", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": "Shirt only" },
+              { "id": "sp_m_tw_022", "name": "Indo-western top wear (Light)", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_tw_023", "name": "Indo-western top wear (Heavy)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null }
+            ],
+            "bottom_wear": [
+              { "id": "sp_m_bw_001", "name": "Pant", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_002", "name": "Jeans", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_003", "name": "Trousers", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_004", "name": "Cargo Pants", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_005", "name": "Pyjama (Light)", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_006", "name": "Pyjama (Heavy)", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_007", "name": "Pyjama (Embroidered)", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_008", "name": "Chudidar (Light)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_009", "name": "Chudidar (Heavy)", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_010", "name": "Lungi (Normal)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_011", "name": "Lungi (Pleated)", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_012", "name": "Lower", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_013", "name": "Half pant", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_m_bw_014", "name": "Shorts", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null }
+            ]
+          }
+        },
+        "women": {
+          "displayName": "Women",
+          "subCategories": {
+            "top_wear": [
+              { "id": "sp_w_tw_001", "name": "Top (Light)", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_002", "name": "Top (Heavy)", "price": 40, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_003", "name": "Long top (Light)", "price": 40, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_004", "name": "Long top (Heavy)", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_005", "name": "Shirt (Light)", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_006", "name": "Shirt (Heavy)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_007", "name": "T-shirt", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_008", "name": "Sweatshirt", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_009", "name": "Hoodie", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_010", "name": "Over coat", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_011", "name": "Kurti (Light)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_012", "name": "Kurti (Heavy)", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_013", "name": "Long kurti (Light)", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_014", "name": "Long Kurti (Heavy)", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_015", "name": "Anarkali Kurti (Light)", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_016", "name": "Anarkali Kurti (Heavy)", "price": 120, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_017", "name": "Saree (Light)", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_018", "name": "Saree (Cotton)", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_019", "name": "Saree (Silk Light)", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_020", "name": "Saree (Silk Heavy)", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_021", "name": "Saree (Heavy)", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_022", "name": "Saree (Embroidered)", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_023", "name": "Kanjivaram Saree", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_024", "name": "Dulhan saree", "price": 150, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_025", "name": "Saree Banarasi (Light)", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_026", "name": "Saree Banarasi (Heavy)", "price": 10, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_027", "name": "Dupatta (Light)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_028", "name": "Dupatta (Heavy)", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_029", "name": "Blouse (Light)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_tw_030", "name": "Blouse (Heavy)", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null }
+            ],
+            "bottom_wear": [
+              { "id": "sp_w_bw_001", "name": "Pant", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_002", "name": "Jeans", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_003", "name": "Trousers", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_004", "name": "Cargo Pants", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_005", "name": "Pyjama (Light)", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_006", "name": "Pyjama (Heavy)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_007", "name": "Pyjama (Embroidered)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_008", "name": "Chudidar (Light)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_009", "name": "Chudidar (Heavy)", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_010", "name": "Lower", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_011", "name": "Half pant", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_012", "name": "Shorts", "price": 18, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_013", "name": "Sharara (Light)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_014", "name": "Sharara (Heavy)", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_015", "name": "Lehenga (Light)", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_016", "name": "Lehenga (Heavy)", "price": 200, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_017", "name": "Lehenga (Heavy Cane)", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_018", "name": "Skirt (Light)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_019", "name": "Skirt (Heavy)", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_020", "name": "Palazzo (Light)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_bw_021", "name": "Palazzo (Heavy)", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null }
+            ],
+            "dress": [
+              { "id": "sp_w_dr_001", "name": "Western One piece (Light)", "price": 90, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_dr_002", "name": "Western One piece (Heavy)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_dr_003", "name": "Gown (Light)", "price": 60, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_dr_004", "name": "Gown (Heavy)", "price": 150, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_dr_005", "name": "Jumpsuit", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "sp_w_dr_006", "name": "Co-ord set (Light)", "price": 60, "priceType": "fixed", "unit": "per_set", "isActive": true, "note": null },
+              { "id": "sp_w_dr_007", "name": "Co-ord set (Heavy)", "price": 150, "priceType": "fixed", "unit": "per_set", "isActive": true, "note": null }
+            ]
+          }
+        }
+      }
+    },
+    "wash_and_fold": {
+      "displayName": "Wash & Fold",
+      "estimatedTime": "1-2 DAY",
+      "preOrderNote": "Please check your garments for any damage before placing the order.",
+      "termsAndConditions": [],
+      "categories": {}
+    },
+    "shoe_care": {
+      "displayName": "Shoe Care",
+      "estimatedTime": "1-2 DAY",
+      "preOrderNote": "Please check your footwear for any damage before placing the order.",
+      "termsAndConditions": [
+        "While SafaiKart handles every item with care, SafaiKart is not liable for normal wear and tear that may occur during the process.",
+        "Stain removal is not guaranteed. Safaikart uses the best available cleaning agents to treat stains; however, if a stain persists after cleaning, Safaikart shall not be liable.",
+        "Colour fading or loss may occur during the cleaning process, as different fabrics and dye agents may not respond uniformly to cleaning. Safaikart shall not be liable for any such colour fading or loss."
+      ],
+      "categories": {
+        "common": {
+          "displayName": "Common",
+          "subCategories": {
+            "shoes": [
+              { "id": "sc_c_sh_001", "name": "Normal shoes", "price": 350, "priceType": "fixed", "unit": "per_pair", "isActive": true, "note": null },
+              { "id": "sc_c_sh_002", "name": "Canvas shoes", "price": 350, "priceType": "fixed", "unit": "per_pair", "isActive": true, "note": null },
+              { "id": "sc_c_sh_003", "name": "Net shoes", "price": 350, "priceType": "fixed", "unit": "per_pair", "isActive": true, "note": null },
+              { "id": "sc_c_sh_004", "name": "Non leather shoes", "price": 350, "priceType": "fixed", "unit": "per_pair", "isActive": true, "note": null },
+              { "id": "sc_c_sh_005", "name": "Sports shoes", "price": 350, "priceType": "fixed", "unit": "per_pair", "isActive": true, "note": null },
+              { "id": "sc_c_sh_006", "name": "Leather sneakers", "price": 450, "priceType": "fixed", "unit": "per_pair", "isActive": true, "note": null }
+            ],
+            "packages": [
+              { "id": "sc_c_pk_001", "name": "Shoe cleaning Monthly Package", "price": 2100, "priceType": "fixed", "unit": "per_package", "isActive": true, "note": "8 pair cleaning" }
+            ]
+          }
+        }
+      }
+    },
+    "household": {
+      "displayName": "Household",
+      "estimatedTime": "1-2 DAY",
+      "preOrderNote": "Please check your items for any damage before placing the order.",
+      "termsAndConditions": [
+        "While SafaiKart handles every item with care, SafaiKart is not liable for normal wear and tear that may occur during the process.",
+        "Stain removal is not guaranteed. Safaikart uses the best available cleaning agents to treat stains; however, if a stain persists after cleaning, Safaikart shall not be liable."
+      ],
+      "categories": {
+        "general": {
+          "displayName": "General Household",
+          "subCategories": {
+            "items": [
+              { "id": "hh_g_it_001", "name": "Curtains 4x4", "price": 100, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_002", "name": "Curtains 8x4 (Light)", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_003", "name": "Curtains 10x4 (Light)", "price": 250, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_004", "name": "Curtains 8x4 (Heavy)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_005", "name": "Curtains 10x4 (Heavy)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_006", "name": "Curtains 11x5 to 15x6 (Light)", "minPrice": 350, "maxPrice": 600, "priceType": "variable", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_007", "name": "Curtains 11x5 to 15x6 (Heavy)", "minPrice": 450, "maxPrice": 700, "priceType": "variable", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_008", "name": "Curtains 16x7 to 21x10 (Light)", "minPrice": 800, "maxPrice": 1500, "priceType": "variable", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_009", "name": "Curtains 16x7 to 21x10 (Heavy)", "minPrice": 900, "maxPrice": 1600, "priceType": "variable", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_010", "name": "Carpet", "price": 35, "priceType": "fixed", "unit": "per_sqft", "isActive": true, "note": null },
+              { "id": "hh_g_it_011", "name": "Rug", "price": 35, "priceType": "fixed", "unit": "per_sqft", "isActive": true, "note": null },
+              { "id": "hh_g_it_012", "name": "Cushion (Small)", "price": 30, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_013", "name": "Cushion (Large)", "price": 50, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_014", "name": "Blinds 4x4", "price": 280, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_015", "name": "Blinds 8x4", "price": 550, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_016", "name": "Blinds 9x5 to 13x10", "minPrice": 850, "maxPrice": 2500, "priceType": "variable", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_017", "name": "Sofa (Cloth material)", "price": 250, "priceType": "fixed", "unit": "per_seat", "isActive": true, "note": "Normal cloth, without cushion" },
+              { "id": "hh_g_it_018", "name": "Sofa (Rexin/Leather)", "price": 350, "priceType": "fixed", "unit": "per_seat", "isActive": true, "note": "Without cushion" },
+              { "id": "hh_g_it_019", "name": "Dining table chair (Light)", "price": 150, "priceType": "fixed", "unit": "per_chair", "isActive": true, "note": "Cloth material" },
+              { "id": "hh_g_it_020", "name": "Dining table chair (Heavy)", "price": 210, "priceType": "fixed", "unit": "per_chair", "isActive": true, "note": "Rexin or leather material" },
+              { "id": "hh_g_it_021", "name": "Cushion chair", "price": 150, "priceType": "fixed", "unit": "per_chair", "isActive": true, "note": null },
+              { "id": "hh_g_it_022", "name": "Dohard (Single bed)", "price": 180, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_023", "name": "Dohard (Double bed)", "price": 300, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_024", "name": "Blanket (Single bed)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_025", "name": "Comforter (Single bed)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_026", "name": "Quilt (Single bed)", "price": 350, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_027", "name": "Blanket (Double bed)", "price": 550, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_028", "name": "Comforter (Double bed)", "price": 550, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_029", "name": "Quilt (Double bed)", "price": 550, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_030", "name": "Mattress cover (Double bed)", "price": 240, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_031", "name": "Doormat (Small)", "price": 130, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null },
+              { "id": "hh_g_it_032", "name": "Doormat (Large)", "price": 270, "priceType": "fixed", "unit": "per_piece", "isActive": true, "note": null }
+            ]
+          }
+        }
+      }
+    },
+    "premium_care": {
+      "displayName": "Premium Care",
+      "estimatedTime": "1-2 DAY",
+      "preOrderNote": "Please check your garments for any damage before placing the order.",
+      "termsAndConditions": [],
+      "categories": {}
+    }
+  }
+}

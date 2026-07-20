@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyPaymentStatus = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
+const statusLogic_1 = require("../utils/statusLogic");
 const razorpayClient_1 = require("./razorpayClient");
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -21,6 +22,8 @@ exports.verifyPaymentStatus = (0, https_1.onCall)({ secrets: [razorpayClient_1.r
     const paymentsQuery = await db.collection('payments')
         .where('orderId', '==', orderId)
         .where('userId', '==', uid)
+        .where('razorpayOrderId', '!=', null)
+        .orderBy('razorpayOrderId', 'desc')
         .orderBy('createdAt', 'desc')
         .limit(1)
         .get();
@@ -58,7 +61,7 @@ exports.verifyPaymentStatus = (0, https_1.onCall)({ secrets: [razorpayClient_1.r
             if (capturedPayment.amount === paymentRecord.amountMinor && capturedPayment.currency === 'INR') {
                 // Update Firestore
                 await db.runTransaction(async (tx) => {
-                    var _a;
+                    var _a, _b;
                     const payDoc = await tx.get(paymentDocRef);
                     const ordRef = db.collection('orders').doc(orderId);
                     const ordDoc = await tx.get(ordRef);
@@ -66,17 +69,34 @@ exports.verifyPaymentStatus = (0, https_1.onCall)({ secrets: [razorpayClient_1.r
                         return;
                     if (((_a = payDoc.data()) === null || _a === void 0 ? void 0 : _a.status) === 'VERIFIED')
                         return;
+                    const isCancelled = ['CANCELLED', 'REFUND_PENDING', 'REFUNDED'].includes((_b = ordDoc.data()) === null || _b === void 0 ? void 0 : _b.status);
                     tx.update(paymentDocRef, {
                         status: 'VERIFIED',
-                        webhookVerified: false,
+                        webhookVerified: false, // Verified via polling
                         razorpayPaymentId: capturedPayment.id,
+                        requiresRefund: isCancelled ? true : false,
                         verifiedAt: admin.firestore.FieldValue.serverTimestamp()
                     });
-                    tx.update(ordRef, {
-                        status: 'CONFIRMED',
-                        paymentStatus: 'VERIFIED',
-                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-                    });
+                    if (!isCancelled) {
+                        const ordData = ordDoc.data();
+                        const statusUpdate = (0, statusLogic_1.buildStatusHistoryUpdate)(ordData, 'CONFIRMED');
+                        tx.update(ordRef, Object.assign(Object.assign({}, statusUpdate), { paymentStatus: 'VERIFIED' }));
+                        if (ordData.couponCode) {
+                            const couponRef = db.collection('coupons').doc(ordData.couponCode);
+                            tx.set(couponRef, {
+                                usedCount: admin.firestore.FieldValue.increment(1),
+                                usedBy: admin.firestore.FieldValue.arrayUnion(ordData.userId)
+                            }, { merge: true });
+                        }
+                    }
+                    else {
+                        db.collection('auditLogs').add({
+                            action: 'LATE_PAYMENT_DETECTED',
+                            orderId: ordRef.id,
+                            razorpayPaymentId: capturedPayment.id,
+                            at: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
                 });
                 return { paymentStatus: 'VERIFIED', orderStatus: 'CONFIRMED' };
             }

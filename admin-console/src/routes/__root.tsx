@@ -6,20 +6,17 @@ import {
   useRouter,
   HeadContent,
   Scripts,
-  useLocation
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { AuthProvider, useAuth } from "@/context/auth-context";
+import { AuthProvider } from "@/context/auth-context";
+import { CartProvider } from "@/lib/cart";
 import { ThemeProvider } from "@/lib/theme";
 import { Toaster } from "@/components/ui/sonner";
-import { CartProvider, useCart } from "@/context/cart-context";
-import { CartSheet } from "@/components/consumer/cart-sheet";
-import { Sparkles, ShoppingCart } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { StickyCartBar } from "@/components/public/sticky-cart-bar";
+import { DialogProvider } from "@/components/ui/dialog-provider";
 
 function NotFoundComponent() {
   return (
@@ -86,12 +83,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "SafaiKart" },
+      { title: "SafaiKart Admin" },
       {
         name: "description",
         content:
-          "SafaiKart premium dry cleaning and laundry services.",
+          "SafaiKart admin console for managing laundry & dry-cleaning orders, catalog, and users.",
       },
+      { name: "author", content: "SafaiKart" },
+      { property: "og:title", content: "SafaiKart Admin" },
+      {
+        property: "og:description",
+        content: "Manage SafaiKart orders, catalog, and users from one polished console.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -124,84 +129,21 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function GlobalNavbar() {
-  const { user, loading: authLoading } = useAuth();
-  const { itemCount, setIsCartOpen } = useCart();
-  const location = useLocation();
-  const router = useRouter();
-
-  // Hide the global navbar if we are inside the admin dashboard or login screens
-  const isAppRoute = location.pathname.startsWith('/dashboard') || location.pathname === '/login';
-  
-  if (isAppRoute) return null;
-
-  return (
-    <motion.header 
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60"
-    >
-      <div className="container mx-auto px-6 h-20 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="h-10 w-10 rounded-xl bg-brand text-gold grid place-items-center shadow-lg shadow-brand/20 group-hover:scale-105 transition-transform">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <span className="font-extrabold text-2xl tracking-tight text-brand">SafaiKart</span>
-        </Link>
-        <nav className="flex items-center gap-4 sm:gap-6">
-          <Link to="/" className="text-sm font-semibold hover:text-brand transition-colors text-muted-foreground hidden md:block">Services</Link>
-          <Link to="/" className="text-sm font-semibold hover:text-brand transition-colors text-muted-foreground hidden md:block">How it Works</Link>
-          
-          <Button 
-            variant="outline" 
-            size="icon"
-            className="rounded-xl border-border relative bg-white hover:bg-muted"
-            onClick={() => setIsCartOpen(true)}
-          >
-            <ShoppingCart className="h-4 w-4 text-brand" />
-            {itemCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-gold text-brand text-xs font-bold h-5 w-5 rounded-full flex items-center justify-center animate-in zoom-in">
-                {itemCount}
-              </span>
-            )}
-          </Button>
-
-          {!authLoading && user ? (
-            <Link to="/dashboard">
-              <Button variant="outline" className="hidden sm:flex rounded-xl border-brand text-brand hover:bg-brand hover:text-gold shadow-sm">
-                Admin Dashboard
-              </Button>
-            </Link>
-          ) : (
-            <Link to="/login">
-              <Button className="rounded-xl bg-brand text-gold hover:opacity-90 shadow-lg shadow-brand/20">Sign In</Button>
-            </Link>
-          )}
-        </nav>
-      </div>
-    </motion.header>
-  );
-}
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
-          <CartProvider>
-            <div className="flex flex-col min-h-screen">
-              <GlobalNavbar />
-              <div className="flex-1">
-                <Outlet />
-              </div>
-            </div>
-            <CartSheet />
-            <Toaster richColors position="top-right" />
-          </CartProvider>
-        </AuthProvider>
+        <DialogProvider>
+          <AuthProvider>
+            <CartProvider>
+              <Outlet />
+              <StickyCartBar />
+              <Toaster richColors position="top-right" />
+            </CartProvider>
+          </AuthProvider>
+        </DialogProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

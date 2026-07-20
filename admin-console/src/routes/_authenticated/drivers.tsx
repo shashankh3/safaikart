@@ -28,6 +28,7 @@ import {
 import { formatDate } from "@/lib/format";
 import { Plus, Pencil, Trash2, Loader2, Bike, Phone } from "lucide-react";
 import { toast } from "sonner";
+import { useDialogs } from "@/components/ui/dialog-provider";
 
 export const Route = createFileRoute("/_authenticated/drivers")({
   ssr: false,
@@ -58,6 +59,7 @@ function DriversPage() {
   const [editing, setEditing] = useState<Driver | null>(null);
   const [draft, setDraft] = useState<Omit<Driver, "id">>(EMPTY);
   const [saving, setSaving] = useState(false);
+  const { confirm } = useDialogs();
 
   useEffect(() => {
     const db = getDb();
@@ -117,7 +119,7 @@ function DriversPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Remove this runner?")) return;
+    if (!(await confirm({ title: "Remove this runner?", destructive: true }))) return;
     try {
       await deleteDoc(doc(getDb(), "drivers", id));
       toast.success("Runner removed");

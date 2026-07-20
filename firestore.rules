@@ -1,84 +1,70 @@
 rules_version = '2';
+
+// SafaiKart Unified Firestore Rules (Android App + Admin Console)
+//
+// Principles:
+//   * Direct client writes to `orders` and `payments` are BLOCKED (except creation of order drafts).
+//     All state changes go through Cloud Functions callables so notifications, audit logs, and pricing checks stay authoritative.
+//   * Admin-only collections require a document in `adminUsers/{uid}`.
+//   * `superadmin` role has full write access to admin-only surfaces.
+//   * Other roles are gated by narrower rules below.
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- helpers ---------------------------------------------------------
     function isSignedIn() {
       return request.auth != null;
     }
-
     function isOwner(uid) {
       return isSignedIn() && request.auth.uid == uid;
     }
-
     function isAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
+      return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
     }
-
+    function adminRole() {
+      return get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.role;
+    }
+    function isSuperAdmin() {
+      return isAdmin() && adminRole() == 'superadmin';
+    }
+    function hasAnyAdminRole(roles) {
+      return isAdmin() && (adminRole() in roles);
+    }
     function affectsOnly(allowed) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
     }
 
-    // E3: Enforce valid orders
-    function isValidOrder() {
-      let data = request.resource.data;
-      return data.items is list
-        && data.items.size() > 0
-        && data.items.size() <= 20
-        && data.finalAmountMinor >= 0;
+    // --- adminUsers ------------------------------------------------------
+    match /adminUsers/{uid} {
+      allow read: if isAdmin();
+      allow write: if isSuperAdmin();
     }
 
-    // ===== USERS =====
-    match /users/{userId} {
-      allow read: if isOwner(userId);
-      allow write: if false;
+    // --- users (core auth mapping) ---------------------------------------
+    match /users/{uid} {
+      allow read: if isAdmin() || isOwner(uid);
+      allow write: if false; // written by auth trigger only
     }
 
-    // ===== PROFILES =====
-    match /profiles/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-
-      allow update: if isOwner(userId)
-        && request.resource.data.userId == resource.data.userId
-        && request.resource.data.phoneNumber == resource.data.phoneNumber
-        && request.resource.data.email == resource.data.email
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.isBlocked == resource.data.isBlocked
-        && request.resource.data.createdAt == resource.data.createdAt
-        && affectsOnly([
-          'displayName',
-          'photoURL',
-          'defaultAddressId',
-          'updatedAt'
-        ]);
-
-      allow create, delete: if false;
+    // --- profiles (customer profiles) ------------------------------------
+    match /profiles/{uid} {
+      allow read: if isAdmin() || isOwner(uid);
+      allow update: if (isOwner(uid) && affectsOnly(['displayName', 'photoURL', 'defaultAddressId', 'email', 'updatedAt'])) 
+                    || hasAnyAdminRole(['superadmin', 'admin', 'support']);
+      allow create: if isOwner(uid);
+      allow delete: if false;
     }
 
-    // ===== ADDRESSES =====
+    // --- addresses -------------------------------------------------------
     match /addresses/{addressId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn()
-        && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == resource.data.userId;
-      allow delete: if isSignedIn()
-        && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == resource.data.userId;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
-    // ===== CATEGORIES =====
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // ===== SERVICES =====
-    match /services/{serviceId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // ===== CARTS =====
+    // --- carts -----------------------------------------------------------
     match /carts/{userId} {
       allow read: if isOwner(userId);
       allow write: if isOwner(userId)
@@ -86,95 +72,108 @@ service cloud.firestore {
         && request.resource.data.items.size() <= 50;
     }
 
-    // ===== ORDERS =====
-    match /orders/{orderId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      // The client uses createOrderDraft callable, but we enforce this rule as requested in E3.
-      allow create: if isSignedIn() 
-        && request.resource.data.userId == request.auth.uid
-        && isValidOrder();
-      allow update, delete: if false;
-    }
-
-    // ===== PAYMENTS =====
-    match /payments/{paymentId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create, update, delete: if false;
-    }
-
-    // ===== COUPONS =====
-    match /coupons/{couponId} {
-      allow read, write: if isAdmin();
-    }
-
-    // ===== PICKUP SLOTS =====
-    match /pickupSlots/{slotId} {
-      allow read: if isSignedIn() && resource.data.isActive == true;
-      allow write: if false;
-    }
-
-    // ===== NOTIFICATIONS =====
-    match /notifications/{notificationId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow write: if false;
-    }
-
-    // ===== REVIEWS =====
-    match /reviews/{reviewId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && reviewId == request.auth.uid + '_' + request.resource.data.serviceId
-        && request.resource.data.keys().hasOnly(['userId', 'rating', 'comment', 'serviceId', 'createdAt'])
-        && request.resource.data.rating is int
-        && request.resource.data.rating >= 1
-        && request.resource.data.rating <= 5;
-      allow update, delete: if false;
-    }
-
-    // ===== ISSUES =====
-    match /issues/{issueId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.keys().hasOnly(['userId', 'orderId', 'subject', 'description', 'status', 'createdAt'])
-        && request.resource.data.status == 'OPEN';
-      allow update, delete: if false;
-    }
-
-    // ===== APP CONFIG =====
-    match /appConfig/{docId} {
+    // --- catalog (publicly readable, admin-writable) --------------------
+    match /categories/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if hasAnyAdminRole(['superadmin', 'admin']);
+    }
+    match /services/{id} {
+      allow read: if true;
+      allow write: if hasAnyAdminRole(['superadmin', 'admin']);
+    }
+    match /banners/{id} {
+      allow read: if true;
+      allow write: if hasAnyAdminRole(['superadmin', 'admin']);
+    }
+    match /zones/{id} {
+      allow read: if true;
+      allow write: if hasAnyAdminRole(['superadmin', 'admin']);
+    }
+    match /coupons/{id} {
+      allow read: if isAdmin();
+      allow write: if hasAnyAdminRole(['superadmin', 'admin']);
+    }
+    match /pickupSlots/{id} {
+      allow read: if true;
+      allow write: if hasAnyAdminRole(['superadmin', 'admin', 'ops']);
     }
 
-    // ===== RATE LIMITS =====
-    match /rateLimits/{docId} {
+    // --- orders ---------------------------------------------------------
+    match /orders/{orderId} {
+      allow read: if isAdmin() || isOwner(resource.data.userId);
+      allow create: if false;
+      allow update, delete: if false;
+
+      // Nested logs for order history (audit trail)
+      match /logs/{logId} {
+        allow read: if isAdmin() || isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.userId);
+        allow write: if false; // written by Cloud Functions only
+      }
+    }
+
+    // --- payments -------------------------------------------------------
+    match /payments/{paymentId} {
+      allow read: if isAdmin() || isOwner(resource.data.userId);
+      allow write: if false; // Cloud Function only (e.g., Razorpay webhook)
+    }
+
+    // --- finance --------------------------------------------------------
+    match /expenses/{id} {
+      allow read, write: if hasAnyAdminRole(['superadmin', 'admin', 'finance']);
+    }
+
+    // --- ops and support ------------------------------------------------
+    match /drivers/{id} {
+      allow read: if isAdmin();
+      allow write: if hasAnyAdminRole(['superadmin', 'admin', 'ops']);
+    }
+    match /issues/{issueId} {
+      allow read: if isAdmin() || isOwner(resource.data.userId);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if hasAnyAdminRole(['superadmin', 'admin', 'support', 'ops']);
+      allow delete: if false;
+
+      match /messages/{msgId} {
+        allow read: if isAdmin() || isOwner(get(/databases/$(database)/documents/issues/$(issueId)).data.userId);
+        allow create: if (isSignedIn() && isOwner(get(/databases/$(database)/documents/issues/$(issueId)).data.userId)) || hasAnyAdminRole(['superadmin', 'admin', 'support', 'ops']);
+        allow update, delete: if false;
+      }
+    }
+    
+    // --- marketing and social -------------------------------------------
+    match /broadcasts/{id} {
+      allow read: if isAdmin();
+      allow write: if hasAnyAdminRole(['superadmin', 'admin']);
+    }
+    match /reviews/{id} {
+      allow read: if true;
+      allow create: if false;
+      allow update, delete: if hasAnyAdminRole(['superadmin', 'admin', 'support']);
+    }
+
+    // --- audit + config -------------------------------------------------
+    match /auditLogs/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+    match /appConfig/{id} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+    
+    // --- notifications --------------------------------------------------
+    match /notifications/{id} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow write: if false; // Only Cloud Functions can create/update notifications
+    }
+    match /rateLimits/{id} {
+      allow read, write: if false; // Internal to Cloud Functions
+    }
+
+    // Default deny.
+    match /{document=**} {
       allow read, write: if false;
-    }
-
-    // ===== ADMIN USERS =====
-    match /adminUsers/{adminUserId} {
-      allow read: if isOwner(adminUserId) || isAdmin();
-      allow write: if false;
-    }
-
-    // ===== ADMIN-ONLY INTERNAL COLLECTIONS =====
-    match /zones/{docId} { allow read, write: if isAdmin(); }
-    match /broadcasts/{docId} { allow read, write: if isAdmin(); }
-    match /orderMessages/{docId} { allow read, write: if isAdmin(); }
-    match /expenses/{docId} { allow read, write: if isAdmin(); }
-    match /drivers/{docId} { allow read, write: if isAdmin(); }
-    match /complaints/{docId} { allow read, write: if isAdmin(); }
-    match /banners/{docId} { allow read, write: if isAdmin(); }
-
-    // ===== AUDIT LOGS =====
-    match /auditLogs/{logId} {
-      allow read, write: if false;
-    }
-
-    match /{document=**} { 
-      allow read, write: if false; 
     }
   }
 }

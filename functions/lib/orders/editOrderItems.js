@@ -5,20 +5,30 @@ const https_1 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const pricing_logic_1 = require("./pricing.logic");
 const editOrder_logic_1 = require("./editOrder.logic");
+const coupon_logic_1 = require("../checkout/coupon.logic");
+const deliveryLogic_1 = require("../utils/deliveryLogic");
+const contracts_1 = require("../contracts");
 const razorpayClient_1 = require("../payments/razorpayClient");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret] }, async (request) => {
+exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret], region: 'asia-south1', enforceAppCheck: true }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {
         throw new https_1.HttpsError('unauthenticated', 'User must be logged in to edit an order.');
     }
-    const { orderId, items } = request.data;
-    if (!orderId || !items || !Array.isArray(items)) {
-        throw new https_1.HttpsError('invalid-argument', 'Order ID and items array are required.');
+    const { rateLimiter } = await Promise.resolve().then(() => require('../utils/rateLimiter'));
+    await rateLimiter(uid, 'editOrderItems', 10, 3600);
+    let orderId, items;
+    try {
+        const parsed = contracts_1.editOrderItemsRequest.parse(request.data);
+        orderId = parsed.orderId;
+        items = parsed.items;
+    }
+    catch (e) {
+        throw new https_1.HttpsError('invalid-argument', `Validation error: ${e.message}`);
     }
     const orderRef = db.collection('orders').doc(orderId);
     let refundAmountMinor = 0;
@@ -32,14 +42,6 @@ exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorp
         const orderData = orderDoc.data();
         if (orderData.userId !== uid) {
             throw new https_1.HttpsError('permission-denied', 'Unauthorized to edit this order.');
-        }
-        // D7: Rate limiting - prevent edits if updated < 5 minutes ago
-        if (orderData.updatedAt) {
-            const lastUpdated = orderData.updatedAt.toDate();
-            const nowMs = Date.now();
-            if (nowMs - lastUpdated.getTime() < 5 * 60 * 1000) {
-                throw new https_1.HttpsError('resource-exhausted', 'Please wait 5 minutes before editing the order again.');
-            }
         }
         // Verify 3-minute window
         if (!orderData.editableUntil) {
@@ -92,11 +94,13 @@ exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorp
         }
         // Recalculate discount if coupon exists
         let couponInfo = null;
+        let subtotalForCouponMinor = pricingItems.reduce((sum, item) => sum + (item.unitPriceMinor * item.quantity), 0);
         if (orderData.couponCode) {
             const couponDoc = await transaction.get(db.collection('coupons').doc(orderData.couponCode));
             if (couponDoc.exists) {
                 const coupon = couponDoc.data();
-                if (coupon.isActive) {
+                const couponResult = (0, coupon_logic_1.validateCouponApplicability)(coupon, uid, subtotalForCouponMinor);
+                if (couponResult.valid) {
                     couponInfo = {
                         type: coupon.type,
                         discountValue: coupon.discountValue,
@@ -145,15 +149,7 @@ exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorp
         // Recalculate Estimated Delivery Date if items changed
         let estimatedDeliveryDateStr = orderData.estimatedDeliveryDate;
         if (orderData.pickupSlotSnapshot) {
-            try {
-                const [hours, minutes] = (orderData.pickupSlotSnapshot.startTime || '10:00').split(':').map(Number);
-                const pickupDate = new Date(`${orderData.pickupSlotSnapshot.date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00Z`);
-                pickupDate.setHours(pickupDate.getHours() + maxDurationHours + 4);
-                estimatedDeliveryDateStr = pickupDate.toISOString();
-            }
-            catch (e) {
-                console.error('Error parsing date for editOrderItems', e);
-            }
+            estimatedDeliveryDateStr = (0, deliveryLogic_1.computeEstimatedDelivery)(orderData.pickupSlotSnapshot.date, orderData.pickupSlotSnapshot.startTime, maxDurationHours);
         }
         transaction.update(orderRef, {
             items: processedItems,
@@ -179,6 +175,7 @@ exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorp
             const refundData = await response.json();
             await orderRef.update({
                 refundId: refundData.id,
+                refundStatus: 'INITIATED',
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
         }

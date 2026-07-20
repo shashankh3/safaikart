@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   CommandDialog,
   CommandEmpty,
@@ -106,10 +108,7 @@ const ROUTES: NavRoute[] = [
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const [orders, setOrders] = useState<OrderHit[]>([]);
-  const [users, setUsers] = useState<UserHit[]>([]);
-  const [drivers, setDrivers] = useState<DriverHit[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const debouncedQ = useDebounce(q, 300);
   const navigate = useNavigate();
   const { logout } = useAuth();
 
@@ -145,33 +144,30 @@ export function CommandPalette() {
     return () => window.removeEventListener("keydown", onKey);
   }, [navigate]);
 
-  useEffect(() => {
-    if (!open || loaded) return;
-    (async () => {
-      try {
-        const db = getDb();
-        const [oSnap, uSnap, dSnap] = await Promise.all([
-          getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(200))),
-          getDocs(query(collection(db, "profile"), limit(500))),
-          getDocs(query(collection(db, "drivers"), limit(200))),
-        ]);
-        setOrders(
-          oSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as OrderHit[],
-        );
-        setUsers(
-          uSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as UserHit[],
-        );
-        setDrivers(
-          dSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as DriverHit[],
-        );
-        setLoaded(true);
-      } catch {
-        // ignore
-      }
-    })();
-  }, [open, loaded]);
+  const { data: searchData } = useQuery({
+    queryKey: ["command-palette-data"],
+    queryFn: async () => {
+      const db = getDb();
+      const [oSnap, uSnap, dSnap] = await Promise.all([
+        getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(200))),
+        getDocs(query(collection(db, "profiles"), limit(500))),
+        getDocs(query(collection(db, "drivers"), limit(200))),
+      ]);
+      return {
+        orders: oSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as OrderHit[],
+        users: uSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as UserHit[],
+        drivers: dSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as DriverHit[],
+      };
+    },
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const query_ = q.trim().toLowerCase();
+  const orders = searchData?.orders || [];
+  const users = searchData?.users || [];
+  const drivers = searchData?.drivers || [];
+
+  const query_ = debouncedQ.trim().toLowerCase();
   const orderHits = useMemo(() => {
     if (!query_) return orders.slice(0, 8);
     return orders

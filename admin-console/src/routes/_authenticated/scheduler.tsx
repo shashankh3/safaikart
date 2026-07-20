@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
-import { getDb } from "@/lib/firebase";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatINR, statusColor, toDate } from "@/lib/format";
+import { useOrdersStream } from "@/hooks/useOrdersStream";
 import { ChevronLeft, ChevronRight, CalendarDays, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/scheduler")({
@@ -41,18 +40,9 @@ function dayKey(d: Date): string {
 }
 
 function SchedulerPage() {
-  const [orders, setOrders] = useState<Order[] | null>(null);
+  const { orders: rawOrdersRaw, loading } = useOrdersStream({ limitCount: 500 });
+  const orders = loading ? null : rawOrdersRaw;
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()));
-
-  useEffect(() => {
-    const db = getDb();
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(500));
-    return onSnapshot(q, (snap) => {
-      setOrders(
-        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Order),
-      );
-    });
-  }, []);
 
   const days = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {

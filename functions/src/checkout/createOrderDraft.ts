@@ -2,6 +2,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { rateLimiter } from '../utils/rateLimiter';
 import { calculateOrderTotals, PricingItem } from '../orders/pricing.logic';
+import { createOrderDraftRequest } from '../contracts';
 
 // Initialize admin app if not already initialized
 if (!admin.apps.length) {
@@ -19,9 +20,35 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
   // Rate limiting: max 5 orders per hour (3600 seconds)
   await rateLimiter(uid, 'createOrderDraft', 5, 3600);
 
-  const { addressId, pickupSlotId, couponCode, directItems } = data;
-  if (!addressId || !pickupSlotId) {
-    throw new functions.https.HttpsError('invalid-argument', 'Address ID and Pickup Slot ID are required.');
+  let addressId: string, pickupSlotId: string, couponCode: string | null = null, directItems: any[] | undefined, idempotencyKey: string | undefined;
+
+  try {
+    const parsed = createOrderDraftRequest.parse(data);
+    addressId = parsed.addressId;
+    pickupSlotId = parsed.pickupSlotId;
+    directItems = parsed.directItems;
+    couponCode = parsed.couponCode || null;
+    idempotencyKey = parsed.idempotencyKey;
+  } catch (e: any) {
+    throw new functions.https.HttpsError('invalid-argument', `Validation error: ${e.message}`);
+  }
+
+  // A4: Idempotency Check
+  if (idempotencyKey) {
+    const existing = await db.collection('orders')
+      .where('userId', '==', uid)
+      .where('idempotencyKey', '==', idempotencyKey)
+      .limit(1)
+      .get();
+    
+    if (!existing.empty) {
+      const existingOrder = existing.docs[0];
+      return {
+        orderId: existingOrder.id,
+        finalAmountMinor: existingOrder.data().finalAmountMinor,
+        priceConfirmed: existingOrder.data().priceConfirmed
+      };
+    }
   }
 
   // 1. Fetch Items
@@ -183,6 +210,7 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
       },
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      idempotencyKey: idempotencyKey || null,
     };
 
     transaction.set(newOrderRef, orderData);

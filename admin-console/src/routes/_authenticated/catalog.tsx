@@ -48,6 +48,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { formatINR } from "@/lib/format";
 import { Loader2, Pencil, Plus, Trash2, Tag, Layers } from "lucide-react";
 import { toast } from "sonner";
+import { SERVICE_TYPES, GENDERS } from "@/lib/taxonomy";
 
 export const Route = createFileRoute("/_authenticated/catalog")({
   ssr: false,
@@ -64,6 +65,8 @@ type Service = {
   unit?: string;
   priceType?: "fixed" | "variable" | string;
   addons?: ServiceAddon[];
+  serviceType?: string;
+  gender?: string;
 };
 
 async function loadCategories(): Promise<Category[]> {
@@ -98,11 +101,14 @@ function CatalogPage() {
   );
 }
 
+import { runSeed } from "@/seedScript";
+
 function CategoriesPanel() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["categories"], queryFn: loadCategories });
   const [editing, setEditing] = useState<Category | null>(null);
   const [open, setOpen] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   const saveMutation = useMutation({
     mutationFn: async (c: Category) => {
@@ -146,6 +152,30 @@ function CategoriesPanel() {
             <div className="text-xs text-muted-foreground">
               Top-level service groupings shown in the app.
             </div>
+            {process.env.NODE_ENV === "development" && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2"
+                onClick={async () => {
+                  if (!window.confirm("This will DELETE all existing services and categories and replace them with the JSON payload. Continue?")) return;
+                  setSeeding(true);
+                  try {
+                    await runSeed();
+                    toast.success("Seed completed!");
+                    qc.invalidateQueries({ queryKey: ["categories"] });
+                    qc.invalidateQueries({ queryKey: ["services"] });
+                  } catch (e) {
+                    toast.error("Seed failed: " + e);
+                  }
+                  setSeeding(false);
+                }}
+                disabled={seeding}
+              >
+                {seeding ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                Seed Catalog JSON
+              </Button>
+            )}
           </div>
           <Dialog
             open={open}
@@ -297,6 +327,8 @@ function ServicesPanel() {
         priceMinor: Number(s.priceMinor ?? 0),
         unit: s.unit ?? "",
         priceType: s.priceType ?? "fixed",
+        serviceType: s.serviceType ?? "",
+        gender: s.gender ?? "",
         addons: (s.addons || []).map((a) => ({
           name: a.name,
           priceMinor: Number(a.priceMinor ?? 0),
@@ -525,6 +557,50 @@ function ServiceDialog({
                 <SelectItem value="variable">Variable</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Service type</Label>
+            <Select
+              value={value.serviceType || ""}
+              onValueChange={(v) => onChange({ ...value, serviceType: v })}
+            >
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue placeholder="Auto-detect from name" />
+              </SelectTrigger>
+              <SelectContent>
+                {SERVICE_TYPES.map((t) => (
+                  <SelectItem key={t.key} value={t.key}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="text-[10px] text-muted-foreground">
+              Groups the item under Dry Cleaning / Steam Press / etc.
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Gender / group</Label>
+            <Select
+              value={value.gender || ""}
+              onValueChange={(v) => onChange({ ...value, gender: v })}
+            >
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue placeholder="Auto-detect from name" />
+              </SelectTrigger>
+              <SelectContent>
+                {GENDERS.map((g) => (
+                  <SelectItem key={g.key} value={g.key}>
+                    {g.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="text-[10px] text-muted-foreground">
+              Men / Women / Kids / Unisex / Home.
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">

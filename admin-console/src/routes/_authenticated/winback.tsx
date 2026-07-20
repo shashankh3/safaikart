@@ -64,7 +64,7 @@ function WinbackPage() {
     (async () => {
       const db = getDb();
       const [p, o, c] = await Promise.all([
-        getDocs(query(collection(db, "profile"))),
+        getDocs(query(collection(db, "profiles"))),
         getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc"))),
         getDocs(query(collection(db, "complaints"))),
       ]);

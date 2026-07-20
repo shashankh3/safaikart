@@ -5,6 +5,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const rateLimiter_1 = require("../utils/rateLimiter");
 const pricing_logic_1 = require("../orders/pricing.logic");
+const contracts_1 = require("../contracts");
 // Initialize admin app if not already initialized
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -18,9 +19,33 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
     }
     // Rate limiting: max 5 orders per hour (3600 seconds)
     await (0, rateLimiter_1.rateLimiter)(uid, 'createOrderDraft', 5, 3600);
-    const { addressId, pickupSlotId, couponCode, directItems } = data;
-    if (!addressId || !pickupSlotId) {
-        throw new functions.https.HttpsError('invalid-argument', 'Address ID and Pickup Slot ID are required.');
+    let addressId, pickupSlotId, couponCode = null, directItems, idempotencyKey;
+    try {
+        const parsed = contracts_1.createOrderDraftRequest.parse(data);
+        addressId = parsed.addressId;
+        pickupSlotId = parsed.pickupSlotId;
+        directItems = parsed.directItems;
+        couponCode = parsed.couponCode || null;
+        idempotencyKey = parsed.idempotencyKey;
+    }
+    catch (e) {
+        throw new functions.https.HttpsError('invalid-argument', `Validation error: ${e.message}`);
+    }
+    // A4: Idempotency Check
+    if (idempotencyKey) {
+        const existing = await db.collection('orders')
+            .where('userId', '==', uid)
+            .where('idempotencyKey', '==', idempotencyKey)
+            .limit(1)
+            .get();
+        if (!existing.empty) {
+            const existingOrder = existing.docs[0];
+            return {
+                orderId: existingOrder.id,
+                finalAmountMinor: existingOrder.data().finalAmountMinor,
+                priceConfirmed: existingOrder.data().priceConfirmed
+            };
+        }
     }
     // 1. Fetch Items
     let itemsToProcess = [];
@@ -159,6 +184,7 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
             },
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            idempotencyKey: idempotencyKey || null,
         };
         transaction.set(newOrderRef, orderData);
         finalOrderId = newOrderRef.id;

@@ -76,6 +76,7 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission> | "*"> = {
   support: new Set<Permission>([
     "complaints.resolve",
     "inbox.reply",
+    "users.write",
   ]),
   viewer: new Set<Permission>(),
 };
@@ -129,9 +130,9 @@ const ROLE_ROUTES: Record<Role, readonly string[] | "*"> = {
   ],
 };
 
-export function normaliseRole(role: string | undefined | null): Role {
+export function normaliseRole(role: string | undefined | null): Role | null {
   const r = (role ?? "").toLowerCase();
-  return (ROLES as readonly string[]).includes(r) ? (r as Role) : "viewer";
+  return (ROLES as readonly string[]).includes(r) ? (r as Role) : null;
 }
 
 export function hasPermission(role: Role | null | undefined, permission: Permission): boolean {

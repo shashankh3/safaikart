@@ -1,14 +1,26 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { assertAdmin } from '../utils/assertAdmin';
+import { buildStatusHistoryUpdate } from '../utils/statusLogic';
+import { z } from 'zod';
+
+const assignSchema = z.object({
+  orderId: z.string().min(1),
+  driverId: z.string().min(1)
+});
 
 export const adminAssignDriver = onCall(async (request) => {
-  assertAdmin(request);
+  assertAdmin(request, ['superadmin', 'admin', 'ops']);
   const { data, auth } = request;
 
-  const { orderId, driverId } = data;
-  if (!orderId || !driverId) {
-    throw new HttpsError('invalid-argument', 'orderId and driverId are required.');
+  let orderId: string;
+  let driverId: string;
+  try {
+    const parsed = assignSchema.parse(data);
+    orderId = parsed.orderId;
+    driverId = parsed.driverId;
+  } catch (e: any) {
+    throw new HttpsError('invalid-argument', `Validation error: ${e.message}`);
   }
 
   const db = admin.firestore();
@@ -29,31 +41,14 @@ export const adminAssignDriver = onCall(async (request) => {
       }
 
       const orderData = orderDoc.data()!;
-      const currentStatus = orderData.status;
-
-      const now = admin.firestore.FieldValue.serverTimestamp();
-      
-      const newStatusHistoryEntry = {
-        status: 'DRIVER_ASSIGNED',
-        at: now
-      };
+      const statusUpdate = buildStatusHistoryUpdate(orderData, 'DRIVER_ASSIGNED');
 
       const updatePayload: any = {
+        ...statusUpdate,
         driverId: driverId,
         driverName: driverData.name || 'Assigned Driver',
         driverPhone: driverData.phone || '',
-        updatedAt: now,
       };
-      
-      // Keep track of status history
-      if (orderData.statusHistory) {
-        updatePayload.statusHistory = admin.firestore.FieldValue.arrayUnion(newStatusHistoryEntry);
-      } else {
-        updatePayload.statusHistory = [
-           { status: currentStatus, at: orderData.createdAt },
-           newStatusHistoryEntry 
-        ];
-      }
 
       transaction.update(orderRef, updatePayload);
 
@@ -65,7 +60,7 @@ export const adminAssignDriver = onCall(async (request) => {
         orderId: orderId,
         before: { driverId: orderData.driverId || null },
         after: { driverId: driverId },
-        at: now
+        at: admin.firestore.FieldValue.serverTimestamp()
       });
     });
 

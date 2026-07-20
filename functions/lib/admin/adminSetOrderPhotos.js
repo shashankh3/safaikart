@@ -4,12 +4,23 @@ exports.adminSetOrderPhotos = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const assertAdmin_1 = require("../utils/assertAdmin");
+const zod_1 = require("zod");
+const photosSchema = zod_1.z.object({
+    orderId: zod_1.z.string().min(1),
+    photos: zod_1.z.array(zod_1.z.string().url())
+});
 exports.adminSetOrderPhotos = (0, https_1.onCall)(async (request) => {
-    (0, assertAdmin_1.assertAdmin)(request);
+    (0, assertAdmin_1.assertAdmin)(request, ['superadmin', 'admin', 'ops']);
     const { data, auth } = request;
-    const { orderId, photos } = data;
-    if (!orderId || !Array.isArray(photos)) {
-        throw new https_1.HttpsError('invalid-argument', 'orderId and photos array are required.');
+    let orderId;
+    let photos;
+    try {
+        const parsed = photosSchema.parse(data);
+        orderId = parsed.orderId;
+        photos = parsed.photos;
+    }
+    catch (e) {
+        throw new https_1.HttpsError('invalid-argument', `Validation error: ${e.message}`);
     }
     const db = admin.firestore();
     const orderRef = db.collection('orders').doc(orderId);

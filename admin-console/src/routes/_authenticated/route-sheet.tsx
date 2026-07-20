@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import { useMemo, useState } from "react";
 import { getDb } from "@/lib/firebase";
+import { formatDate, toDate, statusColor } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useOrdersStream } from "@/hooks/useOrdersStream";
 import {
   Select,
   SelectContent,
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { statusColor, toDate } from "@/lib/format";
+
 import { Printer, MapPin, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/route-sheet")({
@@ -38,19 +39,10 @@ function dayKey(d: Date | null): string {
 }
 
 function RouteSheetPage() {
-  const [orders, setOrders] = useState<Order[] | null>(null);
+  const { orders: rawOrdersRaw, loading } = useOrdersStream({ limitCount: 500 });
+  const orders = loading ? null : rawOrdersRaw;
   const [day, setDay] = useState<string>(() => dayKey(new Date()));
   const [mode, setMode] = useState<"pickup" | "delivery">("pickup");
-
-  useEffect(() => {
-    const db = getDb();
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(500));
-    return onSnapshot(q, (snap) => {
-      setOrders(
-        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Order),
-      );
-    });
-  }, []);
 
   const filtered = useMemo(() => {
     const allow = mode === "pickup" ? PICKUP_STATUSES : DELIVERY_STATUSES;

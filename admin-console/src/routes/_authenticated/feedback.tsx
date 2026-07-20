@@ -27,7 +27,7 @@ function FeedbackPage() {
 
   useEffect(() => {
     const db = getDb();
-    const q = query(collection(db, "feedback"), orderBy("createdAt", "desc"), limit(500));
+    const q = query(collection(db, "reviews"), orderBy("createdAt", "desc"), limit(500));
     const unsub = onSnapshot(
       q,
       (snap) => {
@@ -61,7 +61,7 @@ function FeedbackPage() {
   if (!items || !stats) {
     return (
       <div className="p-16 flex items-center justify-center text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading feedback…
+        <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading reviews…
       </div>
     );
   }
@@ -131,7 +131,7 @@ function FeedbackPage() {
           {items.length === 0 ? (
             <div className="p-16 text-center text-muted-foreground">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              No feedback yet. Feedback documents in the <code className="text-xs">feedback</code> collection will appear here.
+              No feedback yet. Feedback documents in the <code className="text-xs">reviews</code> collection will appear here.
             </div>
           ) : (
             <div className="divide-y divide-border">

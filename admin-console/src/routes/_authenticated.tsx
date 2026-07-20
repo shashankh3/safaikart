@@ -14,15 +14,31 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthedLayout() {
-  const { user, admin, loading } = useAuth();
+  const { user, admin, role, loading } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login", replace: true });
-  }, [user, loading, navigate]);
+    if (loading) return;
+    if (!user) navigate({ to: "/login", replace: true });
+    else if (role === "customer") navigate({ to: "/app/orders", replace: true });
+  }, [user, role, loading, navigate]);
 
-  if (loading || !user) {
+  if (role === "error") {
+    return (
+      <div className="min-h-screen grid place-items-center bg-background">
+        <div className="text-center">
+          <ShieldAlert className="h-10 w-10 mx-auto text-rose-500 mb-2" />
+          <div className="font-semibold text-lg text-foreground">Session Error</div>
+          <div className="text-muted-foreground text-sm max-w-sm mt-1">
+            We couldn't load your profile. Please try signing out and signing in again.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || !user || role === "customer") {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
         <div className="flex items-center gap-2 text-muted-foreground text-sm">

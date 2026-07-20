@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyWebhookSignature = void 0;
+exports.verifyWebhookSignature = verifyWebhookSignature;
 const crypto = require("crypto");
 function verifyWebhookSignature(rawBody, signature, secret) {
     if (!signature || !secret || !rawBody) {
@@ -22,5 +22,4 @@ function verifyWebhookSignature(rawBody, signature, secret) {
         return false;
     }
 }
-exports.verifyWebhookSignature = verifyWebhookSignature;
 //# sourceMappingURL=webhook.logic.js.map

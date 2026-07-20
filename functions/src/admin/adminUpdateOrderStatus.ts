@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { buildStatusHistoryUpdate } from '../utils/statusLogic';
 
 // Valid status transitions
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -13,18 +14,31 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   DELIVERED: [], // Terminal
   CANCELLED: ['REFUNDED'], // Terminal for fulfillment, but can be updated to REFUNDED if money returned
   REFUND_PENDING: ['REFUNDED'], // Handled by other processes
+  REFUND_INITIATED: ['REFUNDED'],
   REFUNDED: [], // Terminal
 };
 
 import { assertAdmin } from '../utils/assertAdmin';
+import { z } from 'zod';
+
+const updateSchema = z.object({
+  orderId: z.string().min(1),
+  newStatus: z.string().min(1)
+});
 
 export const adminUpdateOrderStatus = onCall(async (request) => {
-  assertAdmin(request);
+  assertAdmin(request, ['superadmin', 'admin', 'ops']);
   const { data } = request;
 
-  const { orderId, newStatus } = data;
-  if (!orderId || !newStatus) {
-    throw new HttpsError('invalid-argument', 'orderId and newStatus are required.');
+  let orderId: string;
+  let newStatus: string;
+  
+  try {
+    const parsed = updateSchema.parse(data);
+    orderId = parsed.orderId;
+    newStatus = parsed.newStatus;
+  } catch (e: any) {
+    throw new HttpsError('invalid-argument', `Validation error: ${e.message}`);
   }
 
   const db = admin.firestore();
@@ -54,29 +68,16 @@ export const adminUpdateOrderStatus = onCall(async (request) => {
           `Cannot transition order status from ${currentStatus} to ${newStatus}.`
         );
       }
-
-      const now = admin.firestore.FieldValue.serverTimestamp();
       
-      const newStatusHistoryEntry = {
-        status: newStatus,
-        at: now
-      };
-
-      const updatePayload: any = {
-        status: newStatus,
-        updatedAt: now,
-      };
-      
-      // Keep track of status history if array exists, or initialize it
-      if (orderData.statusHistory) {
-        updatePayload.statusHistory = admin.firestore.FieldValue.arrayUnion(newStatusHistoryEntry);
-      } else {
-        updatePayload.statusHistory = [
-           { status: currentStatus, at: orderData.createdAt }, // retroactively add creation status
-           newStatusHistoryEntry 
-        ];
+      // If transitioning to REFUNDED, ensure there is a refundId or the payment was never verified
+      if (newStatus === 'REFUNDED') {
+        if (!orderData.refundId && orderData.paymentStatus === 'VERIFIED') {
+           throw new HttpsError('failed-precondition', 'Cannot mark as REFUNDED without a linked refundId for VERIFIED payments.');
+        }
       }
 
+      const updatePayload = buildStatusHistoryUpdate(orderData, newStatus);
+      
       transaction.update(orderRef, updatePayload);
     });
 

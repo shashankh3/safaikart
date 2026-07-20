@@ -7,6 +7,7 @@ import { SIZES } from '../../../../shared/theme/spacing';
 import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressable';
 import { Order } from '../../domain/Order';
 import { useOrdersQuery } from '../../application/useOrdersQuery';
+import { getOrderStatusMeta } from '../../domain/orderStatusMeta';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function OrdersScreen() {
@@ -20,28 +21,9 @@ export default function OrdersScreen() {
     setIsRefreshing(false);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'CONFIRMED':
-      case 'DELIVERED':
-      case 'READY_FOR_DELIVERY':
-        return COLORS.success;
-      case 'PICKUP_SCHEDULED':
-      case 'PICKED_UP':
-      case 'OUT_FOR_DELIVERY':
-      case 'CLEANING_IN_PROGRESS':
-        return COLORS.vibrantYellow;
-      case 'CANCELLED':
-      case 'REFUNDED':
-        return '#FF3B30';
-      case 'PAYMENT_PENDING':
-      default:
-        return COLORS.textSecondary;
-    }
-  };
-
   const renderOrder = ({ item }: { item: Order }) => {
     const date = item.createdAt?.toDate ? item.createdAt.toDate() : new Date();
+    const meta = getOrderStatusMeta(item.status);
     
     return (
       <AnimatedPressable 
@@ -50,9 +32,9 @@ export default function OrdersScreen() {
       >
         <View style={styles.cardHeader}>
           <Text style={styles.orderId}>#SK-{item.id.substring(0, 8).toUpperCase()}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-              {item.status.replace(/_/g, ' ')}
+          <View style={[styles.statusBadge, { backgroundColor: meta.color + '20' }]}>
+            <Text style={[styles.statusText, { color: meta.color }]}>
+              {meta.label}
             </Text>
           </View>
         </View>

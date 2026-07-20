@@ -24,6 +24,8 @@ type Order = {
   driverId?: string;
   driverName?: string;
   tipMinor?: number;
+  discountMinor?: number;
+  couponCode?: string;
 };
 
 export type InvoiceGstConfig = {
@@ -139,33 +141,23 @@ export function generateInvoicePdf(order: Order, gst?: InvoiceGstConfig) {
 
   let finalY = (pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
-  // GST breakdown
+  // Breakdown
   const gross = order.finalAmountMinor || 0;
   const tip = order.tipMinor || 0;
+  const discount = order.discountMinor || 0;
   let taxRows: Array<[string, string]> = [];
-  if (gst?.gstin && gst.gstRatePct) {
-    const rate = gst.gstRatePct / 100;
-    const taxable = Math.round((gross - tip) / (1 + rate));
-    const tax = gross - tip - taxable;
-    if (gst.intraState !== false) {
-      const half = Math.round(tax / 2);
-      taxRows = [
-        ["Taxable value", formatINR(taxable, order.currency)],
-        [`CGST @ ${(gst.gstRatePct / 2).toFixed(1)}%`, formatINR(half, order.currency)],
-        [`SGST @ ${(gst.gstRatePct / 2).toFixed(1)}%`, formatINR(tax - half, order.currency)],
-      ];
-    } else {
-      taxRows = [
-        ["Taxable value", formatINR(taxable, order.currency)],
-        [`IGST @ ${gst.gstRatePct.toFixed(1)}%`, formatINR(tax, order.currency)],
-      ];
-    }
-    if (tip) taxRows.push(["Tip", formatINR(tip, order.currency)]);
-  } else if (tip) {
-    taxRows = [["Tip", formatINR(tip, order.currency)]];
+  
+  const subtotal = gross - tip + discount;
+  taxRows.push(["Subtotal", formatINR(subtotal, order.currency)]);
+  
+  if (discount > 0) {
+    taxRows.push([`Discount${order.couponCode ? ` (${order.couponCode})` : ""}`, `-${formatINR(discount, order.currency)}`]);
+  }
+  if (tip > 0) {
+    taxRows.push(["Tip", formatINR(tip, order.currency)]);
   }
 
-  if (taxRows.length) {
+  if (taxRows.length > 1) {
     autoTable(pdf, {
       startY: finalY + 10,
       body: taxRows,

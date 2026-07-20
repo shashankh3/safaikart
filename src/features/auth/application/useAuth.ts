@@ -10,6 +10,7 @@ export const useAuth = () => {
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     const unsubscribe = setupAuthListener(async (firebaseUser) => {
@@ -17,13 +18,23 @@ export const useAuth = () => {
       
       if (firebaseUser) {
         try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setIsBlocked(data?.isBlocked === true);
+          } else {
+            setIsBlocked(false);
+          }
+
           const adminDoc = await getDoc(doc(db, 'adminUsers', firebaseUser.uid));
           setIsAdmin(adminDoc.exists());
         } catch (e) {
           setIsAdmin(false);
+          setIsBlocked(false);
         }
       } else {
         setIsAdmin(false);
+        setIsBlocked(false);
         // Clear local cart storage when session drops
         CartStorage.clearLocal().catch(() => {});
       }
@@ -34,5 +45,5 @@ export const useAuth = () => {
     return () => unsubscribe();
   }, []);
 
-  return { user, loading, isAdmin, logout: logoutUser };
+  return { user, loading, isAdmin, isBlocked, logout: logoutUser };
 };
