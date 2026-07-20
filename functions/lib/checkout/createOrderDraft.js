@@ -1,8 +1,41 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createOrderDraft = void 0;
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
+const functions = __importStar(require("firebase-functions"));
+const admin = __importStar(require("firebase-admin"));
 const rateLimiter_1 = require("../utils/rateLimiter");
 const pricing_logic_1 = require("../orders/pricing.logic");
 const contracts_1 = require("../contracts");
@@ -53,12 +86,11 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
         itemsToProcess = directItems;
     }
     else {
-        const cartDoc = await db.collection('carts').doc(uid).get();
-        if (!cartDoc.exists) {
+        const cartItemsQuery = await db.collection(`users/${uid}/cartItems`).get();
+        if (cartItemsQuery.empty) {
             throw new functions.https.HttpsError('failed-precondition', 'Cart is empty or not found on server.');
         }
-        const cartData = cartDoc.data();
-        itemsToProcess = (cartData === null || cartData === void 0 ? void 0 : cartData.items) || [];
+        itemsToProcess = cartItemsQuery.docs.map(doc => doc.data());
         if (itemsToProcess.length === 0) {
             throw new functions.https.HttpsError('failed-precondition', 'Cart is empty.');
         }
@@ -190,8 +222,10 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
         finalOrderId = newOrderRef.id;
         // Clear user cart if not a direct buy
         if (!directItems) {
-            const cartRef = db.collection('carts').doc(uid);
-            transaction.update(cartRef, { items: [] });
+            const cartItemsSnapshot = await db.collection(`users/${uid}/cartItems`).get();
+            for (const doc of cartItemsSnapshot.docs) {
+                transaction.delete(doc.ref);
+            }
         }
     });
     return {

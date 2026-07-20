@@ -1,4 +1,13 @@
 import { setGlobalOptions } from 'firebase-functions/v2';
+import * as Sentry from '@sentry/node';
+
+// Initialize Sentry if configured
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+  });
+}
 
 // All v2 functions deploy to asia-south1 (Mumbai)
 setGlobalOptions({ region: 'asia-south1' });
@@ -10,6 +19,7 @@ export { checkServiceability } from './checkout/checkServiceability';
 export { createPaymentOrder } from './payments/createPaymentOrder';
 export { verifyPaymentStatus } from './payments/verifyPaymentStatus';
 export { paymentWebhook } from './payments/paymentWebhook';
+export { processRazorpayWebhook } from './payments/processRazorpayWebhook';
 export { processRefunds } from './payments/processRefunds';
 
 // Auth
@@ -28,9 +38,11 @@ export { sendOrderStatusNotification } from './notifications/sendOrderStatusNoti
 export { markNotificationRead } from './notifications/markNotificationRead';
 export { deleteOldNotifications } from './notifications/deleteOldNotifications';
 export { onBroadcastCreated } from './broadcasts/onBroadcastCreated';
+export { processUserSignup } from './events/processUserSignup';
 
 // Admin
 export { adminUpdateOrderStatus } from './admin/adminUpdateOrderStatus';
 export { adminConfirmOrderPrice } from './admin/adminConfirmOrderPrice';
 export { adminAssignDriver } from './admin/adminAssignDriver';
 export { adminSetOrderPhotos } from './admin/adminSetOrderPhotos';
+export { healthCheck } from './admin/healthCheck';

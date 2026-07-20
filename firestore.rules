@@ -45,6 +45,10 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isAdmin() || isOwner(uid);
       allow write: if false; // written by auth trigger only
+
+      match /cartItems/{itemId} {
+        allow read, write: if isOwner(uid);
+      }
     }
 
     // --- profiles (customer profiles) ------------------------------------

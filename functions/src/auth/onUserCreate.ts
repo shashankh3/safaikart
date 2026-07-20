@@ -1,5 +1,8 @@
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
+import { PubSub } from '@google-cloud/pubsub';
+
+const pubsub = new PubSub();
 
 // Initialize admin if not already initialized
 if (!admin.apps.length) {
@@ -36,4 +39,17 @@ export const onUserCreate = functions.region('asia-south1').auth.user().onCreate
   });
   
   await batch.commit();
+
+  // Publish async event for background workers (Welcome Email, Analytics, etc.)
+  try {
+    await pubsub.topic('user-signup-events').publishJSON({
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      phoneNumber: user.phoneNumber,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Failed to publish user-signup-events', error);
+  }
 });

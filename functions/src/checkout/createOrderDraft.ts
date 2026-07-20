@@ -56,13 +56,12 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
   if (directItems && Array.isArray(directItems) && directItems.length > 0) {
     itemsToProcess = directItems;
   } else {
-    const cartDoc = await db.collection('carts').doc(uid).get();
-    if (!cartDoc.exists) {
+    const cartItemsQuery = await db.collection(`users/${uid}/cartItems`).get();
+    if (cartItemsQuery.empty) {
       throw new functions.https.HttpsError('failed-precondition', 'Cart is empty or not found on server.');
     }
     
-    const cartData = cartDoc.data();
-    itemsToProcess = cartData?.items || [];
+    itemsToProcess = cartItemsQuery.docs.map(doc => doc.data());
     if (itemsToProcess.length === 0) {
       throw new functions.https.HttpsError('failed-precondition', 'Cart is empty.');
     }
@@ -218,8 +217,10 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
 
     // Clear user cart if not a direct buy
     if (!directItems) {
-      const cartRef = db.collection('carts').doc(uid);
-      transaction.update(cartRef, { items: [] });
+      const cartItemsSnapshot = await db.collection(`users/${uid}/cartItems`).get();
+      for (const doc of cartItemsSnapshot.docs) {
+        transaction.delete(doc.ref);
+      }
     }
   });
 

@@ -8,7 +8,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const validateCoupon = onCall(async (request) => {
+export const validateCoupon = onCall({ enforceAppCheck: true }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError('unauthenticated', 'User must be logged in to validate coupon.');

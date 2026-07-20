@@ -10,12 +10,42 @@ var __createBinding = (this && this.__createBinding) || (Object.create ? (functi
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 }));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.adminSetOrderPhotos = exports.adminAssignDriver = exports.adminConfirmOrderPrice = exports.adminUpdateOrderStatus = exports.onBroadcastCreated = exports.deleteOldNotifications = exports.markNotificationRead = exports.sendOrderStatusNotification = exports.removeFcmToken = exports.saveFcmToken = exports.submitReview = exports.expirePendingOrders = exports.editOrderItems = exports.cancelOrder = exports.onUserDelete = exports.deleteAccount = exports.syncAdminRoles = exports.onUserCreate = exports.processRefunds = exports.paymentWebhook = exports.verifyPaymentStatus = exports.createPaymentOrder = exports.checkServiceability = void 0;
+exports.healthCheck = exports.adminSetOrderPhotos = exports.adminAssignDriver = exports.adminConfirmOrderPrice = exports.adminUpdateOrderStatus = exports.processUserSignup = exports.onBroadcastCreated = exports.deleteOldNotifications = exports.markNotificationRead = exports.sendOrderStatusNotification = exports.removeFcmToken = exports.saveFcmToken = exports.submitReview = exports.expirePendingOrders = exports.editOrderItems = exports.cancelOrder = exports.onUserDelete = exports.deleteAccount = exports.syncAdminRoles = exports.onUserCreate = exports.processRefunds = exports.processRazorpayWebhook = exports.paymentWebhook = exports.verifyPaymentStatus = exports.createPaymentOrder = exports.checkServiceability = void 0;
 const v2_1 = require("firebase-functions/v2");
+const Sentry = __importStar(require("@sentry/node"));
+// Initialize Sentry if configured
+if (process.env.SENTRY_DSN) {
+    Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        tracesSampleRate: 1.0,
+    });
+}
 // All v2 functions deploy to asia-south1 (Mumbai)
 (0, v2_1.setGlobalOptions)({ region: 'asia-south1' });
 __exportStar(require("./checkout/createOrderDraft"), exports);
@@ -28,6 +58,8 @@ var verifyPaymentStatus_1 = require("./payments/verifyPaymentStatus");
 Object.defineProperty(exports, "verifyPaymentStatus", { enumerable: true, get: function () { return verifyPaymentStatus_1.verifyPaymentStatus; } });
 var paymentWebhook_1 = require("./payments/paymentWebhook");
 Object.defineProperty(exports, "paymentWebhook", { enumerable: true, get: function () { return paymentWebhook_1.paymentWebhook; } });
+var processRazorpayWebhook_1 = require("./payments/processRazorpayWebhook");
+Object.defineProperty(exports, "processRazorpayWebhook", { enumerable: true, get: function () { return processRazorpayWebhook_1.processRazorpayWebhook; } });
 var processRefunds_1 = require("./payments/processRefunds");
 Object.defineProperty(exports, "processRefunds", { enumerable: true, get: function () { return processRefunds_1.processRefunds; } });
 // Auth
@@ -59,6 +91,8 @@ var deleteOldNotifications_1 = require("./notifications/deleteOldNotifications")
 Object.defineProperty(exports, "deleteOldNotifications", { enumerable: true, get: function () { return deleteOldNotifications_1.deleteOldNotifications; } });
 var onBroadcastCreated_1 = require("./broadcasts/onBroadcastCreated");
 Object.defineProperty(exports, "onBroadcastCreated", { enumerable: true, get: function () { return onBroadcastCreated_1.onBroadcastCreated; } });
+var processUserSignup_1 = require("./events/processUserSignup");
+Object.defineProperty(exports, "processUserSignup", { enumerable: true, get: function () { return processUserSignup_1.processUserSignup; } });
 // Admin
 var adminUpdateOrderStatus_1 = require("./admin/adminUpdateOrderStatus");
 Object.defineProperty(exports, "adminUpdateOrderStatus", { enumerable: true, get: function () { return adminUpdateOrderStatus_1.adminUpdateOrderStatus; } });
@@ -68,4 +102,6 @@ var adminAssignDriver_1 = require("./admin/adminAssignDriver");
 Object.defineProperty(exports, "adminAssignDriver", { enumerable: true, get: function () { return adminAssignDriver_1.adminAssignDriver; } });
 var adminSetOrderPhotos_1 = require("./admin/adminSetOrderPhotos");
 Object.defineProperty(exports, "adminSetOrderPhotos", { enumerable: true, get: function () { return adminSetOrderPhotos_1.adminSetOrderPhotos; } });
+var healthCheck_1 = require("./admin/healthCheck");
+Object.defineProperty(exports, "healthCheck", { enumerable: true, get: function () { return healthCheck_1.healthCheck; } });
 //# sourceMappingURL=index.js.map
