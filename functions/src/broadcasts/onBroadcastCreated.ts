@@ -1,5 +1,6 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
+import { logError } from '../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -40,7 +41,7 @@ export const onBroadcastCreated = onDocumentCreated('broadcasts/{broadcastId}', 
       messageId: response
     });
   } catch (error: any) {
-    console.error('Error sending broadcast:', error);
+    logError('Error sending broadcast:', error);
     await snapshot.ref.update({
       status: 'FAILED',
       failedAt: admin.firestore.FieldValue.serverTimestamp(),

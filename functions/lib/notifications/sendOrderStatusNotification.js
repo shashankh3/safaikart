@@ -38,6 +38,7 @@ const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
 const firestore_2 = require("firebase-admin/firestore");
 const notificationLogic_1 = require("../utils/notificationLogic");
+const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -74,11 +75,12 @@ exports.sendOrderStatusNotification = (0, firestore_1.onDocumentUpdated)('orders
             body,
             deepLink,
             isRead: false,
-            createdAt: firestore_2.FieldValue.serverTimestamp()
+            createdAt: firestore_2.FieldValue.serverTimestamp(),
+            expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000))
         });
     }
     catch (error) {
-        console.error('Error writing to notification center:', error);
+        (0, logger_1.logError)('Error writing to notification center:', error);
     }
     // 2. FCM Push Notification
     if (tokens.length === 0)
@@ -110,7 +112,7 @@ exports.sendOrderStatusNotification = (0, firestore_1.onDocumentUpdated)('orders
         }
     }
     catch (error) {
-        console.error('Error sending multicast notification', error);
+        (0, logger_1.logError)('Error sending multicast notification', error);
     }
 });
 //# sourceMappingURL=sendOrderStatusNotification.js.map

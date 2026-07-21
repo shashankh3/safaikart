@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import { getRazorpayAuthHeader } from './razorpayClient';
 import { razorpayKeySecret } from './razorpayClient';
 import { buildStatusHistoryUpdate } from '../utils/statusLogic';
+import { logInfo, logWarn, logError } from '../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -22,11 +23,11 @@ export const processRefunds = onSchedule({ schedule: 'every 60 minutes', secrets
     snapshot2.docs.forEach(doc => ordersToRefund.set(doc.id, doc));
 
     if (ordersToRefund.size === 0) {
-      console.log('No refunds to process.');
+      logInfo('No refunds to process.');
       return;
     }
 
-    console.log(`Processing refunds for ${ordersToRefund.size} orders...`);
+    logInfo(`Processing refunds for ${ordersToRefund.size} orders...`);
     const authHeader = getRazorpayAuthHeader();
 
     for (const [orderId, doc] of ordersToRefund) {
@@ -41,7 +42,7 @@ export const processRefunds = onSchedule({ schedule: 'every 60 minutes', secrets
         .get();
 
       if (paymentsSnapshot.empty) {
-        console.warn(`Cannot process refund for order ${orderId}: No VERIFIED payment found.`);
+        logWarn(`Cannot process refund for order ${orderId}: No VERIFIED payment found.`);
         continue;
       }
 
@@ -57,7 +58,7 @@ export const processRefunds = onSchedule({ schedule: 'every 60 minutes', secrets
          // If it failed there, how much was the refund? We might not know.
          // Actually, let's just stick to full refunds for automated jobs for now to be safe, 
          // or we can require that refundAmountMinor is stored on the order doc when it fails.
-         console.warn(`Automated retry for partial refunds not yet implemented safely for order ${orderId}. Skipping.`);
+         logWarn(`Automated retry for partial refunds not yet implemented safely for order ${orderId}. Skipping.`);
          continue;
       }
 
@@ -82,10 +83,10 @@ export const processRefunds = onSchedule({ schedule: 'every 60 minutes', secrets
           refundId: refundData.id,
           refundStatus: 'INITIATED',
         });
-        console.log(`Successfully refunded order ${orderId}`);
+        logInfo(`Successfully refunded order ${orderId}`);
       } else {
         const errText = await response.text();
-        console.error(`Refund failed for order ${orderId}:`, errText);
+        logError(`Refund failed for order ${orderId}:`, errText);
         await doc.ref.update({
           refundStatus: 'FAILED',
           refundError: errText,
@@ -94,6 +95,6 @@ export const processRefunds = onSchedule({ schedule: 'every 60 minutes', secrets
       }
     }
   } catch (error) {
-    console.error('Error processing refunds:', error);
+    logError('Error processing refunds:', error);
   }
 });

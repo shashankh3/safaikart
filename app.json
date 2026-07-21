@@ -9,7 +9,6 @@
     "scheme": "safaikart",
     "ios": {
       "supportsTablet": true,
-      "useITunesArtwork": true,
       "entitlements": {
         "aps-environment": "production"
       }
@@ -17,7 +16,6 @@
     "android": {
       "package": "com.safaikart.app",
       "googleServicesFile": "./google-services.json",
-      "useNextNotificationsApi": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

@@ -6,6 +6,7 @@ import { buildStatusHistoryUpdate } from '../utils/statusLogic';
 
 import { getRazorpayAuthHeader, razorpayKeySecret } from '../payments/razorpayClient';
 import { shouldEnforceAppCheck } from '../utils/config';
+import { logError } from '../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -109,7 +110,7 @@ export const cancelOrder = onCall({ secrets: [razorpayKeySecret], enforceAppChec
         newStatus = 'REFUND_INITIATED';
       } else {
         const errText = await response.text();
-        console.error('Refund failed during cancelOrder:', errText);
+        logError('Refund failed during cancelOrder:', errText);
         await orderRef.update({
           refundStatus: 'FAILED',
           refundError: errText,
@@ -123,7 +124,7 @@ export const cancelOrder = onCall({ secrets: [razorpayKeySecret], enforceAppChec
     if (error instanceof HttpsError) {
       throw error;
     }
-    console.error('Unhandled cancelOrder error:', error);
+    logError('Unhandled cancelOrder error:', error);
     throw new HttpsError('internal', 'An unexpected error occurred while cancelling the order.');
   }
 });

@@ -20,6 +20,7 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
 
 import { assertAdmin } from '../utils/assertAdmin';
 import { z } from 'zod';
+import { logError } from '../utils/logger';
 
 const updateSchema = z.object({
   orderId: z.string().min(1),
@@ -83,7 +84,7 @@ export const adminUpdateOrderStatus = onCall(async (request) => {
 
     return { success: true, message: `Order ${orderId} updated to ${newStatus}` };
   } catch (error: any) {
-    console.error('Error in adminUpdateOrderStatus:', error);
+    logError('Error in adminUpdateOrderStatus:', error);
     if (error instanceof HttpsError) {
       throw error;
     }

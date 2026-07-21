@@ -43,6 +43,7 @@ const deliveryLogic_1 = require("../utils/deliveryLogic");
 const contracts_1 = require("../contracts");
 const razorpayClient_1 = require("../payments/razorpayClient");
 const config_1 = require("../utils/config");
+const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -214,7 +215,7 @@ exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorp
             });
         }
         else {
-            console.error('Refund failed:', await response.text());
+            (0, logger_1.logError)('Refund failed:', await response.text());
         }
     }
     return { success: true };

@@ -12,6 +12,7 @@ import { GetOrderTrackingUseCase } from '../../application/getOrderTracking.usec
 import { CancelOrderUseCase } from '../../application/cancelOrder.usecase';
 import { OrdersRepository } from '../../infrastructure/OrdersRepository';
 import { Ionicons } from '@expo/vector-icons';
+import { useReorder } from '../../application/useReorder';
 
 type RouteParams = RouteProp<{ Tracking: { orderId: string } }, 'Tracking'>;
 
@@ -24,6 +25,8 @@ export default function OrderTrackingScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
   const [timeRemainingSecs, setTimeRemainingSecs] = useState<number>(0);
+
+  const { reorder } = useReorder();
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -235,7 +238,7 @@ export default function OrderTrackingScreen() {
                 
                 <AnimatedPressable 
                   style={[styles.cancelBtn, { borderColor: COLORS.darkGreen, marginBottom: 12 }]} 
-                  onPress={() => navigation.navigate('CheckoutFlow', { screen: 'EditOrder', params: { orderId: order.id } })}
+                  onPress={() => navigation.navigate('EditOrder', { orderId: order.id })}
                 >
                   <Text style={[styles.cancelBtnText, { color: COLORS.darkGreen }]}>Edit Order</Text>
                 </AnimatedPressable>
@@ -255,6 +258,22 @@ export default function OrderTrackingScreen() {
               </View>
             )}
           </View>
+        )}
+
+        {/* Reorder Button */}
+        {order.status === 'DELIVERED' && (
+          <AnimatedPressable 
+            style={[styles.cancelBtn, { borderColor: COLORS.darkGreen, backgroundColor: COLORS.darkGreen, marginTop: SIZES.padding }]} 
+            onPress={async () => {
+              await reorder(order);
+              navigation.navigate('MainTabs', { screen: 'Home' });
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="refresh" size={20} color={COLORS.white} style={{ marginRight: 8 }} />
+              <Text style={[styles.cancelBtnText, { color: COLORS.white }]}>Reorder</Text>
+            </View>
+          </AnimatedPressable>
         )}
 
         {/* Support Button */}

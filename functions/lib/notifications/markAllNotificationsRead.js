@@ -33,35 +33,46 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteOldNotifications = void 0;
-const scheduler_1 = require("firebase-functions/v2/scheduler");
+exports.markAllNotificationsRead = void 0;
+const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
+const rateLimiter_1 = require("../utils/rateLimiter");
+const config_1 = require("../utils/config");
 const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.deleteOldNotifications = (0, scheduler_1.onSchedule)({ schedule: 'every 24 hours' }, async (event) => {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+exports.markAllNotificationsRead = (0, https_1.onCall)({ enforceAppCheck: config_1.shouldEnforceAppCheck }, async (request) => {
+    var _a;
+    const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    if (!uid) {
+        throw new https_1.HttpsError('unauthenticated', 'User must be logged in.');
+    }
+    await (0, rateLimiter_1.rateLimiter)(uid, 'markAllNotificationsRead', 20, 3600);
     try {
-        const snapshot = await db.collection('notifications')
-            .where('createdAt', '<', admin.firestore.Timestamp.fromDate(thirtyDaysAgo))
+        const unreadQuery = await db.collection('notifications')
+            .where('userId', '==', uid)
+            .where('isRead', '==', false)
             .limit(500)
             .get();
-        if (snapshot.empty) {
-            (0, logger_1.logInfo)('No old notifications to delete.');
-            return;
+        if (unreadQuery.empty) {
+            return { success: true, count: 0 };
         }
         const batch = db.batch();
-        snapshot.docs.forEach((doc) => {
-            batch.delete(doc.ref);
+        unreadQuery.docs.forEach(doc => {
+            batch.update(doc.ref, {
+                isRead: true,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
         });
         await batch.commit();
-        (0, logger_1.logInfo)(`Deleted ${snapshot.size} old notifications.`);
+        (0, logger_1.logInfo)(`Marked ${unreadQuery.size} notifications as read for user ${uid}`, { userId: uid });
+        return { success: true, count: unreadQuery.size };
     }
     catch (error) {
-        (0, logger_1.logError)('Error deleting old notifications:', error);
+        (0, logger_1.logError)('Error in markAllNotificationsRead', error, { userId: uid });
+        throw new https_1.HttpsError('internal', 'An error occurred while marking notifications as read.');
     }
 });
-//# sourceMappingURL=deleteOldNotifications.js.map
+//# sourceMappingURL=markAllNotificationsRead.js.map

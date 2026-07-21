@@ -7,6 +7,7 @@ import { computeEstimatedDelivery } from '../utils/deliveryLogic';
 import { editOrderItemsRequest } from '../contracts';
 import { getRazorpayAuthHeader, razorpayKeySecret } from '../payments/razorpayClient';
 import { shouldEnforceAppCheck } from '../utils/config';
+import { logError } from '../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -218,7 +219,7 @@ export const editOrderItems = onCall({ secrets: [razorpayKeySecret], region: 'as
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
       } else {
-        console.error('Refund failed:', await response.text());
+        logError('Refund failed:', await response.text());
       }
   }
 

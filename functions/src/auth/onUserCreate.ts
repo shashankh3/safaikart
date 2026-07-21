@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { PubSub } from '@google-cloud/pubsub';
+import { logError } from '../utils/logger';
 
 const pubsub = new PubSub();
 
@@ -50,6 +51,6 @@ export const onUserCreate = functions.region('asia-south1').auth.user().onCreate
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Failed to publish user-signup-events', error);
+    logError('Failed to publish user-signup-events', error);
   }
 });

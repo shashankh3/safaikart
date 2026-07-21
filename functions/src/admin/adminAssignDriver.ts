@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import { assertAdmin } from '../utils/assertAdmin';
 import { buildStatusHistoryUpdate } from '../utils/statusLogic';
 import { z } from 'zod';
+import { logError } from '../utils/logger';
 
 const assignSchema = z.object({
   orderId: z.string().min(1),
@@ -66,7 +67,7 @@ export const adminAssignDriver = onCall(async (request) => {
 
     return { success: true, message: `Driver ${driverId} assigned to order ${orderId}` };
   } catch (error: any) {
-    console.error('Error in adminAssignDriver:', error);
+    logError('Error in adminAssignDriver:', error);
     if (error instanceof HttpsError) {
       throw error;
     }

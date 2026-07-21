@@ -39,6 +39,7 @@ const admin = __importStar(require("firebase-admin"));
 const razorpayClient_1 = require("./razorpayClient");
 const razorpayClient_2 = require("./razorpayClient");
 const statusLogic_1 = require("../utils/statusLogic");
+const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -52,10 +53,10 @@ exports.processRefunds = (0, scheduler_1.onSchedule)({ schedule: 'every 60 minut
         snapshot1.docs.forEach(doc => ordersToRefund.set(doc.id, doc));
         snapshot2.docs.forEach(doc => ordersToRefund.set(doc.id, doc));
         if (ordersToRefund.size === 0) {
-            console.log('No refunds to process.');
+            (0, logger_1.logInfo)('No refunds to process.');
             return;
         }
-        console.log(`Processing refunds for ${ordersToRefund.size} orders...`);
+        (0, logger_1.logInfo)(`Processing refunds for ${ordersToRefund.size} orders...`);
         const authHeader = (0, razorpayClient_1.getRazorpayAuthHeader)();
         for (const [orderId, doc] of ordersToRefund) {
             const orderData = doc.data();
@@ -67,7 +68,7 @@ exports.processRefunds = (0, scheduler_1.onSchedule)({ schedule: 'every 60 minut
                 .where('status', '==', 'VERIFIED')
                 .get();
             if (paymentsSnapshot.empty) {
-                console.warn(`Cannot process refund for order ${orderId}: No VERIFIED payment found.`);
+                (0, logger_1.logWarn)(`Cannot process refund for order ${orderId}: No VERIFIED payment found.`);
                 continue;
             }
             const payment = paymentsSnapshot.docs[0].data();
@@ -82,7 +83,7 @@ exports.processRefunds = (0, scheduler_1.onSchedule)({ schedule: 'every 60 minut
                 // If it failed there, how much was the refund? We might not know.
                 // Actually, let's just stick to full refunds for automated jobs for now to be safe, 
                 // or we can require that refundAmountMinor is stored on the order doc when it fails.
-                console.warn(`Automated retry for partial refunds not yet implemented safely for order ${orderId}. Skipping.`);
+                (0, logger_1.logWarn)(`Automated retry for partial refunds not yet implemented safely for order ${orderId}. Skipping.`);
                 continue;
             }
             if (!razorpayPaymentId || amountToRefundMinor <= 0) {
@@ -100,11 +101,11 @@ exports.processRefunds = (0, scheduler_1.onSchedule)({ schedule: 'every 60 minut
                 const refundData = await response.json();
                 const refundUpdate = (0, statusLogic_1.buildStatusHistoryUpdate)(orderData, 'REFUND_INITIATED');
                 await doc.ref.update(Object.assign(Object.assign({}, refundUpdate), { refundId: refundData.id, refundStatus: 'INITIATED' }));
-                console.log(`Successfully refunded order ${orderId}`);
+                (0, logger_1.logInfo)(`Successfully refunded order ${orderId}`);
             }
             else {
                 const errText = await response.text();
-                console.error(`Refund failed for order ${orderId}:`, errText);
+                (0, logger_1.logError)(`Refund failed for order ${orderId}:`, errText);
                 await doc.ref.update({
                     refundStatus: 'FAILED',
                     refundError: errText,
@@ -114,7 +115,7 @@ exports.processRefunds = (0, scheduler_1.onSchedule)({ schedule: 'every 60 minut
         }
     }
     catch (error) {
-        console.error('Error processing refunds:', error);
+        (0, logger_1.logError)('Error processing refunds:', error);
     }
 });
 //# sourceMappingURL=processRefunds.js.map

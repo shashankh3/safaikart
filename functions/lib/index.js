@@ -36,7 +36,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.processDeadLetters = exports.generateInvoice = exports.healthCheck = exports.adminSetOrderPhotos = exports.adminAssignDriver = exports.adminConfirmOrderPrice = exports.adminUpdateOrderStatus = exports.processUserSignup = exports.onBroadcastCreated = exports.deleteOldNotifications = exports.markNotificationRead = exports.sendOrderStatusNotification = exports.removeFcmToken = exports.saveFcmToken = exports.submitReview = exports.expirePendingOrders = exports.editOrderItems = exports.cancelOrder = exports.onUserDelete = exports.deleteAccount = exports.syncAdminRoles = exports.onUserCreate = exports.processRefunds = exports.processRazorpayWebhook = exports.paymentWebhook = exports.verifyPaymentStatus = exports.createPaymentOrder = exports.checkServiceability = void 0;
+exports.processDeadLetters = exports.generateInvoice = exports.healthCheck = exports.adminSetOrderPhotos = exports.adminAssignDriver = exports.adminConfirmOrderPrice = exports.adminUpdateOrderStatus = exports.processUserSignup = exports.onBroadcastCreated = exports.deleteOldNotifications = exports.markAllNotificationsRead = exports.markNotificationRead = exports.sendOrderStatusNotification = exports.removeFcmToken = exports.saveFcmToken = exports.submitReview = exports.deactivateExpiredSlots = exports.expirePendingOrders = exports.editOrderItems = exports.cancelOrder = exports.onUserDelete = exports.deleteAccount = exports.syncAdminRoles = exports.onUserCreate = exports.processRefunds = exports.processRazorpayWebhook = exports.paymentWebhook = exports.verifyPaymentStatus = exports.createPaymentOrder = exports.checkServiceability = void 0;
 const v2_1 = require("firebase-functions/v2");
 const Sentry = __importStar(require("@sentry/node"));
 // Initialize Sentry if configured
@@ -78,6 +78,8 @@ var editOrderItems_1 = require("./orders/editOrderItems");
 Object.defineProperty(exports, "editOrderItems", { enumerable: true, get: function () { return editOrderItems_1.editOrderItems; } });
 var expirePendingOrders_1 = require("./orders/expirePendingOrders");
 Object.defineProperty(exports, "expirePendingOrders", { enumerable: true, get: function () { return expirePendingOrders_1.expirePendingOrders; } });
+var deactivateExpiredSlots_1 = require("./orders/deactivateExpiredSlots");
+Object.defineProperty(exports, "deactivateExpiredSlots", { enumerable: true, get: function () { return deactivateExpiredSlots_1.deactivateExpiredSlots; } });
 var submitReview_1 = require("./orders/submitReview");
 Object.defineProperty(exports, "submitReview", { enumerable: true, get: function () { return submitReview_1.submitReview; } });
 var saveFcmToken_1 = require("./notifications/saveFcmToken");
@@ -88,6 +90,8 @@ var sendOrderStatusNotification_1 = require("./notifications/sendOrderStatusNoti
 Object.defineProperty(exports, "sendOrderStatusNotification", { enumerable: true, get: function () { return sendOrderStatusNotification_1.sendOrderStatusNotification; } });
 var markNotificationRead_1 = require("./notifications/markNotificationRead");
 Object.defineProperty(exports, "markNotificationRead", { enumerable: true, get: function () { return markNotificationRead_1.markNotificationRead; } });
+var markAllNotificationsRead_1 = require("./notifications/markAllNotificationsRead");
+Object.defineProperty(exports, "markAllNotificationsRead", { enumerable: true, get: function () { return markAllNotificationsRead_1.markAllNotificationsRead; } });
 var deleteOldNotifications_1 = require("./notifications/deleteOldNotifications");
 Object.defineProperty(exports, "deleteOldNotifications", { enumerable: true, get: function () { return deleteOldNotifications_1.deleteOldNotifications; } });
 var onBroadcastCreated_1 = require("./broadcasts/onBroadcastCreated");

@@ -37,6 +37,7 @@ exports.onUserDelete = exports.deleteAccount = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const functions = __importStar(require("firebase-functions/v1"));
 const admin = __importStar(require("firebase-admin"));
+const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -55,7 +56,7 @@ exports.deleteAccount = (0, https_1.onCall)(async (request) => {
         return { success: true, message: 'Account deleted successfully' };
     }
     catch (error) {
-        console.error(`Error deleting user ${uid}:`, error);
+        (0, logger_1.logError)(`Error deleting user ${uid}:`, error);
         throw new https_1.HttpsError('internal', 'An error occurred while deleting your account.');
     }
 });

@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { getRazorpayAuthHeader, razorpayKeyId, razorpayKeySecret } from './razorpayClient';
 import { shouldEnforceAppCheck } from '../utils/config';
+import { logError } from '../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -78,7 +79,7 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeyS
           }
         } catch (e: any) {
           if (e instanceof HttpsError) throw e;
-          console.error('Error checking existing razorpay order:', e);
+          logError('Error checking existing razorpay order:', e);
         }
 
         // Return existing razorpay order to avoid duplicates if it's still valid
@@ -125,7 +126,7 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeyS
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Razorpay Error:', errorData);
+      logError('Razorpay Error:', errorData);
       throw new HttpsError('internal', 'Failed to create payment order with gateway.');
     }
 
@@ -176,7 +177,7 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeyS
     };
 
   } catch (error) {
-    console.error('Payment creation error:', error);
+    logError('Payment creation error:', error);
     throw new HttpsError('internal', 'Failed to initiate payment.');
   }
 });

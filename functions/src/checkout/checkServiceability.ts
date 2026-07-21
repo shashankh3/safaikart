@@ -8,8 +8,8 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 import { checkServiceabilityRequest } from '../contracts';
-import { zonesCache } from '../utils/cache';
 import { shouldEnforceAppCheck } from '../utils/config';
+import { isPincodeServiceable } from '../utils/serviceability.logic';
 
 export const checkServiceability = onCall({ enforceAppCheck: shouldEnforceAppCheck }, async (request) => {
   let pincode: string;
@@ -20,23 +20,10 @@ export const checkServiceability = onCall({ enforceAppCheck: shouldEnforceAppChe
     throw new HttpsError('invalid-argument', `Invalid pincode format`);
   }
 
-  let zonesData = zonesCache.get('active_zones');
-  
-  if (!zonesData) {
-    const zonesQuery = await db.collection('zones').where('isActive', '==', true).get();
-    zonesData = zonesQuery.docs.map(doc => doc.data());
-    zonesCache.set('active_zones', zonesData);
-  }
-  
-  if (zonesData.length === 0) {
-    // If no active zones exist, assume global serviceability
-    return { isServiceable: true };
-  }
+  const { isServiceable, zoneName } = await isPincodeServiceable(db, pincode);
 
-  for (const zoneData of zonesData) {
-    if (zoneData.pincodes && Array.isArray(zoneData.pincodes) && zoneData.pincodes.includes(pincode)) {
-       return { isServiceable: true, zoneName: zoneData.name || null };
-    }
+  if (isServiceable) {
+    return { isServiceable: true, zoneName };
   }
 
   return { isServiceable: false };

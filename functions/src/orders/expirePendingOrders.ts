@@ -1,5 +1,6 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as admin from 'firebase-admin';
+import { logInfo, logWarn, logError } from '../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -17,7 +18,7 @@ export const expirePendingOrders = onSchedule({ schedule: 'every 30 minutes', ti
       .get();
 
     if (pendingOrdersQuery.empty) {
-      console.log('No pending orders to expire.');
+      logInfo('No pending orders to expire.');
       return;
     }
 
@@ -45,7 +46,7 @@ export const expirePendingOrders = onSchedule({ schedule: 'every 30 minutes', ti
             );
 
             if (!paymentsSnapshot.empty) {
-              console.warn(`Order ${doc.id} is PAYMENT_PENDING but has a VERIFIED payment. Auto-correcting.`);
+              logWarn(`Order ${doc.id} is PAYMENT_PENDING but has a VERIFIED payment. Auto-correcting.`);
               tx.update(doc.ref, {
                 status: 'CONFIRMED',
                 paymentStatus: 'VERIFIED',
@@ -71,13 +72,13 @@ export const expirePendingOrders = onSchedule({ schedule: 'every 30 minutes', ti
           
           expiredCount++;
         } catch (err) {
-          console.error(`Failed to process expiration for order ${doc.id}:`, err);
+          logError(`Failed to process expiration for order ${doc.id}:`, err);
         }
       })
     );
 
-    console.log(`Expired ${expiredCount} pending orders.`);
+    logInfo(`Expired ${expiredCount} pending orders.`);
   } catch (error) {
-    console.error('Error expiring pending orders:', error);
+    logError('Error expiring pending orders:', error);
   }
 });

@@ -41,6 +41,7 @@ const firestore_1 = require("firebase-admin/firestore");
 const statusLogic_1 = require("../utils/statusLogic");
 const razorpayClient_1 = require("../payments/razorpayClient");
 const config_1 = require("../utils/config");
+const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -122,7 +123,7 @@ exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayK
             }
             else {
                 const errText = await response.text();
-                console.error('Refund failed during cancelOrder:', errText);
+                (0, logger_1.logError)('Refund failed during cancelOrder:', errText);
                 await orderRef.update({
                     refundStatus: 'FAILED',
                     refundError: errText,
@@ -136,7 +137,7 @@ exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayK
         if (error instanceof https_1.HttpsError) {
             throw error;
         }
-        console.error('Unhandled cancelOrder error:', error);
+        (0, logger_1.logError)('Unhandled cancelOrder error:', error);
         throw new https_1.HttpsError('internal', 'An unexpected error occurred while cancelling the order.');
     }
 });

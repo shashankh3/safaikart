@@ -5,6 +5,7 @@ import { assertAdmin } from '../utils/assertAdmin';
 import { getRazorpayAuthHeader, razorpayKeySecret } from '../payments/razorpayClient';
 
 import { z } from 'zod';
+import { logError } from '../utils/logger';
 
 const confirmPriceSchema = z.object({
   orderId: z.string().min(1),
@@ -170,7 +171,7 @@ export const adminConfirmOrderPrice = onCall({ secrets: [razorpayKeySecret] }, a
         });
       } else {
         const errText = await response.text();
-        console.error('Refund failed during adminConfirmOrderPrice:', errText);
+        logError('Refund failed during adminConfirmOrderPrice:', errText);
         await orderRef.update({
           refundStatus: 'FAILED',
           refundError: errText,
@@ -181,7 +182,7 @@ export const adminConfirmOrderPrice = onCall({ secrets: [razorpayKeySecret] }, a
 
     return { success: true, message: `Prices confirmed for order ${orderId}` };
   } catch (error: any) {
-    console.error('Error in adminConfirmOrderPrice:', error);
+    logError('Error in adminConfirmOrderPrice:', error);
     if (error instanceof HttpsError) {
       throw error;
     }

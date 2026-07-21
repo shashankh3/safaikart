@@ -37,6 +37,7 @@ exports.onUserCreate = void 0;
 const functions = __importStar(require("firebase-functions/v1"));
 const admin = __importStar(require("firebase-admin"));
 const pubsub_1 = require("@google-cloud/pubsub");
+const logger_1 = require("../utils/logger");
 const pubsub = new pubsub_1.PubSub();
 // Initialize admin if not already initialized
 if (!admin.apps.length) {
@@ -77,7 +78,7 @@ exports.onUserCreate = functions.region('asia-south1').auth.user().onCreate(asyn
         });
     }
     catch (error) {
-        console.error('Failed to publish user-signup-events', error);
+        (0, logger_1.logError)('Failed to publish user-signup-events', error);
     }
 });
 //# sourceMappingURL=onUserCreate.js.map

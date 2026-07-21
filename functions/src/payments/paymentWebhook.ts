@@ -3,6 +3,7 @@ import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import { getFunctions } from 'firebase-admin/functions';
 import { verifyWebhookSignature } from './webhook.logic';
+import { logError } from '../utils/logger';
 
 export const razorpayWebhookSecret = defineSecret('RAZORPAY_WEBHOOK_SECRET');
 
@@ -11,7 +12,7 @@ if (!admin.apps.length) {
 }
 
 export const paymentWebhook = onRequest(
-  { secrets: [razorpayWebhookSecret] }, 
+  { secrets: [razorpayWebhookSecret], region: 'asia-south1' }, 
   async (request, response) => {
     try {
       // Must use rawBody for HMAC generation to match exactly what Razorpay signed
@@ -19,14 +20,14 @@ export const paymentWebhook = onRequest(
       const signature = request.headers['x-razorpay-signature'];
 
       if (!signature || typeof signature !== 'string') {
-        console.error('Webhook missing signature header');
+        logError('Webhook missing signature header');
         response.status(400).send('Missing signature');
         return;
       }
 
       // Verify signature BEFORE parsing the payload
       if (!verifyWebhookSignature(rawBody, signature, razorpayWebhookSecret.value())) {
-        console.error('Webhook signature verification failed');
+        logError('Webhook signature verification failed');
         response.status(401).send('Unauthorized');
         return;
       }
@@ -42,7 +43,7 @@ export const paymentWebhook = onRequest(
       response.status(200).send('OK');
 
     } catch (error) {
-      console.error('Webhook handling error:', error);
+      logError('Webhook handling error:', error);
       response.status(500).send('Internal Server Error');
     }
 });

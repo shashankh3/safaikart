@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { assertAdmin } from '../utils/assertAdmin';
 import { z } from 'zod';
+import { logError } from '../utils/logger';
 
 const photosSchema = z.object({
   orderId: z.string().min(1),
@@ -55,7 +56,7 @@ export const adminSetOrderPhotos = onCall(async (request) => {
 
     return { success: true, message: `Photos updated for order ${orderId}` };
   } catch (error: any) {
-    console.error('Error in adminSetOrderPhotos:', error);
+    logError('Error in adminSetOrderPhotos:', error);
     if (error instanceof HttpsError) {
       throw error;
     }

@@ -1,3 +1,4 @@
+import { logWarn } from '../utils/logger';
 export function computeEstimatedDelivery(
   slotDateStr: string, // e.g. "2024-05-20"
   startTimeStr: string, // e.g. "10:00"
@@ -27,8 +28,30 @@ export function computeEstimatedDelivery(
 
     return new Date(deliveryMs).toISOString();
   } catch (e) {
-    console.warn(`Failed to parse delivery date, using fallback: ${e}`);
+    logWarn(`Failed to parse delivery date, using fallback: ${e}`);
     // Fallback 48h
     return new Date(Date.now() + 48 * 3600000).toISOString();
+  }
+}
+
+export function isSlotValid(
+  slotDateStr: string,
+  startTimeStr: string,
+  leadTimeHours: number = 2
+): boolean {
+  try {
+    const [year, month, day] = slotDateStr.split('-').map(Number);
+    const [hours, minutes] = (startTimeStr || '10:00').split(':').map(Number);
+    
+    const dateAsUTC = Date.UTC(year, month - 1, day, hours, minutes, 0);
+    const istOffsetMs = 5.5 * 60 * 60 * 1000;
+    const slotStartMs = dateAsUTC - istOffsetMs;
+
+    const nowMs = Date.now();
+    const leadTimeMs = leadTimeHours * 60 * 60 * 1000;
+    
+    return slotStartMs >= (nowMs + leadTimeMs);
+  } catch (e) {
+    return false; // Safely reject malformed slots
   }
 }

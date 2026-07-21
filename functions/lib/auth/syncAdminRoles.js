@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.syncAdminRoles = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
+const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -48,7 +49,7 @@ exports.syncAdminRoles = (0, firestore_1.onDocumentWritten)('adminUsers/{uid}', 
     // If document is deleted, remove custom claims
     if (!snapshot.after.exists) {
         await admin.auth().setCustomUserClaims(uid, { admin: false, role: null });
-        console.log(`Removed admin claims for ${uid}`);
+        (0, logger_1.logInfo)(`Removed admin claims for ${uid}`);
         return;
     }
     // If created or updated, sync role
@@ -56,7 +57,7 @@ exports.syncAdminRoles = (0, firestore_1.onDocumentWritten)('adminUsers/{uid}', 
     const role = data === null || data === void 0 ? void 0 : data.role;
     if (role) {
         await admin.auth().setCustomUserClaims(uid, { admin: true, role: role });
-        console.log(`Set admin role ${role} for ${uid}`);
+        (0, logger_1.logInfo)(`Set admin role ${role} for ${uid}`);
     }
 });
 //# sourceMappingURL=syncAdminRoles.js.map

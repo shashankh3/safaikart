@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onBroadcastCreated = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
+const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -69,7 +70,7 @@ exports.onBroadcastCreated = (0, firestore_1.onDocumentCreated)('broadcasts/{bro
         });
     }
     catch (error) {
-        console.error('Error sending broadcast:', error);
+        (0, logger_1.logError)('Error sending broadcast:', error);
         await snapshot.ref.update({
             status: 'FAILED',
             failedAt: admin.firestore.FieldValue.serverTimestamp(),

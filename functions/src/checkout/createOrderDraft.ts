@@ -3,6 +3,8 @@ import * as admin from 'firebase-admin';
 import { rateLimiter } from '../utils/rateLimiter';
 import { calculateOrderTotals, PricingItem } from '../orders/pricing.logic';
 import { createOrderDraftRequest } from '../contracts';
+import { isPincodeServiceable } from '../utils/serviceability.logic';
+import { computeEstimatedDelivery, isSlotValid } from '../utils/deliveryLogic';
 
 // Initialize admin app if not already initialized
 if (!admin.apps.length) {
@@ -20,7 +22,7 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
   // Rate limiting: max 5 orders per hour (3600 seconds)
   await rateLimiter(uid, 'createOrderDraft', 5, 3600);
 
-  let addressId: string, pickupSlotId: string, couponCode: string | null = null, directItems: any[] | undefined, idempotencyKey: string | undefined;
+  let addressId: string, pickupSlotId: string, couponCode: string | null = null, directItems: any[] | undefined | null, idempotencyKey: string | undefined;
 
   try {
     const parsed = createOrderDraftRequest.parse(data);
@@ -67,12 +69,17 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
     }
   }
 
-  // 2. Fetch Address
+  // 2. Fetch Address & Validate Serviceability
   const addressDoc = await db.collection('addresses').doc(addressId).get();
   if (!addressDoc.exists || addressDoc.data()?.userId !== uid) {
     throw new functions.https.HttpsError('permission-denied', 'Invalid address or unauthorized access.');
   }
   const addressData = addressDoc.data()!;
+
+  const { isServiceable } = await isPincodeServiceable(db, addressData.pincode);
+  if (!isServiceable) {
+    throw new functions.https.HttpsError('failed-precondition', `We don't service pincode ${addressData.pincode} yet.`);
+  }
 
   // 3. Process Items & Calculate Price
   const pricingItems: PricingItem[] = [];
@@ -160,19 +167,19 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
       throw new functions.https.HttpsError('failed-precondition', 'Pickup slot is fully booked or inactive.');
     }
 
+    if (!isSlotValid(slotData.date, slotData.startTime, 2)) {
+      throw new functions.https.HttpsError('failed-precondition', 'Pickup slot is in the past or too soon to book.');
+    }
+
     // Increment booked count
     transaction.update(slotRef, { bookedCount: admin.firestore.FieldValue.increment(1) });
 
     // Calculate Estimated Delivery Date
-    let estimatedDeliveryDateStr = '';
-    try {
-      const [hours, minutes] = (slotData.startTime || '10:00').split(':').map(Number);
-      const pickupDate = new Date(`${slotData.date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00Z`);
-      pickupDate.setHours(pickupDate.getHours() + maxDurationHours + 4);
-      estimatedDeliveryDateStr = pickupDate.toISOString();
-    } catch (e) {
-      estimatedDeliveryDateStr = new Date(Date.now() + 48 * 3600000).toISOString(); // fallback 48h
-    }
+    const estimatedDeliveryDateStr = computeEstimatedDelivery(
+      slotData.date,
+      slotData.startTime,
+      maxDurationHours
+    );
 
     // 3 minute edit window
     const editableUntil = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 3 * 60000));

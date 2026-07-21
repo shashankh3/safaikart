@@ -39,6 +39,7 @@ const admin = __importStar(require("firebase-admin"));
 const assertAdmin_1 = require("../utils/assertAdmin");
 const razorpayClient_1 = require("../payments/razorpayClient");
 const zod_1 = require("zod");
+const logger_1 = require("../utils/logger");
 const confirmPriceSchema = zod_1.z.object({
     orderId: zod_1.z.string().min(1),
     items: zod_1.z.array(zod_1.z.object({
@@ -190,7 +191,7 @@ exports.adminConfirmOrderPrice = (0, https_1.onCall)({ secrets: [razorpayClient_
             }
             else {
                 const errText = await response.text();
-                console.error('Refund failed during adminConfirmOrderPrice:', errText);
+                (0, logger_1.logError)('Refund failed during adminConfirmOrderPrice:', errText);
                 await orderRef.update({
                     refundStatus: 'FAILED',
                     refundError: errText,
@@ -201,7 +202,7 @@ exports.adminConfirmOrderPrice = (0, https_1.onCall)({ secrets: [razorpayClient_
         return { success: true, message: `Prices confirmed for order ${orderId}` };
     }
     catch (error) {
-        console.error('Error in adminConfirmOrderPrice:', error);
+        (0, logger_1.logError)('Error in adminConfirmOrderPrice:', error);
         if (error instanceof https_1.HttpsError) {
             throw error;
         }

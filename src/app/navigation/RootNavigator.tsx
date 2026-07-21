@@ -20,6 +20,7 @@ import ServiceDetailsScreen from '../../features/catalog/presentation/screens/Se
 import AddressListScreen from '../../features/addresses/presentation/screens/AddressListScreen';
 import AddressFormScreen from '../../features/addresses/presentation/screens/AddressFormScreen';
 import SupportScreen from '../../features/profile/presentation/screens/SupportScreen';
+import EditOrderScreen from '../../features/orders/presentation/screens/EditOrderScreen';
 
 import StickyCart from '../../features/cart/presentation/components/StickyCart';
 import AnimatedPressable from '../../shared/ui/components/AnimatedPressable';
@@ -221,6 +222,7 @@ export default function AppNavigator() {
             <Stack.Screen name="CheckoutFlow" component={CheckoutNavigator} />
             <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} />
             <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
+            <Stack.Screen name="EditOrder" component={EditOrderScreen} />
             <Stack.Screen name="PaymentCallback" component={PaymentCallbackScreen} />
             <Stack.Screen name="Support" component={SupportScreen} />
           </>

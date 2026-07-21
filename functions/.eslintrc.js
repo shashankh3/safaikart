@@ -29,6 +29,7 @@ module.exports = {
     "import/no-unresolved": 0,
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
+    "no-console": "error",
     "max-len": ["warn", { "code": 160 }],
   },
 };

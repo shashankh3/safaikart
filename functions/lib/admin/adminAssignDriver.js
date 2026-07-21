@@ -39,6 +39,7 @@ const admin = __importStar(require("firebase-admin"));
 const assertAdmin_1 = require("../utils/assertAdmin");
 const statusLogic_1 = require("../utils/statusLogic");
 const zod_1 = require("zod");
+const logger_1 = require("../utils/logger");
 const assignSchema = zod_1.z.object({
     orderId: zod_1.z.string().min(1),
     driverId: zod_1.z.string().min(1)
@@ -87,7 +88,7 @@ exports.adminAssignDriver = (0, https_1.onCall)(async (request) => {
         return { success: true, message: `Driver ${driverId} assigned to order ${orderId}` };
     }
     catch (error) {
-        console.error('Error in adminAssignDriver:', error);
+        (0, logger_1.logError)('Error in adminAssignDriver:', error);
         if (error instanceof https_1.HttpsError) {
             throw error;
         }

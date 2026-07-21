@@ -54,6 +54,7 @@ const ALLOWED_TRANSITIONS = {
 };
 const assertAdmin_1 = require("../utils/assertAdmin");
 const zod_1 = require("zod");
+const logger_1 = require("../utils/logger");
 const updateSchema = zod_1.z.object({
     orderId: zod_1.z.string().min(1),
     newStatus: zod_1.z.string().min(1)
@@ -102,7 +103,7 @@ exports.adminUpdateOrderStatus = (0, https_1.onCall)(async (request) => {
         return { success: true, message: `Order ${orderId} updated to ${newStatus}` };
     }
     catch (error) {
-        console.error('Error in adminUpdateOrderStatus:', error);
+        (0, logger_1.logError)('Error in adminUpdateOrderStatus:', error);
         if (error instanceof https_1.HttpsError) {
             throw error;
         }

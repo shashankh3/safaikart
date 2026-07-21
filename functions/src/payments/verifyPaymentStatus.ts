@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import { buildStatusHistoryUpdate } from '../utils/statusLogic';
 
 import { getRazorpayAuthHeader, razorpayKeySecret } from './razorpayClient';
+import { logError } from '../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -130,7 +131,7 @@ export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret] }, asyn
     return { paymentStatus: paymentRecord.status, orderStatus: 'PAYMENT_PENDING' };
 
   } catch (error) {
-    console.error('Manual verification failed:', error);
+    logError('Manual verification failed:', error);
     return { paymentStatus: paymentRecord.status, orderStatus: 'PAYMENT_PENDING' };
   }
 });

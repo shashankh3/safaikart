@@ -2,6 +2,7 @@ import { onTaskDispatched } from 'firebase-functions/v2/tasks';
 import * as admin from 'firebase-admin';
 import { buildStatusHistoryUpdate } from '../utils/statusLogic';
 import { OrderRepository } from '../repositories/OrderRepository';
+import { logInfo, logWarn, logError } from '../utils/logger';
 
 const orderRepo = new OrderRepository();
 
@@ -17,12 +18,13 @@ export const processRazorpayWebhook = onTaskDispatched(
       maxAttempts: 5,
       minBackoffSeconds: 60,
     },
+    region: 'asia-south1',
   },
   async (request) => {
     const { event, eventId } = request.data;
     
     if (!event) {
-      console.error('Task missing event payload');
+      logError('Task missing event payload');
       return;
     }
 
@@ -31,7 +33,7 @@ export const processRazorpayWebhook = onTaskDispatched(
       const eventDocRef = db.collection('webhookEvents').doc(eventId);
       const eventDoc = await eventDocRef.get();
       if (eventDoc.exists) {
-        console.log(`Event ${eventId} already processed. Skipping.`);
+        logInfo(`Event ${eventId} already processed. Skipping.`);
         return; // Idempotent success
       }
       
@@ -67,7 +69,7 @@ export const processRazorpayWebhook = onTaskDispatched(
       await db.runTransaction(async (tx) => {
         const paymentsQuery = await tx.get(db.collection('payments').where('razorpayPaymentId', '==', rzpPaymentId));
         if (paymentsQuery.empty) {
-          console.warn(`Payment record not found for Razorpay Payment: ${rzpPaymentId}`);
+          logWarn(`Payment record not found for Razorpay Payment: ${rzpPaymentId}`);
           db.collection('auditLogs').add({
             action: 'UNKNOWN_REFUND',
             razorpayPaymentId: rzpPaymentId,
@@ -120,7 +122,7 @@ export const processRazorpayWebhook = onTaskDispatched(
     const paymentsQuery = await db.collection('payments').where('razorpayOrderId', '==', rzpOrderId).get();
     
     if (paymentsQuery.empty) {
-      console.warn(`Payment record not found for Razorpay Order: ${rzpOrderId}`);
+      logWarn(`Payment record not found for Razorpay Order: ${rzpOrderId}`);
       // Return so task completes, it shouldn't retry if record genuinely lost
       return; 
     }
@@ -130,7 +132,7 @@ export const processRazorpayWebhook = onTaskDispatched(
 
     // 7. Verify Data Integrity
     if (payment.amount !== paymentRecord.amountMinor) {
-      console.error(`Amount mismatch: expected ${paymentRecord.amountMinor}, got ${payment.amount}`);
+      logError(`Amount mismatch: expected ${paymentRecord.amountMinor}, got ${payment.amount}`);
       await paymentDocRef.update({ status: 'FAILED' });
       await db.collection('auditLogs').add({
         action: 'AMOUNT_MISMATCH',
@@ -144,7 +146,7 @@ export const processRazorpayWebhook = onTaskDispatched(
     }
     
     if (payment.currency !== 'INR') {
-      console.error(`Currency mismatch: expected INR, got ${payment.currency}`);
+      logError(`Currency mismatch: expected INR, got ${payment.currency}`);
       await paymentDocRef.update({ status: 'FAILED' });
       return;
     }

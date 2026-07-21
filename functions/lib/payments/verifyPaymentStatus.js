@@ -38,6 +38,7 @@ const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const statusLogic_1 = require("../utils/statusLogic");
 const razorpayClient_1 = require("./razorpayClient");
+const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -143,7 +144,7 @@ exports.verifyPaymentStatus = (0, https_1.onCall)({ secrets: [razorpayClient_1.r
         return { paymentStatus: paymentRecord.status, orderStatus: 'PAYMENT_PENDING' };
     }
     catch (error) {
-        console.error('Manual verification failed:', error);
+        (0, logger_1.logError)('Manual verification failed:', error);
         return { paymentStatus: paymentRecord.status, orderStatus: 'PAYMENT_PENDING' };
     }
 });

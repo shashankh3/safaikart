@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.computeEstimatedDelivery = computeEstimatedDelivery;
+exports.isSlotValid = isSlotValid;
+const logger_1 = require("../utils/logger");
 function computeEstimatedDelivery(slotDateStr, // e.g. "2024-05-20"
 startTimeStr, // e.g. "10:00"
 maxDurationHours) {
@@ -24,9 +26,24 @@ maxDurationHours) {
         return new Date(deliveryMs).toISOString();
     }
     catch (e) {
-        console.warn(`Failed to parse delivery date, using fallback: ${e}`);
+        (0, logger_1.logWarn)(`Failed to parse delivery date, using fallback: ${e}`);
         // Fallback 48h
         return new Date(Date.now() + 48 * 3600000).toISOString();
+    }
+}
+function isSlotValid(slotDateStr, startTimeStr, leadTimeHours = 2) {
+    try {
+        const [year, month, day] = slotDateStr.split('-').map(Number);
+        const [hours, minutes] = (startTimeStr || '10:00').split(':').map(Number);
+        const dateAsUTC = Date.UTC(year, month - 1, day, hours, minutes, 0);
+        const istOffsetMs = 5.5 * 60 * 60 * 1000;
+        const slotStartMs = dateAsUTC - istOffsetMs;
+        const nowMs = Date.now();
+        const leadTimeMs = leadTimeHours * 60 * 60 * 1000;
+        return slotStartMs >= (nowMs + leadTimeMs);
+    }
+    catch (e) {
+        return false; // Safely reject malformed slots
     }
 }
 //# sourceMappingURL=deliveryLogic.js.map

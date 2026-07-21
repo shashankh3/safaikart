@@ -16,16 +16,16 @@ exports.addressSchema = zod_1.z.object({
 });
 exports.orderItemSchema = zod_1.z.object({
     serviceId: zod_1.z.string(),
-    categoryId: zod_1.z.string(),
-    name: zod_1.z.string(),
-    priceMinor: zod_1.z.number().int().min(0),
+    categoryId: zod_1.z.string().optional(),
+    name: zod_1.z.string().optional(),
+    priceMinor: zod_1.z.number().int().min(0).optional(),
     quantity: zod_1.z.number().int().min(1).max(99),
     image: zod_1.z.string().optional()
 });
 exports.createOrderDraftRequest = zod_1.z.object({
     addressId: zod_1.z.string().min(1),
     pickupSlotId: zod_1.z.string().min(1),
-    directItems: zod_1.z.array(exports.orderItemSchema).optional(),
+    directItems: zod_1.z.array(exports.orderItemSchema).optional().nullable(),
     couponCode: zod_1.z.string().optional().nullable(),
     idempotencyKey: zod_1.z.string().optional()
 });

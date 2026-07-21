@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteOldNotifications = void 0;
+exports.deactivateExpiredSlots = void 0;
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const admin = __importStar(require("firebase-admin"));
 const logger_1 = require("../utils/logger");
@@ -41,27 +41,35 @@ if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.deleteOldNotifications = (0, scheduler_1.onSchedule)({ schedule: 'every 24 hours' }, async (event) => {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+exports.deactivateExpiredSlots = (0, scheduler_1.onSchedule)({ schedule: 'every 6 hours', timeoutSeconds: 120 }, async () => {
+    // We want to deactivate slots that are before today
+    const today = new Date();
+    // Format YYYY-MM-DD
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayDateStr = `${year}-${month}-${day}`;
     try {
-        const snapshot = await db.collection('notifications')
-            .where('createdAt', '<', admin.firestore.Timestamp.fromDate(thirtyDaysAgo))
-            .limit(500)
+        const expiredSlotsQuery = await db.collection('pickupSlots')
+            .where('isActive', '==', true)
+            .where('date', '<', todayDateStr)
             .get();
-        if (snapshot.empty) {
-            (0, logger_1.logInfo)('No old notifications to delete.');
+        if (expiredSlotsQuery.empty) {
+            (0, logger_1.logInfo)('No expired pickup slots to deactivate.');
             return;
         }
         const batch = db.batch();
-        snapshot.docs.forEach((doc) => {
-            batch.delete(doc.ref);
+        expiredSlotsQuery.docs.forEach(doc => {
+            batch.update(doc.ref, {
+                isActive: false,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
         });
         await batch.commit();
-        (0, logger_1.logInfo)(`Deleted ${snapshot.size} old notifications.`);
+        (0, logger_1.logInfo)(`Deactivated ${expiredSlotsQuery.size} expired pickup slots.`);
     }
     catch (error) {
-        (0, logger_1.logError)('Error deleting old notifications:', error);
+        (0, logger_1.logError)('Error deactivating expired pickup slots:', error);
     }
 });
-//# sourceMappingURL=deleteOldNotifications.js.map
+//# sourceMappingURL=deactivateExpiredSlots.js.map

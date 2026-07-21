@@ -1,5 +1,6 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as admin from 'firebase-admin';
+import { logInfo, logError } from '../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -18,7 +19,7 @@ export const deleteOldNotifications = onSchedule({ schedule: 'every 24 hours' },
       .get();
 
     if (snapshot.empty) {
-      console.log('No old notifications to delete.');
+      logInfo('No old notifications to delete.');
       return;
     }
 
@@ -28,8 +29,8 @@ export const deleteOldNotifications = onSchedule({ schedule: 'every 24 hours' },
     });
 
     await batch.commit();
-    console.log(`Deleted ${snapshot.size} old notifications.`);
+    logInfo(`Deleted ${snapshot.size} old notifications.`);
   } catch (error) {
-    console.error('Error deleting old notifications:', error);
+    logError('Error deleting old notifications:', error);
   }
 });

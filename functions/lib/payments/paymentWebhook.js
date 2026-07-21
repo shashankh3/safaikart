@@ -39,6 +39,7 @@ const params_1 = require("firebase-functions/params");
 const admin = __importStar(require("firebase-admin"));
 const functions_1 = require("firebase-admin/functions");
 const webhook_logic_1 = require("./webhook.logic");
+const logger_1 = require("../utils/logger");
 exports.razorpayWebhookSecret = (0, params_1.defineSecret)('RAZORPAY_WEBHOOK_SECRET');
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -49,13 +50,13 @@ exports.paymentWebhook = (0, https_1.onRequest)({ secrets: [exports.razorpayWebh
         const rawBody = request.rawBody;
         const signature = request.headers['x-razorpay-signature'];
         if (!signature || typeof signature !== 'string') {
-            console.error('Webhook missing signature header');
+            (0, logger_1.logError)('Webhook missing signature header');
             response.status(400).send('Missing signature');
             return;
         }
         // Verify signature BEFORE parsing the payload
         if (!(0, webhook_logic_1.verifyWebhookSignature)(rawBody, signature, exports.razorpayWebhookSecret.value())) {
-            console.error('Webhook signature verification failed');
+            (0, logger_1.logError)('Webhook signature verification failed');
             response.status(401).send('Unauthorized');
             return;
         }
@@ -68,7 +69,7 @@ exports.paymentWebhook = (0, https_1.onRequest)({ secrets: [exports.razorpayWebh
         response.status(200).send('OK');
     }
     catch (error) {
-        console.error('Webhook handling error:', error);
+        (0, logger_1.logError)('Webhook handling error:', error);
         response.status(500).send('Internal Server Error');
     }
 });

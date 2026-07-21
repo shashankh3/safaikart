@@ -38,6 +38,7 @@ const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const razorpayClient_1 = require("./razorpayClient");
 const config_1 = require("../utils/config");
+const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -105,7 +106,7 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
                 catch (e) {
                     if (e instanceof https_1.HttpsError)
                         throw e;
-                    console.error('Error checking existing razorpay order:', e);
+                    (0, logger_1.logError)('Error checking existing razorpay order:', e);
                 }
                 // Return existing razorpay order to avoid duplicates if it's still valid
                 const baseUrl = process.env.CHECKOUT_BASE_URL || 'https://safaikart-6c4e4.web.app';
@@ -147,7 +148,7 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
         });
         if (!response.ok) {
             const errorData = await response.json();
-            console.error('Razorpay Error:', errorData);
+            (0, logger_1.logError)('Razorpay Error:', errorData);
             throw new https_1.HttpsError('internal', 'Failed to create payment order with gateway.');
         }
         const rzpOrder = await response.json();
@@ -194,7 +195,7 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
         };
     }
     catch (error) {
-        console.error('Payment creation error:', error);
+        (0, logger_1.logError)('Payment creation error:', error);
         throw new https_1.HttpsError('internal', 'Failed to initiate payment.');
     }
 });

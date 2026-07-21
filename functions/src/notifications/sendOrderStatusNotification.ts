@@ -2,6 +2,7 @@ import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { buildOrderNotification } from '../utils/notificationLogic';
+import { logError } from '../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -44,10 +45,11 @@ export const sendOrderStatusNotification = onDocumentUpdated('orders/{orderId}',
       body,
       deepLink,
       isRead: false,
-      createdAt: FieldValue.serverTimestamp()
+      createdAt: FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000))
     });
   } catch (error) {
-    console.error('Error writing to notification center:', error);
+    logError('Error writing to notification center:', error);
   }
 
   // 2. FCM Push Notification
@@ -82,6 +84,6 @@ export const sendOrderStatusNotification = onDocumentUpdated('orders/{orderId}',
     }
 
   } catch (error) {
-    console.error('Error sending multicast notification', error);
+    logError('Error sending multicast notification', error);
   }
 });

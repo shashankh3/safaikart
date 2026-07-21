@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
+import { logError } from '../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -21,7 +22,7 @@ export const deleteAccount = onCall(async (request) => {
     await admin.auth().deleteUser(uid);
     return { success: true, message: 'Account deleted successfully' };
   } catch (error: any) {
-    console.error(`Error deleting user ${uid}:`, error);
+    logError(`Error deleting user ${uid}:`, error);
     throw new HttpsError('internal', 'An error occurred while deleting your account.');
   }
 });

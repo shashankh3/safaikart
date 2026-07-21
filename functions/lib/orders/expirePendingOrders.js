@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.expirePendingOrders = void 0;
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const admin = __importStar(require("firebase-admin"));
+const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -48,7 +49,7 @@ exports.expirePendingOrders = (0, scheduler_1.onSchedule)({ schedule: 'every 30 
             .where('createdAt', '<', admin.firestore.Timestamp.fromDate(oneHourAgo))
             .get();
         if (pendingOrdersQuery.empty) {
-            console.log('No pending orders to expire.');
+            (0, logger_1.logInfo)('No pending orders to expire.');
             return;
         }
         let expiredCount = 0;
@@ -69,7 +70,7 @@ exports.expirePendingOrders = (0, scheduler_1.onSchedule)({ schedule: 'every 30 
                         .where('orderId', '==', doc.id)
                         .where('status', '==', 'VERIFIED'));
                     if (!paymentsSnapshot.empty) {
-                        console.warn(`Order ${doc.id} is PAYMENT_PENDING but has a VERIFIED payment. Auto-correcting.`);
+                        (0, logger_1.logWarn)(`Order ${doc.id} is PAYMENT_PENDING but has a VERIFIED payment. Auto-correcting.`);
                         tx.update(doc.ref, {
                             status: 'CONFIRMED',
                             paymentStatus: 'VERIFIED',
@@ -93,13 +94,13 @@ exports.expirePendingOrders = (0, scheduler_1.onSchedule)({ schedule: 'every 30 
                 expiredCount++;
             }
             catch (err) {
-                console.error(`Failed to process expiration for order ${doc.id}:`, err);
+                (0, logger_1.logError)(`Failed to process expiration for order ${doc.id}:`, err);
             }
         }));
-        console.log(`Expired ${expiredCount} pending orders.`);
+        (0, logger_1.logInfo)(`Expired ${expiredCount} pending orders.`);
     }
     catch (error) {
-        console.error('Error expiring pending orders:', error);
+        (0, logger_1.logError)('Error expiring pending orders:', error);
     }
 });
 //# sourceMappingURL=expirePendingOrders.js.map

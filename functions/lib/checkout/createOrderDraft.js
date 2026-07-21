@@ -39,6 +39,8 @@ const admin = __importStar(require("firebase-admin"));
 const rateLimiter_1 = require("../utils/rateLimiter");
 const pricing_logic_1 = require("../orders/pricing.logic");
 const contracts_1 = require("../contracts");
+const serviceability_logic_1 = require("../utils/serviceability.logic");
+const deliveryLogic_1 = require("../utils/deliveryLogic");
 // Initialize admin app if not already initialized
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -95,12 +97,16 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
             throw new functions.https.HttpsError('failed-precondition', 'Cart is empty.');
         }
     }
-    // 2. Fetch Address
+    // 2. Fetch Address & Validate Serviceability
     const addressDoc = await db.collection('addresses').doc(addressId).get();
     if (!addressDoc.exists || ((_b = addressDoc.data()) === null || _b === void 0 ? void 0 : _b.userId) !== uid) {
         throw new functions.https.HttpsError('permission-denied', 'Invalid address or unauthorized access.');
     }
     const addressData = addressDoc.data();
+    const { isServiceable } = await (0, serviceability_logic_1.isPincodeServiceable)(db, addressData.pincode);
+    if (!isServiceable) {
+        throw new functions.https.HttpsError('failed-precondition', `We don't service pincode ${addressData.pincode} yet.`);
+    }
     // 3. Process Items & Calculate Price
     const pricingItems = [];
     for (const item of itemsToProcess) {
@@ -169,19 +175,13 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
         if (!slotData.isActive || (slotData.bookedCount >= slotData.capacity)) {
             throw new functions.https.HttpsError('failed-precondition', 'Pickup slot is fully booked or inactive.');
         }
+        if (!(0, deliveryLogic_1.isSlotValid)(slotData.date, slotData.startTime, 2)) {
+            throw new functions.https.HttpsError('failed-precondition', 'Pickup slot is in the past or too soon to book.');
+        }
         // Increment booked count
         transaction.update(slotRef, { bookedCount: admin.firestore.FieldValue.increment(1) });
         // Calculate Estimated Delivery Date
-        let estimatedDeliveryDateStr = '';
-        try {
-            const [hours, minutes] = (slotData.startTime || '10:00').split(':').map(Number);
-            const pickupDate = new Date(`${slotData.date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00Z`);
-            pickupDate.setHours(pickupDate.getHours() + maxDurationHours + 4);
-            estimatedDeliveryDateStr = pickupDate.toISOString();
-        }
-        catch (e) {
-            estimatedDeliveryDateStr = new Date(Date.now() + 48 * 3600000).toISOString(); // fallback 48h
-        }
+        const estimatedDeliveryDateStr = (0, deliveryLogic_1.computeEstimatedDelivery)(slotData.date, slotData.startTime, maxDurationHours);
         // 3 minute edit window
         const editableUntil = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 3 * 60000));
         // Create Order

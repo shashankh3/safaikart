@@ -38,6 +38,7 @@ const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const assertAdmin_1 = require("../utils/assertAdmin");
 const zod_1 = require("zod");
+const logger_1 = require("../utils/logger");
 const photosSchema = zod_1.z.object({
     orderId: zod_1.z.string().min(1),
     photos: zod_1.z.array(zod_1.z.string().url())
@@ -83,7 +84,7 @@ exports.adminSetOrderPhotos = (0, https_1.onCall)(async (request) => {
         return { success: true, message: `Photos updated for order ${orderId}` };
     }
     catch (error) {
-        console.error('Error in adminSetOrderPhotos:', error);
+        (0, logger_1.logError)('Error in adminSetOrderPhotos:', error);
         if (error instanceof https_1.HttpsError) {
             throw error;
         }
