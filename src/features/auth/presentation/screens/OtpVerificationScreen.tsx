@@ -1,32 +1,42 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import auth from '@react-native-firebase/auth';
 
 export default function OtpVerificationScreen() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { phoneNumber, confirmation } = route.params as { phoneNumber: string, confirmation: FirebaseAuthTypes.ConfirmationResult };
+  const { phoneNumber, verificationId } = route.params as { phoneNumber: string, verificationId: string };
 
   const handleVerifyOtp = async () => {
-    if (otp.length < 6) {
-      Alert.alert('Error', 'Please enter a 6-digit OTP');
+    const trimmedOtp = otp.trim();
+    if (trimmedOtp.length !== 6 || !/^\d{6}$/.test(trimmedOtp)) {
+      Alert.alert('Error', 'Please enter a valid 6-digit OTP');
       return;
     }
     
     setLoading(true);
     try {
-      if (!confirmation) {
-        throw new Error('Confirmation object is missing. Please try sending OTP again.');
+      if (!verificationId) {
+        throw new Error('Verification session is missing. Please try sending OTP again.');
       }
       
-      await confirmation.confirm(otp);
+      const credential = auth.PhoneAuthProvider.credential(verificationId, trimmedOtp);
+      await auth().signInWithCredential(credential);
       // RootNavigator will automatically redirect due to auth state change!
     } catch (e: any) {
       console.error(e);
-      Alert.alert('Error', e?.message || 'Invalid OTP');
+      let errorMsg = 'Invalid OTP';
+      if (e?.code === 'auth/invalid-verification-code') {
+        errorMsg = 'The OTP entered is incorrect.';
+      } else if (e?.code === 'auth/session-expired') {
+        errorMsg = 'The OTP has expired. Please request a new one.';
+      } else if (e?.message) {
+        errorMsg = e.message;
+      }
+      Alert.alert('Error', errorMsg);
     } finally {
       setLoading(false);
     }

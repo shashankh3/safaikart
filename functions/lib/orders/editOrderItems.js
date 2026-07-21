@@ -91,8 +91,14 @@ exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorp
             throw new https_1.HttpsError('failed-precondition', 'Order can only be edited while payment is pending or just confirmed.');
         }
         // Process new items and recalculate
+        if (items.length > 50) {
+            throw new https_1.HttpsError('invalid-argument', 'Too many items in order. Maximum allowed is 50.');
+        }
         const pricingItems = [];
         for (const item of items) {
+            if (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 100) {
+                throw new https_1.HttpsError('invalid-argument', `Invalid quantity for item ${item.serviceId}. Quantity must be between 1 and 100.`);
+            }
             const serviceDoc = await transaction.get(db.collection('services').doc(item.serviceId));
             if (!serviceDoc.exists)
                 continue;

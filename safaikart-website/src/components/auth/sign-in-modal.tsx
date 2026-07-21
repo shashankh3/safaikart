@@ -60,10 +60,13 @@ export function SignInModal({
   }
 
   async function handleSendOtp() {
-    if (!phone.startsWith("+")) return toast.error("Include country code, e.g. +9198…");
+    const cleanedPhone = phone.replace(/[^\d+]/g, "");
+    if (!cleanedPhone.startsWith("+") || cleanedPhone.length < 10) {
+      return toast.error("Include country code, e.g. +919876543210");
+    }
     setBusy(true);
     try {
-      const c = await startPhoneOtp(phone.trim(), "recaptcha-container");
+      const c = await startPhoneOtp(cleanedPhone, "recaptcha-container");
       setConfirm(c);
       toast.success("OTP sent");
     } catch (e) {
@@ -75,9 +78,15 @@ export function SignInModal({
 
   async function handleVerifyOtp() {
     if (!confirm) return;
+    
+    const trimmedOtp = otp.trim();
+    if (!/^\d{6}$/.test(trimmedOtp)) {
+      return toast.error("Please enter a valid 6-digit OTP");
+    }
+
     setBusy(true);
     try {
-      await confirm.confirm(otp.trim());
+      await confirm.confirm(trimmedOtp);
       toast.success("Signed in!");
       onOpenChange(false);
       onAuthed?.();

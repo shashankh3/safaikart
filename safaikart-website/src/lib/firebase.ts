@@ -21,14 +21,31 @@ let _db: Firestore | null = null;
 let _functions: Functions | null = null;
 let _storage: FirebaseStorage | null = null;
 
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+
 function ensureApp(): FirebaseApp {
   if (_app) return _app;
   _app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  
+  if (typeof window !== 'undefined') {
+    const siteKey = 'RECAPTCHA_V3_SITE_KEY_PLACEHOLDER';
+    if (siteKey !== 'RECAPTCHA_V3_SITE_KEY_PLACEHOLDER') {
+      initializeAppCheck(_app, {
+        provider: new ReCaptchaV3Provider(siteKey),
+        isTokenAutoRefreshEnabled: true
+      });
+    } else {
+      console.warn("App Check not initialized: Please replace RECAPTCHA_V3_SITE_KEY_PLACEHOLDER in firebase.ts with your real key.");
+    }
+  }
+  
   return _app;
 }
 
 export function getFirebaseAuth(): Auth {
-  if (!_auth) _auth = getAuth(ensureApp());
+  if (!_auth) {
+    _auth = getAuth(ensureApp());
+  }
   return _auth;
 }
 

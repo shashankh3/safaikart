@@ -64,6 +64,7 @@ exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayK
     let amountToRefundMinor = 0;
     try {
         await db.runTransaction(async (transaction) => {
+            var _a;
             const orderDoc = await transaction.get(orderRef);
             if (!orderDoc.exists) {
                 throw new https_1.HttpsError('not-found', 'Order not found');
@@ -92,7 +93,9 @@ exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayK
                 const slotRef = db.collection('pickupSlots').doc(orderData.pickupSlotId);
                 const slotDoc = await transaction.get(slotRef);
                 if (slotDoc.exists) {
-                    transaction.update(slotRef, { bookedCount: firestore_1.FieldValue.increment(-1) });
+                    const currentCount = ((_a = slotDoc.data()) === null || _a === void 0 ? void 0 : _a.bookedCount) || 0;
+                    const newCount = Math.max(0, currentCount - 1);
+                    transaction.update(slotRef, { bookedCount: newCount });
                 }
             }
             const statusUpdate = (0, statusLogic_1.buildStatusHistoryUpdate)(orderData, newStatus);

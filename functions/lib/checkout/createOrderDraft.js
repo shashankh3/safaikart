@@ -97,6 +97,9 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
             throw new functions.https.HttpsError('failed-precondition', 'Cart is empty.');
         }
     }
+    if (itemsToProcess.length > 50) {
+        throw new functions.https.HttpsError('invalid-argument', 'Too many items in cart. Maximum allowed is 50.');
+    }
     // 2. Fetch Address & Validate Serviceability
     const addressDoc = await db.collection('addresses').doc(addressId).get();
     if (!addressDoc.exists || ((_b = addressDoc.data()) === null || _b === void 0 ? void 0 : _b.userId) !== uid) {
@@ -110,6 +113,9 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
     // 3. Process Items & Calculate Price
     const pricingItems = [];
     for (const item of itemsToProcess) {
+        if (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 100) {
+            throw new functions.https.HttpsError('invalid-argument', `Invalid quantity for item ${item.name || item.serviceId}. Quantity must be between 1 and 100.`);
+        }
         // Fetch actual service from DB to prevent tampering
         const serviceDoc = await db.collection('services').doc(item.id || item.serviceId).get();
         if (!serviceDoc.exists) {

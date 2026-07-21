@@ -49,6 +49,7 @@ exports.processRazorpayWebhook = (0, tasks_1.onTaskDispatched)({
         maxAttempts: 5,
         minBackoffSeconds: 60,
     },
+    region: 'asia-south1',
 }, async (request) => {
     const { event, eventId } = request.data;
     if (!event) {

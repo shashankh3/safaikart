@@ -26,8 +26,8 @@ export const useAuth = () => {
             setIsBlocked(false);
           }
 
-          const adminDoc = await getDoc(doc(db, 'adminUsers', firebaseUser.uid));
-          setIsAdmin(adminDoc.exists());
+          const tokenResult = await firebaseUser.getIdTokenResult();
+          setIsAdmin(!!tokenResult.claims.admin);
         } catch (e) {
           setIsAdmin(false);
           setIsBlocked(false);

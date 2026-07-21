@@ -14,7 +14,7 @@
   "hosting": [
     {
       "target": "safaikart-consumer",
-      "public": "dist",
+      "public": "public",
       "ignore": [
         "firebase.json",
         "**/.*",
@@ -29,7 +29,7 @@
     },
     {
       "target": "safaikart-admin",
-      "public": "admin-console/dist",
+      "public": "safaikart-website/dist",
       "ignore": [
         "firebase.json",
         "**/.*",

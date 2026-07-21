@@ -61,8 +61,8 @@
     "test": "jest --selectProjects unit",
     "test:rules": "firebase emulators:exec --only firestore --project safaikart-emulator-tests \"jest --selectProjects rules\"",
     "test:all": "jest",
-    "dev:admin": "cd admin-console && npm run dev",
-    "build:admin": "cd admin-console && npm run build"
+    "dev:website": "cd safaikart-website && npm run dev",
+    "build:website": "cd safaikart-website && npm run build"
   },
   "private": true,
   "devDependencies": {

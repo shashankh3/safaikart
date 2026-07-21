@@ -132,10 +132,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setCustomer(cust);
             setLoading(false);
           }
-        }, (err: any) => {
-          console.error("Admin snapshot error:", err);
-          setError(err);
-          setLoading(false);
+        }, async (err: any) => {
+          if (err.code === "permission-denied") {
+            try {
+              const cust = await ensureCustomerDoc(u);
+              setUser(u);
+              setAdmin(null);
+              setCustomer(cust);
+              setError(null);
+              setLoading(false);
+            } catch (custErr: any) {
+              console.error("Customer fallback error:", custErr);
+              setError(custErr);
+              setUser(u);
+              setAdmin(null);
+              setCustomer(null);
+              setLoading(false);
+            }
+          } else {
+            console.error("Admin snapshot error:", err);
+            setError(err);
+            setUser(u);
+            setAdmin(null);
+            setCustomer(null);
+            setLoading(false);
+          }
         });
       } catch (err: any) {
         console.error("Auth context error:", err);
@@ -181,13 +202,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       async startPhoneOtp(phoneE164, recaptchaContainerId) {
         const auth = getFirebaseAuth();
-        // reuse if already attached to window
         const w = window as unknown as { __skRecaptcha?: RecaptchaVerifier };
-        if (!w.__skRecaptcha) {
-          w.__skRecaptcha = new RecaptchaVerifier(auth, recaptchaContainerId, {
-            size: "invisible",
-          });
+        
+        if (w.__skRecaptcha) {
+          try {
+            w.__skRecaptcha.clear();
+          } catch (_) {}
+          w.__skRecaptcha = undefined;
         }
+        
+        const oldContainer = document.getElementById(recaptchaContainerId);
+        if (oldContainer && oldContainer.parentNode) {
+          const newContainer = document.createElement("div");
+          newContainer.id = recaptchaContainerId;
+          oldContainer.parentNode.replaceChild(newContainer, oldContainer);
+        }
+        
+        w.__skRecaptcha = new RecaptchaVerifier(auth, recaptchaContainerId, {
+          size: "invisible",
+        });
+        
         return await signInWithPhoneNumber(auth, phoneE164, w.__skRecaptcha);
       },
       async logout() {

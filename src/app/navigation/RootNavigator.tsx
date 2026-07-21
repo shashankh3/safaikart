@@ -26,7 +26,6 @@ import StickyCart from '../../features/cart/presentation/components/StickyCart';
 import AnimatedPressable from '../../shared/ui/components/AnimatedPressable';
 
 import CheckoutNavigator from './CheckoutNavigator';
-import PaymentCallbackScreen from '../../features/payments/presentation/screens/PaymentCallbackScreen';
 
 import { COLORS } from '../../shared/theme/colors';
 import { SIZES } from '../../shared/theme/spacing';
@@ -52,7 +51,11 @@ const linking: import('@react-navigation/native').LinkingOptions<any> = {
         }
       },
       OrderTracking: 'order/:orderId',
-      PaymentCallback: 'payment/:orderId/:status',
+      CheckoutFlow: {
+        screens: {
+          PaymentPending: 'payment/:orderId/:status'
+        }
+      }
     }
   }
 };
@@ -223,7 +226,6 @@ export default function AppNavigator() {
             <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} />
             <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
             <Stack.Screen name="EditOrder" component={EditOrderScreen} />
-            <Stack.Screen name="PaymentCallback" component={PaymentCallbackScreen} />
             <Stack.Screen name="Support" component={SupportScreen} />
           </>
         )}

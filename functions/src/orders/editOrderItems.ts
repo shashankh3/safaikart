@@ -60,16 +60,23 @@ export const editOrderItems = onCall({ secrets: [razorpayKeySecret], region: 'as
     if (Date.now() > editableUntilMillis) {
       throw new HttpsError('failed-precondition', 'The 3-minute edit window has expired.');
     }
-
     // Verify status
     if (orderData.status !== 'PAYMENT_PENDING' && orderData.status !== 'CONFIRMED') {
       throw new HttpsError('failed-precondition', 'Order can only be edited while payment is pending or just confirmed.');
     }
 
     // Process new items and recalculate
+    if (items.length > 50) {
+      throw new HttpsError('invalid-argument', 'Too many items in order. Maximum allowed is 50.');
+    }
+
     const pricingItems: PricingItem[] = [];
 
     for (const item of items) {
+      if (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 100) {
+        throw new HttpsError('invalid-argument', `Invalid quantity for item ${item.serviceId}. Quantity must be between 1 and 100.`);
+      }
+
       const serviceDoc = await transaction.get(db.collection('services').doc(item.serviceId));
       if (!serviceDoc.exists) continue;
       

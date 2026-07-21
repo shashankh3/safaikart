@@ -9,16 +9,23 @@ export default function PhoneLoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
 
   const handleSendOtp = async () => {
-    if (phoneNumber.length < 10) {
-      Alert.alert('Error', 'Please enter a valid phone number');
+    let formattedNumber = phoneNumber.trim();
+    if (!formattedNumber.startsWith('+')) {
+      formattedNumber = '+91' + formattedNumber;
+    }
+
+    if (!/^\+[1-9]\d{1,14}$/.test(formattedNumber)) {
+      Alert.alert('Error', 'Please enter a valid phone number in E.164 format (e.g. +919876543210)');
       return;
     }
     
     setLoading(true);
     try {
-      const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : '+91' + phoneNumber;
       const confirmation = await sendPhoneOtp(formattedNumber);
-      navigation.navigate('OtpVerification', { phoneNumber: formattedNumber, confirmation });
+      navigation.navigate('OtpVerification', { 
+        phoneNumber: formattedNumber, 
+        verificationId: confirmation.verificationId 
+      });
     } catch (e: any) {
       console.error(e);
       Alert.alert('Error', e?.message || 'Failed to send OTP');

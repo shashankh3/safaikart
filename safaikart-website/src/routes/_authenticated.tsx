@@ -18,10 +18,18 @@ async function resolveAuthSession() {
   if (!user) return { user: null, role: null };
 
   const db = getDb();
-  const adminSnap = await getDoc(doc(db, "adminUsers", user.uid));
-  if (adminSnap.exists()) {
-    return { user, role: adminSnap.data().role };
+  try {
+    const adminSnap = await getDoc(doc(db, "adminUsers", user.uid));
+    if (adminSnap.exists()) {
+      return { user, role: adminSnap.data().role };
+    }
+  } catch (e: any) {
+    // If it's a permission-denied, they definitely aren't an admin.
+    if (e.code !== 'permission-denied') {
+      console.warn("Failed to read adminUsers:", e);
+    }
   }
+  
   return { user, role: "customer" };
 }
 

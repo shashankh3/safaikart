@@ -159,3 +159,9 @@
     color: var(--color-foreground);
   }
 }
+
+/* Fix Radix UI Dialog blocking Firebase reCAPTCHA clicks */
+body[style*="pointer-events: none"] div[style*="z-index: 2000000000"],
+div[style*="z-index: 2000000000"] {
+  pointer-events: auto !important;
+}

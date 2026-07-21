@@ -9,6 +9,10 @@ import { ArrowLeft, MessageCircle, RotateCcw } from "lucide-react";
 import { OrderTimeline } from "@/components/order-timeline";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
+import { useAuth } from "@/context/auth-context";
+import { httpsCallable } from "firebase/functions";
+import { getFns } from "@/lib/firebase";
+import { payWithRazorpay } from "@/lib/razorpay";
 
 export const Route = createFileRoute("/_customer/app/orders/$id")({
   ssr: false,
@@ -21,7 +25,9 @@ function OrderDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const cart = useCart();
+  const { user } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
+  const [retryingPayment, setRetryingPayment] = useState(false);
 
   function reorder() {
     if (!order) return;
@@ -42,6 +48,34 @@ function OrderDetail() {
     }
     toast.success("Items added to cart");
     navigate({ to: "/checkout" });
+  }
+
+  async function retryPayment() {
+    if (!user) return toast.error("Must be logged in to pay");
+    setRetryingPayment(true);
+    try {
+      const createPayment = httpsCallable<any, any>(getFns(), "createPaymentOrder");
+      const { data: paymentRes } = await createPayment({ orderId: id });
+      
+      await payWithRazorpay({
+        orderId: id,
+        razorpayOrderId: paymentRes.razorpayOrderId,
+        razorpayKeyId: paymentRes.razorpayKeyId,
+        amountMinor: paymentRes.amountMinor,
+        customerName: user.displayName || "Customer",
+        customerPhone: user.phoneNumber || "0000000000",
+        description: `SafaiKart order ${id.slice(0, 6).toUpperCase()}`,
+      });
+      
+      const verifyPayment = httpsCallable<any, any>(getFns(), "verifyPaymentStatus");
+      await verifyPayment({ orderId: id });
+      
+      toast.success("Payment successful!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Payment failed");
+    } finally {
+      setRetryingPayment(false);
+    }
   }
 
   useEffect(() => {
@@ -123,6 +157,11 @@ function OrderDetail() {
               {(order.address as { line1?: string; city?: string; pincode?: string })?.pincode}
             </div>
           </div>
+          {status === "PAYMENT_PENDING" && (
+            <Button onClick={retryPayment} disabled={retryingPayment} className="w-full rounded-xl bg-brand text-gold hover:bg-brand/90 font-semibold mb-3">
+              {retryingPayment ? "Processing..." : "Complete Payment"}
+            </Button>
+          )}
           <Button onClick={reorder} className="w-full rounded-xl bg-brand text-gold hover:bg-brand/90 font-semibold">
             <RotateCcw className="h-4 w-4 mr-1.5" /> Re-order
           </Button>

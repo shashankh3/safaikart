@@ -67,7 +67,9 @@ export const cancelOrder = onCall({ secrets: [razorpayKeySecret], enforceAppChec
         const slotRef = db.collection('pickupSlots').doc(orderData.pickupSlotId);
         const slotDoc = await transaction.get(slotRef);
         if (slotDoc.exists) {
-          transaction.update(slotRef, { bookedCount: FieldValue.increment(-1) });
+          const currentCount = slotDoc.data()?.bookedCount || 0;
+          const newCount = Math.max(0, currentCount - 1);
+          transaction.update(slotRef, { bookedCount: newCount });
         }
       }
 

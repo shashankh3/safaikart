@@ -28,24 +28,11 @@ export const processRazorpayWebhook = onTaskDispatched(
       return;
     }
 
-    // Idempotency check with TTL support
+    let eventDocRef: admin.firestore.DocumentReference | null = null;
     if (eventId) {
-      const eventDocRef = db.collection('webhookEvents').doc(eventId);
-      const eventDoc = await eventDocRef.get();
-      if (eventDoc.exists) {
-        logInfo(`Event ${eventId} already processed. Skipping.`);
-        return; // Idempotent success
-      }
-      
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days TTL
-
-      await eventDocRef.set({
-        processedAt: admin.firestore.FieldValue.serverTimestamp(),
-        type: event.event,
-        expiresAt: expiresAt
-      });
+      eventDocRef = db.collection('webhookEvents').doc(eventId);
     }
+
 
     // Log redacted summary instead of raw payload
     await db.collection('auditLogs').add({
@@ -67,6 +54,14 @@ export const processRazorpayWebhook = onTaskDispatched(
       const refundAmount = refund.amount;
       
       await db.runTransaction(async (tx) => {
+        if (eventDocRef) {
+          const eventDoc = await tx.get(eventDocRef);
+          if (eventDoc.exists) {
+            logInfo(`Event ${eventId} already processed. Skipping.`);
+            return;
+          }
+        }
+
         const paymentsQuery = await tx.get(db.collection('payments').where('razorpayPaymentId', '==', rzpPaymentId));
         if (paymentsQuery.empty) {
           logWarn(`Payment record not found for Razorpay Payment: ${rzpPaymentId}`);
@@ -107,6 +102,16 @@ export const processRazorpayWebhook = onTaskDispatched(
               refundedTotalMinor: admin.firestore.FieldValue.increment(refundAmount),
               updatedAt: admin.firestore.FieldValue.serverTimestamp()
             }, tx);
+          }
+          
+          if (eventDocRef) {
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 7);
+            tx.set(eventDocRef, {
+              processedAt: admin.firestore.FieldValue.serverTimestamp(),
+              type: event.event,
+              expiresAt: expiresAt
+            });
           }
         }
       });
@@ -153,6 +158,14 @@ export const processRazorpayWebhook = onTaskDispatched(
 
     // 8. Firestore Transaction (Atomic Update)
     await db.runTransaction(async (tx) => {
+      if (eventDocRef) {
+        const eventDoc = await tx.get(eventDocRef);
+        if (eventDoc.exists) {
+          logInfo(`Event ${eventId} already processed. Skipping.`);
+          return;
+        }
+      }
+
       const payDoc = await tx.get(paymentDocRef);
       const ordData = await orderRepo.findById(paymentRecord.orderId, tx);
 
@@ -212,6 +225,16 @@ export const processRazorpayWebhook = onTaskDispatched(
           paymentStatus: 'FAILED',
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }, tx);
+      }
+      
+      if (eventDocRef) {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+        tx.set(eventDocRef, {
+          processedAt: admin.firestore.FieldValue.serverTimestamp(),
+          type: event.event,
+          expiresAt: expiresAt
+        });
       }
     });
 

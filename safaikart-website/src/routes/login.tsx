@@ -80,9 +80,15 @@ function LoginPage() {
 
   async function onVerifyOtp() {
     if (!confirm) return;
+    
+    const trimmedOtp = otp.trim();
+    if (!/^\d{6}$/.test(trimmedOtp)) {
+      return toast.error("Please enter a valid 6-digit OTP");
+    }
+
     setSubmitting(true);
     try {
-      await confirm.confirm(otp.trim());
+      await confirm.confirm(trimmedOtp);
       toast.success("Signed in!");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Invalid OTP");
