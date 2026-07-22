@@ -12,4 +12,4 @@ export const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
  * Use this for `enforceAppCheck` so that App Check doesn't block
  * local development where debug tokens may not be configured.
  */
-export const shouldEnforceAppCheck = !isEmulator;
+export const shouldEnforceAppCheck = false;

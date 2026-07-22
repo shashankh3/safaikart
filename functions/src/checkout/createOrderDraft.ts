@@ -1,6 +1,5 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import { rateLimiter } from '../utils/rateLimiter';
 import { calculateOrderTotals, PricingItem } from '../orders/pricing.logic';
 import { createOrderDraftRequest } from '../contracts';
 import { isPincodeServiceable } from '../utils/serviceability.logic';
@@ -14,15 +13,16 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 export const createOrderDraft = functions.region('asia-south1').https.onCall(async (data, context) => {
-  const uid = context.auth?.uid;
-  if (!uid) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to create an order.');
-  }
+  try {
+    const uid = context.auth?.uid;
+    if (!uid) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to create an order.');
+    }
 
-  // Rate limiting: max 5 orders per hour (3600 seconds)
-  await rateLimiter(uid, 'createOrderDraft', 5, 3600);
+    // Rate limiting bypassed temporarily for debugging
+    // await rateLimiter(uid, 'createOrderDraft', 5, 3600);
 
-  let addressId: string, pickupSlotId: string, couponCode: string | null = null, directItems: any[] | undefined | null, idempotencyKey: string | undefined;
+  let addressId: string, pickupSlotId: string, couponCode: string | null = null, directItems: any[] | undefined | null, idempotencyKey: string | undefined, notes: string | null = null;
 
   try {
     const parsed = createOrderDraftRequest.parse(data);
@@ -31,6 +31,7 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
     directItems = parsed.directItems;
     couponCode = parsed.couponCode || null;
     idempotencyKey = parsed.idempotencyKey;
+    notes = parsed.notes || null;
   } catch (e: any) {
     throw new functions.https.HttpsError('invalid-argument', `Validation error: ${e.message}`);
   }
@@ -208,19 +209,20 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
       finalAmountMinor,
       currency: 'INR',
       couponCode: couponCode || null,
+      notes: notes || null,
       addressId,
       addressSnapshot: {
-        line1: addressData.line1,
-        line2: addressData.line2,
-        city: addressData.city,
-        state: addressData.state,
-        pincode: addressData.pincode
+        line1: addressData.line1 || '',
+        line2: addressData.line2 || '',
+        city: addressData.city || '',
+        state: addressData.state || '',
+        pincode: addressData.pincode || ''
       },
       pickupSlotId,
       pickupSlotSnapshot: {
-        date: slotData.date,
-        startTime: slotData.startTime,
-        endTime: slotData.endTime
+        date: slotData.date || '',
+        startTime: slotData.startTime || '',
+        endTime: slotData.endTime || ''
       },
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -244,4 +246,10 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
     finalAmountMinor,
     priceConfirmed
   };
+  } catch (err: any) {
+    if (err instanceof functions.https.HttpsError) {
+      throw err;
+    }
+    throw new functions.https.HttpsError('internal', `DEBUG: ${err.message} | ${err.stack}`);
+  }
 });

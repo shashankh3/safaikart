@@ -68,9 +68,11 @@ export function SignInModal({
     try {
       const c = await startPhoneOtp(cleanedPhone, "recaptcha-container");
       setConfirm(c);
-      toast.success("OTP sent");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to send OTP");
+      toast.success("OTP sent successfully!");
+    } catch (e: any) {
+      console.error("handleSendOtp error:", e);
+      const errMsg = e?.code ? `[${e.code}] ${e.message}` : (e instanceof Error ? e.message : "Failed to send OTP");
+      toast.error(errMsg);
     } finally {
       setBusy(false);
     }
@@ -90,8 +92,10 @@ export function SignInModal({
       toast.success("Signed in!");
       onOpenChange(false);
       onAuthed?.();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Invalid OTP");
+    } catch (e: any) {
+      console.error("handleVerifyOtp error:", e);
+      const errMsg = e?.code ? `[${e.code}] ${e.message}` : (e instanceof Error ? e.message : "Invalid OTP");
+      toast.error(errMsg);
     } finally {
       setBusy(false);
     }

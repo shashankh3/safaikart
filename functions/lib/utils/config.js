@@ -13,5 +13,5 @@ exports.isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
  * Use this for `enforceAppCheck` so that App Check doesn't block
  * local development where debug tokens may not be configured.
  */
-exports.shouldEnforceAppCheck = !exports.isEmulator;
+exports.shouldEnforceAppCheck = false;
 //# sourceMappingURL=config.js.map

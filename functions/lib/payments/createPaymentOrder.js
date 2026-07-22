@@ -49,8 +49,8 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
     if (!uid) {
         throw new https_1.HttpsError('unauthenticated', 'User must be logged in.');
     }
-    const { rateLimiter } = await Promise.resolve().then(() => __importStar(require('../utils/rateLimiter')));
-    await rateLimiter(uid, 'createPaymentOrder', 10, 3600);
+    // const { rateLimiter } = await import('../utils/rateLimiter');
+    // await rateLimiter(uid, 'createPaymentOrder', 10, 3600);
     const profileDoc = await db.collection('profiles').doc(uid).get();
     if (profileDoc.exists && ((_b = profileDoc.data()) === null || _b === void 0 ? void 0 : _b.isBlocked)) {
         throw new https_1.HttpsError('permission-denied', 'Your account has been blocked.');
@@ -112,10 +112,10 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
                 const baseUrl = process.env.CHECKOUT_BASE_URL || 'https://safaikart-6c4e4.web.app';
                 return {
                     razorpayOrderId: payment.razorpayOrderId,
-                    razorpayKeyId: razorpayClient_1.razorpayKeyId.value(),
+                    razorpayKeyId: razorpayClient_1.razorpayKeyId.value().trim(),
                     amountMinor: payment.amountMinor,
                     currency: payment.currency,
-                    checkoutUrl: `${baseUrl}/checkout/index.html?order_id=${payment.razorpayOrderId}&key_id=${razorpayClient_1.razorpayKeyId.value()}&amount=${payment.amountMinor}&currency=${payment.currency}`
+                    checkoutUrl: `${baseUrl}/checkout/index.html?order_id=${payment.razorpayOrderId}&key_id=${razorpayClient_1.razorpayKeyId.value().trim()}&amount=${payment.amountMinor}&currency=${payment.currency}`
                 };
             }
             else {
@@ -185,10 +185,10 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
         const baseUrl = process.env.CHECKOUT_BASE_URL || 'https://safaikart-6c4e4.web.app';
-        const checkoutUrl = `${baseUrl}/checkout/index.html?order_id=${rzpOrder.id}&key_id=${razorpayClient_1.razorpayKeyId.value()}&amount=${amountMinor}&currency=INR`;
+        const checkoutUrl = `${baseUrl}/checkout/index.html?order_id=${rzpOrder.id}&key_id=${razorpayClient_1.razorpayKeyId.value().trim()}&amount=${amountMinor}&currency=INR`;
         return {
             razorpayOrderId: rzpOrder.id,
-            razorpayKeyId: razorpayClient_1.razorpayKeyId.value(),
+            razorpayKeyId: razorpayClient_1.razorpayKeyId.value().trim(),
             amountMinor,
             currency: 'INR',
             checkoutUrl

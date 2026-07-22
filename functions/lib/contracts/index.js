@@ -27,7 +27,8 @@ exports.createOrderDraftRequest = zod_1.z.object({
     pickupSlotId: zod_1.z.string().min(1),
     directItems: zod_1.z.array(exports.orderItemSchema).optional().nullable(),
     couponCode: zod_1.z.string().optional().nullable(),
-    idempotencyKey: zod_1.z.string().optional()
+    idempotencyKey: zod_1.z.string().optional(),
+    notes: zod_1.z.string().optional().nullable()
 });
 exports.editOrderItemsRequest = zod_1.z.object({
     orderId: zod_1.z.string().min(1),

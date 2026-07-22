@@ -53,25 +53,36 @@ async function ensureCustomerDoc(u: User): Promise<CustomerProfile> {
   const ref = doc(db, "profiles", u.uid);
   const snap = await getDoc(ref);
   if (snap.exists()) {
-    const d = snap.data() as Partial<CustomerProfile>;
+    const d = snap.data() as any;
     return {
       uid: u.uid,
-      name: d.name || u.displayName || undefined,
+      name: d.displayName || d.name || u.displayName || undefined,
       email: d.email ?? u.email,
-      phone: d.phone ?? u.phoneNumber,
+      phone: d.phoneNumber ?? d.phone ?? u.phoneNumber,
       photoURL: d.photoURL || u.photoURL || undefined,
     };
   }
   const seed = {
+    userId: u.uid,
     uid: u.uid,
+    displayName: u.displayName || (u.email ? u.email.split("@")[0] : "Customer"),
     name: u.displayName || (u.email ? u.email.split("@")[0] : "Customer"),
-    email: u.email,
-    phone: u.phoneNumber,
-    photoURL: u.photoURL,
+    email: u.email || null,
+    phoneNumber: u.phoneNumber || null,
+    phone: u.phoneNumber || null,
+    photoURL: u.photoURL || null,
+    isBlocked: false,
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
   await setDoc(ref, seed);
-  return { ...seed } as CustomerProfile;
+  return {
+    uid: u.uid,
+    name: seed.name,
+    email: seed.email,
+    phone: seed.phone,
+    photoURL: seed.photoURL || undefined,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -103,21 +114,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const db = getDb();
         adminUnsub = onSnapshot(doc(db, "adminUsers", u.uid), async (adminSnap) => {
-          if (adminSnap.exists()) {
-            const data = adminSnap.data() as Partial<AdminProfile>;
-            const role = normaliseRole((data as { role?: string }).role);
-            
-            if (role) {
-              setUser(u);
-              setAdmin({
-                uid: u.uid,
-                email: u.email,
-                name: data.name || u.displayName || u.email?.split("@")[0] || "Admin",
-                photoURL: data.photoURL || u.photoURL || undefined,
-                role,
-              });
-              setCustomer(null);
-              setLoading(false);
+          try {
+            if (adminSnap.exists()) {
+              const data = adminSnap.data() as Partial<AdminProfile>;
+              const role = normaliseRole((data as { role?: string }).role);
+              
+              if (role) {
+                setUser(u);
+                setAdmin({
+                  uid: u.uid,
+                  email: u.email,
+                  name: data.name || u.displayName || u.email?.split("@")[0] || "Admin",
+                  photoURL: data.photoURL || u.photoURL || undefined,
+                  role,
+                });
+                setCustomer(null);
+                setLoading(false);
+              } else {
+                const cust = await ensureCustomerDoc(u);
+                setUser(u);
+                setAdmin(null);
+                setCustomer(cust);
+                setLoading(false);
+              }
             } else {
               const cust = await ensureCustomerDoc(u);
               setUser(u);
@@ -125,11 +144,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setCustomer(cust);
               setLoading(false);
             }
-          } else {
-            const cust = await ensureCustomerDoc(u);
+          } catch (callbackErr: any) {
+            console.error("Auth snapshot callback error:", callbackErr);
+            setError(callbackErr);
             setUser(u);
             setAdmin(null);
-            setCustomer(cust);
+            setCustomer(null);
             setLoading(false);
           }
         }, async (err: any) => {
@@ -187,8 +207,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const auth = getFirebaseAuth();
         const cred = await signInWithEmailAndPassword(auth, email, password);
         const db = getDb();
-        const snap = await getDoc(doc(db, "adminUsers", cred.user.uid));
-        return { role: snap.exists() ? "admin" : "customer" };
+        try {
+          const snap = await getDoc(doc(db, "adminUsers", cred.user.uid));
+          return { role: snap.exists() ? "admin" : "customer" };
+        } catch (e: any) {
+          if (e.code === 'permission-denied') return { role: "customer" };
+          throw e;
+        }
       },
       async signUpEmail(email, password, name) {
         const auth = getFirebaseAuth();
@@ -210,19 +235,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch (_) {}
           w.__skRecaptcha = undefined;
         }
-        
-        const oldContainer = document.getElementById(recaptchaContainerId);
-        if (oldContainer && oldContainer.parentNode) {
-          const newContainer = document.createElement("div");
-          newContainer.id = recaptchaContainerId;
-          oldContainer.parentNode.replaceChild(newContainer, oldContainer);
+
+        const containerEl = document.getElementById(recaptchaContainerId);
+        if (!containerEl) {
+          throw new Error(`reCAPTCHA container #${recaptchaContainerId} not found in DOM`);
         }
         
-        w.__skRecaptcha = new RecaptchaVerifier(auth, recaptchaContainerId, {
-          size: "invisible",
+        const verifier = new RecaptchaVerifier(auth, containerEl, {
+          size: "normal",
+          callback: () => {
+            console.log("reCAPTCHA checkbox solved successfully");
+          },
+          "expired-callback": () => {
+            console.warn("reCAPTCHA expired");
+          }
         });
+
+        await verifier.render();
+        w.__skRecaptcha = verifier;
         
-        return await signInWithPhoneNumber(auth, phoneE164, w.__skRecaptcha);
+        try {
+          return await signInWithPhoneNumber(auth, phoneE164, verifier);
+        } catch (phoneErr: any) {
+          console.error("signInWithPhoneNumber failed:", phoneErr);
+          throw phoneErr;
+        }
       },
       async logout() {
         await signOut(getFirebaseAuth());

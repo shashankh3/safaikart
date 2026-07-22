@@ -29,11 +29,20 @@ function MyOrders() {
   useEffect(() => {
     if (!user) return;
     const db = getDb();
-    const q = query(collection(db, "orders"), where("userId", "==", user.uid), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "orders"), where("userId", "==", user.uid));
     const unsub = onSnapshot(q, (snap) => {
-      setOrders(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as Order[]);
+      const docs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as Order[];
+      docs.sort((a, b) => {
+        const tA = (a.createdAt as any)?.toMillis?.() || 0;
+        const tB = (b.createdAt as any)?.toMillis?.() || 0;
+        return tB - tA;
+      });
+      setOrders(docs);
       setLoading(false);
-    }, () => setLoading(false));
+    }, (err) => {
+      console.error("Orders fetch error:", err);
+      setLoading(false);
+    });
     return () => unsub();
   }, [user]);
 

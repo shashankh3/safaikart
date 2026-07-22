@@ -41,7 +41,7 @@ service cloud.firestore {
 
     // --- adminUsers ------------------------------------------------------
     match /adminUsers/{uid} {
-      allow read: if isAdmin();
+      allow read: if isOwner(uid) || isAdmin();
       allow write: if isSuperAdmin();
     }
 

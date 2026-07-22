@@ -34,9 +34,9 @@ export function useOrdersStream(config?: OrdersStreamConfig) {
     
     if (config?.statuses && config.statuses.length > 0) {
       constraints.push(where("status", "in", config.statuses));
+    } else {
+      constraints.push(orderBy("createdAt", "desc"));
     }
-    
-    constraints.push(orderBy("createdAt", "desc"));
     
     if (limitCount) {
       constraints.push(limitConstraint(limitCount));
@@ -50,11 +50,16 @@ export function useOrdersStream(config?: OrdersStreamConfig) {
         const rows = snap.docs.map(
           (d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Order,
         );
+        rows.sort((a, b) => {
+          const tA = (a.createdAt as any)?.toMillis?.() || 0;
+          const tB = (b.createdAt as any)?.toMillis?.() || 0;
+          return tB - tA;
+        });
         setOrders(rows);
         setLoading(false);
       },
       (err) => {
-        toast.error(err.message || "Realtime feed failed");
+        toast.error("Realtime feed failed: " + err.message);
         setLoading(false);
       }
     );

@@ -27,7 +27,8 @@ export const createOrderDraftRequest = z.object({
   pickupSlotId: z.string().min(1),
   directItems: z.array(orderItemSchema).optional().nullable(),
   couponCode: z.string().optional().nullable(),
-  idempotencyKey: z.string().optional()
+  idempotencyKey: z.string().optional(),
+  notes: z.string().optional().nullable()
 });
 
 export const editOrderItemsRequest = z.object({

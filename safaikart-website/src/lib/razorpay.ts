@@ -54,7 +54,7 @@ export async function payWithRazorpay(params: {
 
   return new Promise((resolve, reject) => {
     if (!window.Razorpay) return reject(new Error("Razorpay not loaded"));
-    const rzp = new window.Razorpay({
+    const options = {
       key: params.razorpayKeyId,
       amount: params.amountMinor,
       currency: "INR",
@@ -73,21 +73,9 @@ export async function payWithRazorpay(params: {
       },
       modal: {
         ondismiss: () => reject(new Error("Payment cancelled")),
-      },
-      method: { upi: true, card: false, netbanking: false, wallet: false, emi: false, paylater: false },
-      config: {
-        display: {
-          blocks: {
-            upiblock: {
-              name: "Pay using UPI",
-              instruments: [{ method: "upi" }],
-            },
-          },
-          sequence: ["block.upiblock"],
-          preferences: { show_default_blocks: false },
-        },
-      },
-    });
+      }
+    };
+    const rzp = new window.Razorpay(options);
     rzp.open();
   });
 }

@@ -51,13 +51,14 @@ function CheckoutPage() {
     enabled: !!user,
   });
 
-  const { data: pickupSlots = [] } = useQuery({
+  const { data: pickupSlots = [], isError } = useQuery({
     queryKey: ["pickupSlots"],
     queryFn: async () => {
       const db = getDb();
-      const q = query(collection(db, "pickupSlots"), where("isActive", "==", true), orderBy("date"), orderBy("startTime"));
+      // Remove orderBy from query to avoid requiring a composite index, sort in JS instead
+      const q = query(collection(db, "pickupSlots"), where("isActive", "==", true));
       const snap = await getDocs(q);
-      return snap.docs.map(d => {
+      const slots = snap.docs.map(d => {
         const data = d.data();
         return {
           id: d.id,
@@ -68,6 +69,12 @@ function CheckoutPage() {
           bookedCount: data.bookedCount || 0,
         };
       });
+      // Sort by date then startTime
+      slots.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return a.startTime.localeCompare(b.startTime);
+      });
+      return slots;
     }
   });
 
@@ -166,7 +173,7 @@ function CheckoutPage() {
           razorpayKeyId: paymentRes.razorpayKeyId,
           amountMinor: paymentRes.amountMinor,
           customerName: user.displayName || "Customer",
-          customerPhone: user.phoneNumber || "0000000000",
+          customerPhone: user.phoneNumber || "+919999999999",
           description: `SafaiKart order ${orderId.slice(0, 6).toUpperCase()}`,
         });
         
@@ -255,19 +262,29 @@ function CheckoutPage() {
             <div>
               <Label className="mb-2 block flex items-center gap-1.5">Preferred pickup slot</Label>
               <div className="grid gap-2 sm:grid-cols-2">
-                {pickupSlots.filter((s: any) => s.capacity - s.bookedCount > 0).map((s: any) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setSlot(s.id)}
-                    className={`p-3 rounded-xl border text-left text-sm ${
-                      slot === s.id ? "border-brand bg-brand/5" : "border-brand/15"
-                    }`}
-                  >
-                    <div className="font-medium">{new Date(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
-                    <div className="text-brand/60 text-xs mt-0.5">{s.startTime} - {s.endTime}</div>
-                  </button>
-                ))}
+                {(() => {
+                  const availableSlots = pickupSlots.filter((s: any) => s.capacity - s.bookedCount > 0);
+                  if (availableSlots.length === 0) {
+                    return (
+                      <div className="col-span-1 sm:col-span-2 p-4 rounded-xl border border-dashed border-brand/20 text-center text-sm text-brand/60">
+                        {isError ? "Failed to load pickup slots." : "No pickup slots are available at the moment."}
+                      </div>
+                    );
+                  }
+                  return availableSlots.map((s: any) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSlot(s.id)}
+                      className={`p-3 rounded-xl border text-left text-sm ${
+                        slot === s.id ? "border-brand bg-brand/5" : "border-brand/15"
+                      }`}
+                    >
+                      <div className="font-medium">{new Date(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+                      <div className="text-brand/60 text-xs mt-0.5">{s.startTime} - {s.endTime}</div>
+                    </button>
+                  ));
+                })()}
               </div>
             </div>
             <div>

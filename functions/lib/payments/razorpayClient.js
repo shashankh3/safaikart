@@ -6,8 +6,8 @@ const params_1 = require("firebase-functions/params");
 exports.razorpayKeyId = (0, params_1.defineSecret)('RAZORPAY_KEY_ID');
 exports.razorpayKeySecret = (0, params_1.defineSecret)('RAZORPAY_KEY_SECRET');
 function getRazorpayAuthHeader() {
-    const keyId = exports.razorpayKeyId.value();
-    const keySecret = exports.razorpayKeySecret.value();
+    const keyId = exports.razorpayKeyId.value().trim();
+    const keySecret = exports.razorpayKeySecret.value().trim();
     if (!keyId || !keySecret) {
         throw new Error('Razorpay secrets are not properly configured.');
     }
