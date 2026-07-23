@@ -3,10 +3,10 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches:
-      - main
+      - master
 
 jobs:
   validate-and-deploy:
@@ -60,7 +60,7 @@ jobs:
         run: npm run build
 
       - name: Deploy Cloud Functions
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: w9jds/firebase-action@v13.0.1
         with:
           args: deploy --only functions
