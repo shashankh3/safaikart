@@ -16,8 +16,8 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeyS
     throw new HttpsError('unauthenticated', 'User must be logged in.');
   }
 
-  // const { rateLimiter } = await import('../utils/rateLimiter');
-  // await rateLimiter(uid, 'createPaymentOrder', 10, 3600);
+  const { rateLimiter } = await import('../utils/rateLimiter');
+  await rateLimiter(uid, 'createPaymentOrder', 10, 3600);
 
   const profileDoc = await db.collection('profiles').doc(uid).get();
   if (profileDoc.exists && profileDoc.data()?.isBlocked) {

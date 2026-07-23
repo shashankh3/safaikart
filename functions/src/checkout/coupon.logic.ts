@@ -23,7 +23,7 @@ export function validateCouponApplicability(
     return { valid: false, discountMinor: 0, message: 'Coupon has expired', newTotalMinor: cartTotalMinor };
   }
 
-  if (coupon.usedCount >= (coupon.maxUsage || Infinity)) {
+  if (coupon.usedCount >= (coupon.maxUsage ?? Infinity)) {
     return { valid: false, discountMinor: 0, message: 'Coupon usage limit reached', newTotalMinor: cartTotalMinor };
   }
 

@@ -5,6 +5,8 @@ import { createOrderDraftRequest } from '../contracts';
 import { isPincodeServiceable } from '../utils/serviceability.logic';
 import { computeEstimatedDelivery, isSlotValid } from '../utils/deliveryLogic';
 import { validateCouponApplicability, CouponData } from './coupon.logic';
+import { rateLimiter } from '../utils/rateLimiter';
+import { logError } from '../utils/logger';
 
 // Initialize admin app if not already initialized
 if (!admin.apps.length) {
@@ -20,8 +22,7 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
       throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to create an order.');
     }
 
-    // Rate limiting bypassed temporarily for debugging
-    // await rateLimiter(uid, 'createOrderDraft', 5, 3600);
+    await rateLimiter(uid, 'createOrderDraft', 5, 3600);
 
     const profileDoc = await db.collection('profiles').doc(uid).get();
     if (profileDoc.exists && profileDoc.data()?.isBlocked === true) {
@@ -35,7 +36,7 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
       addressId = parsed.addressId;
       pickupSlotId = parsed.pickupSlotId;
       directItems = parsed.directItems;
-      couponCode = parsed.couponCode || null;
+      couponCode = parsed.couponCode ? parsed.couponCode.toUpperCase() : null;
       idempotencyKey = parsed.idempotencyKey;
       notes = parsed.notes || null;
     } catch (e: any) {
@@ -148,7 +149,7 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
     // 4. Validate Coupon
     let couponInfo = null;
     if (couponCode) {
-      const couponDoc = await db.collection('coupons').doc(couponCode.toUpperCase()).get();
+      const couponDoc = await db.collection('coupons').doc(couponCode).get();
       if (couponDoc.exists) {
         const coupon = couponDoc.data() as CouponData;
         const couponSubtotalMinor = pricingItems.reduce((total, item) => {
@@ -272,6 +273,7 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
     if (err instanceof functions.https.HttpsError) {
       throw err;
     }
-    throw new functions.https.HttpsError('internal', `DEBUG: ${err.message} | ${err.stack}`);
+    logError('createOrderDraft failed:', err);
+    throw new functions.https.HttpsError('internal', 'Failed to create order. Please try again.');
   }
 });
