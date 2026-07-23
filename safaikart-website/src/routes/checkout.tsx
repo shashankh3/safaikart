@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { httpsCallable } from "firebase/functions";
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useQuery } from "@tanstack/react-query";
@@ -190,69 +190,77 @@ function CheckoutPage() {
     return { line1, city, pincode };
   }
 
+  const isSubmittingRef = useRef(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
+
   async function placeOrder() {
-    if (placing) return;
-    if (!user) {
-      setSignInOpen(true);
-      return;
-    }
-    if (customer?.isBlocked) {
-      toast.error("Your account is blocked. Please contact support.");
-      return;
-    }
-    if (cart.items.length === 0) return toast.error("Cart is empty");
-
-    let addressId = selectedAddrId;
-    const selectedSlot = availableSlots.find((s) => s.id === slot);
-    if (!selectedSlot) {
-      return toast.error("Please select an available pickup slot");
-    }
-
-    if (addressId === "new") {
-      const cleanLine1 = line1.trim();
-      const cleanCity = city.trim();
-      const cleanPincode = pincode.trim();
-      if (!cleanLine1 || !cleanPincode || !cleanCity) {
-        return toast.error("Please fill all delivery details");
-      }
-      if (!PINCODE_RE.test(cleanPincode)) {
-        return toast.error("Please enter a valid 6-digit pincode");
-      }
-      try {
-        const db = getDb();
-        const docRef = await addDoc(collection(db, "addresses"), {
-          userId: user.uid,
-          label: "Home",
-          line1: cleanLine1,
-          city: cleanCity,
-          pincode: cleanPincode,
-          state: "",
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-        addressId = docRef.id;
-      } catch (err: any) {
-        return toast.error("Failed to save address: " + err.message);
-      }
-    } else {
-      const address = resolveAddress();
-      if (!address.line1 || !PINCODE_RE.test(address.pincode || "")) {
-        return toast.error("Selected address is incomplete. Please choose or add another address.");
-      }
-    }
-
-    if (!addressId) {
-      return toast.error("Please select an address and pickup slot");
-    }
-
+    if (isSubmittingRef.current || placing) return;
+    isSubmittingRef.current = true;
     setPlacing(true);
+
     try {
+      if (!user) {
+        setSignInOpen(true);
+        return;
+      }
+      if (customer?.isBlocked) {
+        toast.error("Your account is blocked. Please contact support.");
+        return;
+      }
+      if (cart.items.length === 0) return toast.error("Cart is empty");
+
+      let addressId = selectedAddrId;
+      const selectedSlot = availableSlots.find((s) => s.id === slot);
+      if (!selectedSlot) {
+        return toast.error("Please select an available pickup slot");
+      }
+
+      if (addressId === "new") {
+        const cleanLine1 = line1.trim();
+        const cleanCity = city.trim();
+        const cleanPincode = pincode.trim();
+        if (!cleanLine1 || !cleanPincode || !cleanCity) {
+          return toast.error("Please fill all delivery details");
+        }
+        if (!PINCODE_RE.test(cleanPincode)) {
+          return toast.error("Please enter a valid 6-digit pincode");
+        }
+        try {
+          const db = getDb();
+          const docRef = await addDoc(collection(db, "addresses"), {
+            userId: user.uid,
+            label: "Home",
+            line1: cleanLine1,
+            city: cleanCity,
+            pincode: cleanPincode,
+            state: "",
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+          addressId = docRef.id;
+        } catch (err: any) {
+          return toast.error("Failed to save address: " + err.message);
+        }
+      } else {
+        const address = resolveAddress();
+        if (!address.line1 || !PINCODE_RE.test(address.pincode || "")) {
+          return toast.error("Selected address is incomplete. Please choose or add another address.");
+        }
+      }
+
+      if (!addressId) {
+        return toast.error("Please select an address and pickup slot");
+      }
+
       const createOrderDraft = httpsCallable<
         Record<string, unknown>,
         { orderId: string, finalAmountMinor: number }
       >(getFns(), "createOrderDraft");
 
-      const idempotencyKey = createAttemptKey();
+      if (!idempotencyKeyRef.current) {
+        idempotencyKeyRef.current = createAttemptKey();
+      }
+      const idempotencyKey = idempotencyKeyRef.current;
       const { data: created } = await createOrderDraft({
         addressId,
         pickupSlotId: slot,
@@ -265,6 +273,7 @@ function CheckoutPage() {
         })),
       });
       const orderId = created.orderId;
+      idempotencyKeyRef.current = null;
       cart.clear();
 
       try {
@@ -290,6 +299,7 @@ function CheckoutPage() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to place order");
     } finally {
+      isSubmittingRef.current = false;
       setPlacing(false);
     }
   }

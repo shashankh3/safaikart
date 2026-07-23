@@ -56,7 +56,7 @@ export const Route = createFileRoute("/_authenticated")({
     // Role-based Access Control (RBAC) at the route level
     if (!canAccessRoute(session.role, location.pathname)) {
       throw redirect({
-        to: "/unauthorized", 
+        to: "/login",
         replace: true,
       });
     }

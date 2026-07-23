@@ -6,12 +6,19 @@ import { toast } from 'sonner';
 export type Order = {
   id: string;
   status?: string;
+  paymentStatus?: string;
   finalAmountMinor?: number;
   currency?: string;
-  createdAt?: unknown;
+  createdAt?: any;
   userId?: string;
-  items?: unknown[];
-  // Include other relevant fields as needed
+  items?: any[];
+  photos?: any[];
+  pickupSlotSnapshot?: any;
+  addressSnapshot?: any;
+  driverName?: string;
+  driverId?: string;
+  deliveredAt?: any;
+  [key: string]: any;
 };
 
 export type OrdersStreamConfig = {

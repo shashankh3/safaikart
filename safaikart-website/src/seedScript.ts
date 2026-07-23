@@ -59,7 +59,7 @@ export async function runSeed() {
     if (stKey === "premium_care") stKey = "premium";
     if (stKey === "household") stKey = "household";
 
-    const genders = stData.categories || {};
+    const genders = (stData as any)?.categories || {};
     for (const [gender, gData] of Object.entries(genders)) {
       // Map gender keys (common -> unisex, household -> home, general -> home)
       let gKey = gender;

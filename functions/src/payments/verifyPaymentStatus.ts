@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import { buildStatusHistoryUpdate } from '../utils/statusLogic';
 
 import { getRazorpayAuthHeader, razorpayKeySecret } from './razorpayClient';
+import { shouldEnforceAppCheck } from '../utils/config';
 import { logError } from '../utils/logger';
 
 if (!admin.apps.length) {
@@ -11,7 +12,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret] }, async (request) => {
+export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret], enforceAppCheck: shouldEnforceAppCheck }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError('unauthenticated', 'User must be logged in.');

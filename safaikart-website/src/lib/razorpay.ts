@@ -54,9 +54,9 @@ export async function payWithRazorpay(params: {
 
   const verifyUntilSettled = async () => {
     let lastStatus = "PENDING";
-    for (let attempt = 0; attempt < 5; attempt += 1) {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
       if (attempt > 0) {
-        await new Promise((resolve) => window.setTimeout(resolve, attempt * 1200));
+        await new Promise((resolve) => window.setTimeout(resolve, 1500));
       }
       const { data } = await verify({ orderId: params.orderId });
       lastStatus = data.paymentStatus || lastStatus;
