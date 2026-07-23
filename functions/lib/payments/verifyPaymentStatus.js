@@ -38,12 +38,13 @@ const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const statusLogic_1 = require("../utils/statusLogic");
 const razorpayClient_1 = require("./razorpayClient");
+const config_1 = require("../utils/config");
 const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.verifyPaymentStatus = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret] }, async (request) => {
+exports.verifyPaymentStatus = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorpayKeySecret], enforceAppCheck: config_1.shouldEnforceAppCheck }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {

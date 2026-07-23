@@ -22,7 +22,7 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
       throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to create an order.');
     }
 
-    await rateLimiter(uid, 'createOrderDraft', 5, 3600);
+    const consumeRateLimit = await rateLimiter(uid, 'createOrderDraft', 5, 3600);
 
     const profileDoc = await db.collection('profiles').doc(uid).get();
     if (profileDoc.exists && profileDoc.data()?.isBlocked === true) {
@@ -53,6 +53,7 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
 
       if (!existing.empty) {
         const existingOrder = existing.docs[0];
+        await consumeRateLimit();
         return {
           orderId: existingOrder.id,
           finalAmountMinor: existingOrder.data().finalAmountMinor,
@@ -264,6 +265,7 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
       }
     });
 
+    await consumeRateLimit();
     return {
       orderId: finalOrderId,
       finalAmountMinor,

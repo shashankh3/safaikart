@@ -17,7 +17,7 @@ export const submitReview = onCall({ enforceAppCheck: shouldEnforceAppCheck }, a
     throw new HttpsError('unauthenticated', 'User must be logged in to submit a review.');
   }
 
-  await rateLimiter(uid, 'submitReview', 3, 3600); // Max 3 reviews per hour
+  const consumeRateLimit = await rateLimiter(uid, 'submitReview', 3, 3600); // Max 3 reviews per hour
 
   let orderId: string;
   let rating: number;
@@ -74,5 +74,6 @@ export const submitReview = onCall({ enforceAppCheck: shouldEnforceAppCheck }, a
     });
   });
 
+  await consumeRateLimit();
   return { success: true };
 });

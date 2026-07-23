@@ -2,13 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateCouponApplicability = validateCouponApplicability;
 function validateCouponApplicability(coupon, uid, cartTotalMinor, now = new Date()) {
+    var _a;
     if (!coupon.isActive) {
         return { valid: false, discountMinor: 0, message: 'Coupon is no longer active', newTotalMinor: cartTotalMinor };
     }
     if (coupon.validUntil && coupon.validUntil.toDate() < now) {
         return { valid: false, discountMinor: 0, message: 'Coupon has expired', newTotalMinor: cartTotalMinor };
     }
-    if (coupon.usedCount >= (coupon.maxUsage || Infinity)) {
+    if (coupon.usedCount >= ((_a = coupon.maxUsage) !== null && _a !== void 0 ? _a : Infinity)) {
         return { valid: false, discountMinor: 0, message: 'Coupon usage limit reached', newTotalMinor: cartTotalMinor };
     }
     if (coupon.usedBy && coupon.usedBy.includes(uid)) {

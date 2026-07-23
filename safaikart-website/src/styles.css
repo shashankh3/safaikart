@@ -58,9 +58,13 @@
   --color-brand-foreground: var(--brand-foreground);
   --color-gold: var(--gold);
   --color-gold-foreground: var(--gold-foreground);
+  --color-gold-deep: var(--gold-deep);
+  --color-brand-deep: var(--brand-deep);
 
   --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.10), 0 2px 4px -1px rgb(0 0 0 / 0.06);
   --shadow-elevated: 0 20px 40px -20px rgb(27 59 34 / 0.35);
+  --shadow-gold: 0 14px 34px -12px rgb(224 169 46 / 0.55);
+  --shadow-brand: 0 18px 44px -18px rgb(27 59 34 / 0.45);
 }
 
 :root {
@@ -71,6 +75,8 @@
   --brand-foreground: #F4C73E;
   --gold: #F4C73E;
   --gold-foreground: #1B3B22;
+  --gold-deep: #E0A92E;
+  --brand-deep: #12291A;
 
   --background: #F9FAFB;
   --foreground: #111827;
@@ -164,4 +170,93 @@
 body[style*="pointer-events: none"] div[style*="z-index: 2000000000"],
 div[style*="z-index: 2000000000"] {
   pointer-events: auto !important;
+}
+
+/* ==================================================================
+   SafaiKart public-site visual system — "Modern & Vibrant"
+   Palette-locked: brand green (#1B3B22) + gold (#F4C73E) only, plus
+   in-hue shades (--gold-deep, --brand-deep) and neutrals/opacity.
+   Buttons are composed with Tailwind utility recipes in markup; the
+   helpers below cover decoration that's awkward to express inline.
+   ================================================================== */
+@layer components {
+  /* Small uppercase section label. Pair with text-gold (on green) or
+     text-brand (on white). */
+  .sk-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  /* Elevated white card with a hover lift. */
+  .sk-card {
+    border-radius: 1.25rem;
+    background-color: #fff;
+    border: 1px solid rgb(27 59 34 / 0.10);
+    box-shadow: var(--shadow-card);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .sk-card-hover:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-elevated);
+    border-color: rgb(27 59 34 / 0.18);
+  }
+
+  /* Floating pill used over hero imagery. */
+  .sk-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #fff;
+    color: var(--brand);
+    border-radius: 999px;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 12px 30px -10px rgb(27 59 34 / 0.35);
+    border: 1px solid rgb(27 59 34 / 0.06);
+  }
+}
+
+/* Decorative backgrounds (kept outside @layer so they always win over
+   the flat section colour they sit on). All are pointer-events:none. */
+.sk-hero-glow {
+  background-image:
+    radial-gradient(circle at 12% 18%, rgb(244 199 62 / 0.22) 0%, transparent 42%),
+    radial-gradient(circle at 88% 82%, rgb(244 199 62 / 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 60% -10%, rgb(255 255 255 / 0.06) 0%, transparent 40%);
+  pointer-events: none;
+}
+.sk-band-glow {
+  background-image:
+    radial-gradient(circle at 15% 25%, rgb(244 199 62 / 0.16) 0%, transparent 42%),
+    radial-gradient(circle at 85% 75%, rgb(244 199 62 / 0.10) 0%, transparent 45%);
+  pointer-events: none;
+}
+.sk-dots {
+  background-image: radial-gradient(rgb(27 59 34 / 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+  pointer-events: none;
+}
+
+/* Gentle floating motion for hero chips / accents. */
+@keyframes sk-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes sk-float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.sk-float { animation: sk-float 6s ease-in-out infinite; }
+.sk-float-slow { animation: sk-float-slow 8s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-float,
+  .sk-float-slow { animation: none; }
+  .sk-card { transition: none; }
 }

@@ -135,13 +135,15 @@ export function normaliseRole(role: string | undefined | null): Role | null {
   return (ROLES as readonly string[]).includes(r) ? (r as Role) : null;
 }
 
-export function hasPermission(role: Role | null | undefined, permission: Permission): boolean {
+export function hasPermission(rawRole: Role | null | undefined, permission: Permission): boolean {
+  const role = normaliseRole(rawRole as string);
   if (!role) return false;
   const perms = ROLE_PERMISSIONS[role];
   return perms === "*" ? true : perms.has(permission);
 }
 
-export function canAccessRoute(role: Role | null | undefined, pathname: string): boolean {
+export function canAccessRoute(rawRole: Role | null | undefined, pathname: string): boolean {
+  const role = normaliseRole(rawRole as string);
   if (!role) return false;
   if (ALWAYS_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + "/"))) return true;
   const allowed = ROLE_ROUTES[role];

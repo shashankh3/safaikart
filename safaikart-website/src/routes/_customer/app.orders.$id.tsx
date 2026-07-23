@@ -68,11 +68,12 @@ function OrderDetail() {
     cart.clear();
     for (const it of items) {
       if (!it.serviceId) continue;
+      const isVariable = it.priceType === 'variable';
       cart.add(
         {
           serviceId: it.serviceId,
           name: itemName(it),
-          priceMinor: itemUnitPrice(it),
+          priceMinor: isVariable ? 0 : itemUnitPrice(it),
           unit: it.unit || undefined,
           priceType: it.priceType,
         },
@@ -110,9 +111,17 @@ function OrderDetail() {
 
   useEffect(() => {
     const db = getDb();
-    const unsub = onSnapshot(doc(db, "orders", id), (snap) => {
-      if (snap.exists()) setOrder({ id: snap.id, ...snap.data() });
-    });
+    const unsub = onSnapshot(
+      doc(db, "orders", id),
+      (snap) => {
+        if (snap.exists()) setOrder({ id: snap.id, ...snap.data() });
+      },
+      (error) => {
+        console.error("Error fetching order:", error);
+        toast.error("Failed to load order details");
+        navigate({ to: "/app/orders" });
+      }
+    );
     return () => unsub();
   }, [id]);
 
@@ -147,7 +156,11 @@ function OrderDetail() {
             {items.map((it, i) => (
               <div key={i} className="py-2 flex justify-between text-sm">
                 <span>{itemName(it)} × {it.quantity || 1}</span>
-                <span className="font-medium">{formatINR(itemLineTotal(it))}</span>
+                <span className="font-medium">
+                  {it.priceType === 'variable' && !order.priceConfirmed 
+                    ? 'To be quoted' 
+                    : formatINR(itemLineTotal(it))}
+                </span>
               </div>
             ))}
           </div>

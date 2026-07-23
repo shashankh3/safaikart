@@ -49,7 +49,7 @@ exports.markAllNotificationsRead = (0, https_1.onCall)({ enforceAppCheck: config
     if (!uid) {
         throw new https_1.HttpsError('unauthenticated', 'User must be logged in.');
     }
-    await (0, rateLimiter_1.rateLimiter)(uid, 'markAllNotificationsRead', 20, 3600);
+    const consumeRateLimit = await (0, rateLimiter_1.rateLimiter)(uid, 'markAllNotificationsRead', 20, 3600);
     try {
         const unreadQuery = await db.collection('notifications')
             .where('userId', '==', uid)
@@ -57,6 +57,7 @@ exports.markAllNotificationsRead = (0, https_1.onCall)({ enforceAppCheck: config
             .limit(500)
             .get();
         if (unreadQuery.empty) {
+            await consumeRateLimit();
             return { success: true, count: 0 };
         }
         const batch = db.batch();
@@ -68,6 +69,7 @@ exports.markAllNotificationsRead = (0, https_1.onCall)({ enforceAppCheck: config
         });
         await batch.commit();
         (0, logger_1.logInfo)(`Marked ${unreadQuery.size} notifications as read for user ${uid}`, { userId: uid });
+        await consumeRateLimit();
         return { success: true, count: unreadQuery.size };
     }
     catch (error) {

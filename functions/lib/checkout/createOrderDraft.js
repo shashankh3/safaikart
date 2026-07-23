@@ -41,6 +41,8 @@ const contracts_1 = require("../contracts");
 const serviceability_logic_1 = require("../utils/serviceability.logic");
 const deliveryLogic_1 = require("../utils/deliveryLogic");
 const coupon_logic_1 = require("./coupon.logic");
+const rateLimiter_1 = require("../utils/rateLimiter");
+const logger_1 = require("../utils/logger");
 // Initialize admin app if not already initialized
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -53,8 +55,7 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
         if (!uid) {
             throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to create an order.');
         }
-        // Rate limiting bypassed temporarily for debugging
-        // await rateLimiter(uid, 'createOrderDraft', 5, 3600);
+        const consumeRateLimit = await (0, rateLimiter_1.rateLimiter)(uid, 'createOrderDraft', 5, 3600);
         const profileDoc = await db.collection('profiles').doc(uid).get();
         if (profileDoc.exists && ((_b = profileDoc.data()) === null || _b === void 0 ? void 0 : _b.isBlocked) === true) {
             throw new functions.https.HttpsError('permission-denied', 'Your account has been blocked. Please contact support.');
@@ -65,7 +66,7 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
             addressId = parsed.addressId;
             pickupSlotId = parsed.pickupSlotId;
             directItems = parsed.directItems;
-            couponCode = parsed.couponCode || null;
+            couponCode = parsed.couponCode ? parsed.couponCode.toUpperCase() : null;
             idempotencyKey = parsed.idempotencyKey;
             notes = parsed.notes || null;
         }
@@ -81,6 +82,7 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
                 .get();
             if (!existing.empty) {
                 const existingOrder = existing.docs[0];
+                await consumeRateLimit();
                 return {
                     orderId: existingOrder.id,
                     finalAmountMinor: existingOrder.data().finalAmountMinor,
@@ -165,7 +167,7 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
         // 4. Validate Coupon
         let couponInfo = null;
         if (couponCode) {
-            const couponDoc = await db.collection('coupons').doc(couponCode.toUpperCase()).get();
+            const couponDoc = await db.collection('coupons').doc(couponCode).get();
             if (couponDoc.exists) {
                 const coupon = couponDoc.data();
                 const couponSubtotalMinor = pricingItems.reduce((total, item) => {
@@ -258,6 +260,7 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
                 }
             }
         });
+        await consumeRateLimit();
         return {
             orderId: finalOrderId,
             finalAmountMinor,
@@ -268,7 +271,8 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
         if (err instanceof functions.https.HttpsError) {
             throw err;
         }
-        throw new functions.https.HttpsError('internal', `DEBUG: ${err.message} | ${err.stack}`);
+        (0, logger_1.logError)('createOrderDraft failed:', err);
+        throw new functions.https.HttpsError('internal', 'Failed to create order. Please try again.');
     }
 });
 //# sourceMappingURL=createOrderDraft.js.map

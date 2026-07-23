@@ -76,7 +76,7 @@ function CheckoutPage() {
   const [signInOpen, setSignInOpen] = useState(false);
   const [pendingCheckoutAfterAuth, setPendingCheckoutAfterAuth] = useState(false);
 
-  const { data: savedAddresses = [] } = useQuery({
+  const { data: savedAddresses = [], isLoading: loadingAddresses } = useQuery({
     queryKey: ["addresses", user?.uid],
     queryFn: async () => {
       if (!user) return [];
@@ -135,10 +135,10 @@ function CheckoutPage() {
   }, [availableSlots, slot]);
 
   useEffect(() => {
-    if (!user || !pendingCheckoutAfterAuth) return;
+    if (!user || !pendingCheckoutAfterAuth || loadingAddresses) return;
     setPendingCheckoutAfterAuth(false);
     void placeOrder();
-  }, [user, pendingCheckoutAfterAuth]);
+  }, [user, pendingCheckoutAfterAuth, loadingAddresses]);
 
   useEffect(() => {
     if (!appliedCoupon) return;

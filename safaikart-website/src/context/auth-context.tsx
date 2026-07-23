@@ -240,7 +240,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signInWithGoogle() {
         const auth = getFirebaseAuth();
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        
+        // Use redirect on mobile to avoid popup blockers, especially in in-app browsers
+        const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone/i.test(navigator.userAgent);
+        if (isMobile) {
+          const { signInWithRedirect } = await import("firebase/auth");
+          await signInWithRedirect(auth, provider);
+        } else {
+          await signInWithPopup(auth, provider);
+        }
       },
       async startPhoneOtp(phoneE164, recaptchaContainerId) {
         const auth = getFirebaseAuth();

@@ -15,6 +15,11 @@ Notifications.setNotificationHandler({
 });
 
 export async function requestNotificationPermission() {
+  if (Platform.OS === 'android') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    return status === 'granted';
+  }
+
   const authStatus = await messaging().requestPermission();
   const enabled =
     authStatus === messaging.AuthorizationStatus.AUTHORIZED ||

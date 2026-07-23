@@ -19,7 +19,7 @@ export const cancelOrder = onCall({ secrets: [razorpayKeySecret], enforceAppChec
   }
 
   const { rateLimiter } = await import('../utils/rateLimiter');
-  await rateLimiter(uid, 'cancelOrder', 5, 3600);
+  const consumeRateLimit = await rateLimiter(uid, 'cancelOrder', 5, 3600);
 
   const { orderId, reason } = request.data;
   if (!orderId) {
@@ -121,6 +121,7 @@ export const cancelOrder = onCall({ secrets: [razorpayKeySecret], enforceAppChec
       }
     }
 
+    await consumeRateLimit();
     return { success: true, message: 'Order cancelled successfully', newStatus };
   } catch (error: any) {
     if (error instanceof HttpsError) {

@@ -16,7 +16,7 @@ export const markAllNotificationsRead = onCall({ enforceAppCheck: shouldEnforceA
     throw new HttpsError('unauthenticated', 'User must be logged in.');
   }
 
-  await rateLimiter(uid, 'markAllNotificationsRead', 20, 3600);
+  const consumeRateLimit = await rateLimiter(uid, 'markAllNotificationsRead', 20, 3600);
 
   try {
     const unreadQuery = await db.collection('notifications')
@@ -26,6 +26,7 @@ export const markAllNotificationsRead = onCall({ enforceAppCheck: shouldEnforceA
       .get();
 
     if (unreadQuery.empty) {
+      await consumeRateLimit();
       return { success: true, count: 0 };
     }
 
@@ -41,6 +42,7 @@ export const markAllNotificationsRead = onCall({ enforceAppCheck: shouldEnforceA
 
     logInfo(`Marked ${unreadQuery.size} notifications as read for user ${uid}`, { userId: uid });
     
+    await consumeRateLimit();
     return { success: true, count: unreadQuery.size };
   } catch (error: any) {
     logError('Error in markAllNotificationsRead', error, { userId: uid });

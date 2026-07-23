@@ -17,7 +17,7 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeyS
   }
 
   const { rateLimiter } = await import('../utils/rateLimiter');
-  await rateLimiter(uid, 'createPaymentOrder', 10, 3600);
+  const consumeRateLimit = await rateLimiter(uid, 'createPaymentOrder', 10, 3600);
 
   const profileDoc = await db.collection('profiles').doc(uid).get();
   if (profileDoc.exists && profileDoc.data()?.isBlocked) {
@@ -89,6 +89,7 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeyS
 
         // Return existing razorpay order to avoid duplicates if it's still valid
         const baseUrl = process.env.CHECKOUT_BASE_URL || 'https://safaikart-6c4e4.web.app';
+        await consumeRateLimit();
         return {
           razorpayOrderId: payment.razorpayOrderId,
           razorpayKeyId: razorpayKeyId.value().trim(),
@@ -173,6 +174,7 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeyS
     const baseUrl = process.env.CHECKOUT_BASE_URL || 'https://safaikart-6c4e4.web.app';
     const checkoutUrl = `${baseUrl}/checkout/index.html?order_id=${rzpOrder.id}&key_id=${razorpayKeyId.value().trim()}&amount=${amountMinor}&currency=INR`;
 
+    await consumeRateLimit();
     return {
       razorpayOrderId: rzpOrder.id,
       razorpayKeyId: razorpayKeyId.value().trim(),

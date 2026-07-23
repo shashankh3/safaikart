@@ -39,36 +39,37 @@ const functions = __importStar(require("firebase-functions"));
 async function rateLimiter(uid, functionName, maxCalls, windowSeconds) {
     const db = admin.firestore();
     const rateLimitRef = db.collection('rateLimits').doc(`${uid}_${functionName}`);
-    await db.runTransaction(async (transaction) => {
-        const doc = await transaction.get(rateLimitRef);
-        const now = Date.now();
-        const windowMs = windowSeconds * 1000;
-        if (!doc.exists) {
-            transaction.set(rateLimitRef, {
+    const doc = await rateLimitRef.get();
+    const now = Date.now();
+    const windowMs = windowSeconds * 1000;
+    if (!doc.exists) {
+        return async () => {
+            await rateLimitRef.set({
                 count: 1,
                 windowStart: now,
                 expiresAt: admin.firestore.Timestamp.fromMillis(now + windowMs)
             });
-            return;
-        }
-        const data = doc.data();
-        const windowStart = data.windowStart || 0;
-        if (now - windowStart >= windowMs) {
-            // Reset window
-            transaction.update(rateLimitRef, {
+        };
+    }
+    const data = doc.data();
+    const windowStart = data.windowStart || 0;
+    if (now - windowStart >= windowMs) {
+        return async () => {
+            await rateLimitRef.set({
                 count: 1,
                 windowStart: now,
                 expiresAt: admin.firestore.Timestamp.fromMillis(now + windowMs)
             });
-            return;
-        }
-        const count = data.count || 0;
-        if (count >= maxCalls) {
-            throw new functions.https.HttpsError('resource-exhausted', `Rate limit exceeded for ${functionName}. Please try again later.`);
-        }
-        transaction.update(rateLimitRef, {
-            count: count + 1
+        };
+    }
+    const count = data.count || 0;
+    if (count >= maxCalls) {
+        throw new functions.https.HttpsError('resource-exhausted', `Rate limit exceeded for ${functionName}. Please try again later.`);
+    }
+    return async () => {
+        await rateLimitRef.update({
+            count: admin.firestore.FieldValue.increment(1)
         });
-    });
+    };
 }
 //# sourceMappingURL=rateLimiter.js.map

@@ -87,7 +87,8 @@ exports.processRazorpayWebhook = (0, tasks_1.onTaskDispatched)({
             const paymentsQuery = await tx.get(db.collection('payments').where('razorpayPaymentId', '==', rzpPaymentId));
             if (paymentsQuery.empty) {
                 (0, logger_1.logWarn)(`Payment record not found for Razorpay Payment: ${rzpPaymentId}`);
-                db.collection('auditLogs').add({
+                const auditRef = db.collection('auditLogs').doc();
+                tx.set(auditRef, {
                     action: 'UNKNOWN_REFUND',
                     razorpayPaymentId: rzpPaymentId,
                     refundId: refundId,
@@ -204,7 +205,8 @@ exports.processRazorpayWebhook = (0, tasks_1.onTaskDispatched)({
             }
             else {
                 // Log late payment for cancelled order
-                db.collection('auditLogs').add({
+                const auditRef = db.collection('auditLogs').doc();
+                tx.set(auditRef, {
                     action: 'LATE_PAYMENT_DETECTED',
                     orderId: paymentRecord.orderId,
                     razorpayPaymentId: rzpPaymentId,

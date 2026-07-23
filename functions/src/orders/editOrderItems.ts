@@ -22,7 +22,7 @@ export const editOrderItems = onCall({ secrets: [razorpayKeySecret], region: 'as
   }
 
   const { rateLimiter } = await import('../utils/rateLimiter');
-  await rateLimiter(uid, 'editOrderItems', 10, 3600);
+  const consumeRateLimit = await rateLimiter(uid, 'editOrderItems', 10, 3600);
 
   let orderId: string, items: any[];
 
@@ -230,5 +230,6 @@ export const editOrderItems = onCall({ secrets: [razorpayKeySecret], region: 'as
       }
   }
 
+  await consumeRateLimit();
   return { success: true };
 });

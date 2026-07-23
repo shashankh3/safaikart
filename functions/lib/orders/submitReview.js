@@ -49,7 +49,7 @@ exports.submitReview = (0, https_1.onCall)({ enforceAppCheck: config_1.shouldEnf
     if (!uid) {
         throw new https_1.HttpsError('unauthenticated', 'User must be logged in to submit a review.');
     }
-    await (0, rateLimiter_1.rateLimiter)(uid, 'submitReview', 3, 3600); // Max 3 reviews per hour
+    const consumeRateLimit = await (0, rateLimiter_1.rateLimiter)(uid, 'submitReview', 3, 3600); // Max 3 reviews per hour
     let orderId;
     let rating;
     let comment;
@@ -96,6 +96,7 @@ exports.submitReview = (0, https_1.onCall)({ enforceAppCheck: config_1.shouldEnf
             isReviewed: true
         });
     });
+    await consumeRateLimit();
     return { success: true };
 });
 //# sourceMappingURL=submitReview.js.map

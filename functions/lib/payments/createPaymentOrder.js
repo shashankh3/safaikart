@@ -49,8 +49,8 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
     if (!uid) {
         throw new https_1.HttpsError('unauthenticated', 'User must be logged in.');
     }
-    // const { rateLimiter } = await import('../utils/rateLimiter');
-    // await rateLimiter(uid, 'createPaymentOrder', 10, 3600);
+    const { rateLimiter } = await Promise.resolve().then(() => __importStar(require('../utils/rateLimiter')));
+    const consumeRateLimit = await rateLimiter(uid, 'createPaymentOrder', 10, 3600);
     const profileDoc = await db.collection('profiles').doc(uid).get();
     if (profileDoc.exists && ((_b = profileDoc.data()) === null || _b === void 0 ? void 0 : _b.isBlocked)) {
         throw new https_1.HttpsError('permission-denied', 'Your account has been blocked.');
@@ -113,6 +113,7 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
                 }
                 // Return existing razorpay order to avoid duplicates if it's still valid
                 const baseUrl = process.env.CHECKOUT_BASE_URL || 'https://safaikart-6c4e4.web.app';
+                await consumeRateLimit();
                 return {
                     razorpayOrderId: payment.razorpayOrderId,
                     razorpayKeyId: razorpayClient_1.razorpayKeyId.value().trim(),
@@ -189,6 +190,7 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
         });
         const baseUrl = process.env.CHECKOUT_BASE_URL || 'https://safaikart-6c4e4.web.app';
         const checkoutUrl = `${baseUrl}/checkout/index.html?order_id=${rzpOrder.id}&key_id=${razorpayClient_1.razorpayKeyId.value().trim()}&amount=${amountMinor}&currency=INR`;
+        await consumeRateLimit();
         return {
             razorpayOrderId: rzpOrder.id,
             razorpayKeyId: razorpayClient_1.razorpayKeyId.value().trim(),

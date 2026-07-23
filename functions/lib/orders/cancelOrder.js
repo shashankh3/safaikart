@@ -52,7 +52,7 @@ exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayK
         throw new https_1.HttpsError('unauthenticated', 'User must be logged in');
     }
     const { rateLimiter } = await Promise.resolve().then(() => __importStar(require('../utils/rateLimiter')));
-    await rateLimiter(uid, 'cancelOrder', 5, 3600);
+    const consumeRateLimit = await rateLimiter(uid, 'cancelOrder', 5, 3600);
     const { orderId, reason } = request.data;
     if (!orderId) {
         throw new https_1.HttpsError('invalid-argument', 'Order ID is required');
@@ -134,6 +134,7 @@ exports.cancelOrder = (0, https_2.onCall)({ secrets: [razorpayClient_1.razorpayK
                 });
             }
         }
+        await consumeRateLimit();
         return { success: true, message: 'Order cancelled successfully', newStatus };
     }
     catch (error) {

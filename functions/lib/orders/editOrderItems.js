@@ -55,7 +55,7 @@ exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorp
         throw new https_1.HttpsError('unauthenticated', 'User must be logged in to edit an order.');
     }
     const { rateLimiter } = await Promise.resolve().then(() => __importStar(require('../utils/rateLimiter')));
-    await rateLimiter(uid, 'editOrderItems', 10, 3600);
+    const consumeRateLimit = await rateLimiter(uid, 'editOrderItems', 10, 3600);
     let orderId, items;
     try {
         const parsed = contracts_1.editOrderItemsRequest.parse(request.data);
@@ -224,6 +224,7 @@ exports.editOrderItems = (0, https_1.onCall)({ secrets: [razorpayClient_1.razorp
             (0, logger_1.logError)('Refund failed:', await response.text());
         }
     }
+    await consumeRateLimit();
     return { success: true };
 });
 //# sourceMappingURL=editOrderItems.js.map
