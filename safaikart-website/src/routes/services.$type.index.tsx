@@ -42,6 +42,7 @@ type Service = {
   name?: string;
   priceMinor?: number;
   unit?: string;
+  priceType?: string;
   categoryId?: string;
   serviceType?: string;
   gender?: string;
@@ -246,6 +247,7 @@ function GenderPickerPage() {
                         name: s.name || "Service",
                         priceMinor: s.priceMinor,
                         unit: s.unit,
+                        priceType: s.priceType,
                       });
                       toast.success(`Added ${s.name || "item"} to cart`);
                     }}

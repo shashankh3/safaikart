@@ -25,18 +25,22 @@ export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret] }, asyn
   const paymentsQuery = await db.collection('payments')
     .where('orderId', '==', orderId)
     .where('userId', '==', uid)
-    .where('razorpayOrderId', '!=', null)
-    .orderBy('razorpayOrderId', 'desc')
-    .orderBy('createdAt', 'desc')
-    .limit(1)
     .get();
 
-  if (paymentsQuery.empty) {
+  const paymentDocs = paymentsQuery.docs
+    .filter((doc) => !!doc.data().razorpayOrderId)
+    .sort((a, b) => {
+      const aTime = a.data().createdAt?.toMillis?.() || 0;
+      const bTime = b.data().createdAt?.toMillis?.() || 0;
+      return bTime - aTime;
+    });
+
+  if (paymentDocs.length === 0) {
     throw new HttpsError('not-found', 'Payment record not found.');
   }
 
-  const paymentDocRef = paymentsQuery.docs[0].ref;
-  const paymentRecord = paymentsQuery.docs[0].data();
+  const paymentDocRef = paymentDocs[0].ref;
+  const paymentRecord = paymentDocs[0].data();
 
   // If already verified, just return
   if (paymentRecord.status === 'VERIFIED') {
@@ -64,14 +68,14 @@ export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret] }, asyn
 
     const data = await response.json();
     const payments = data.items || [];
-    
+
     // Find a captured payment
     const capturedPayment = payments.find((p: any) => p.status === 'captured');
-    
+
     if (capturedPayment) {
       // Verify Amount & Currency
       if (capturedPayment.amount === paymentRecord.amountMinor && capturedPayment.currency === 'INR') {
-        
+
         // Update Firestore
         await db.runTransaction(async (tx) => {
           const payDoc = await tx.get(paymentDocRef);
@@ -108,24 +112,24 @@ export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret] }, asyn
               }, { merge: true });
             }
           } else {
-             db.collection('auditLogs').add({
-               action: 'LATE_PAYMENT_DETECTED',
-               orderId: ordRef.id,
-               razorpayPaymentId: capturedPayment.id,
-               at: admin.firestore.FieldValue.serverTimestamp()
-             });
+            db.collection('auditLogs').add({
+              action: 'LATE_PAYMENT_DETECTED',
+              orderId: ordRef.id,
+              razorpayPaymentId: capturedPayment.id,
+              at: admin.firestore.FieldValue.serverTimestamp()
+            });
           }
         });
 
         return { paymentStatus: 'VERIFIED', orderStatus: 'CONFIRMED' };
       }
     }
-    
+
     // Check if any payment failed
     const failedPayment = payments.find((p: any) => p.status === 'failed');
     if (failedPayment) {
-        // We could mark it failed, but let's wait for webhook or manual retry to be safe
-        return { paymentStatus: 'PENDING', orderStatus: 'PAYMENT_PENDING' };
+      // We could mark it failed, but let's wait for webhook or manual retry to be safe
+      return { paymentStatus: 'PENDING', orderStatus: 'PAYMENT_PENDING' };
     }
 
     return { paymentStatus: paymentRecord.status, orderStatus: 'PAYMENT_PENDING' };

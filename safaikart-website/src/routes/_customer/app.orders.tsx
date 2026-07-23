@@ -16,10 +16,15 @@ export const Route = createFileRoute("/_customer/app/orders")({
 type Order = {
   id: string;
   status?: string;
+  paymentStatus?: string;
   finalAmountMinor?: number;
   items?: Array<{ name?: string; quantity?: number }>;
   createdAt?: unknown;
 };
+
+function itemLabel(item: { name?: string; nameSnapshot?: string; quantity?: number }) {
+  return `${item.name || item.nameSnapshot || "Service"} × ${item.quantity || 1}`;
+}
 
 function MyOrders() {
   const { user } = useAuth();
@@ -80,11 +85,11 @@ function MyOrders() {
                 <div className="font-medium">#{o.id.slice(0, 8).toUpperCase()}</div>
                 <div className="text-xs text-brand/60">{formatDate(toDate(o.createdAt))}</div>
               </div>
-              <Badge className={statusColor(o.status || "pending")}>{o.status || "pending"}</Badge>
+              <Badge className={statusColor(o.status || "PAYMENT_PENDING")}>{o.status || "PAYMENT_PENDING"}</Badge>
             </div>
             <div className="mt-3 flex items-center justify-between text-sm">
               <div className="text-brand/70">
-                {(o.items || []).map((i) => `${i.name} × ${i.quantity}`).join(", ") || "—"}
+                {(o.items || []).map(itemLabel).join(", ") || "—"}
               </div>
               <div className="font-semibold">{formatINR(o.finalAmountMinor || 0)}</div>
             </div>

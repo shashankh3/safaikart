@@ -72,7 +72,10 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
     if (order.status !== 'PAYMENT_PENDING' && order.status !== 'CONFIRMED') {
         throw new https_1.HttpsError('failed-precondition', 'Order cannot accept payments at this stage.');
     }
-    if (order.paymentStatus !== 'PAYMENT_PENDING' && order.paymentStatus !== 'NOT_STARTED' && order.paymentStatus !== 'FAILED') {
+    if (order.paymentStatus !== 'PAYMENT_PENDING' &&
+        order.paymentStatus !== 'NOT_STARTED' &&
+        order.paymentStatus !== 'PAYMENT_CREATED' &&
+        order.paymentStatus !== 'FAILED') {
         throw new https_1.HttpsError('failed-precondition', 'Order does not require payment at this time.');
     }
     // 2. Check for existing payment
@@ -98,7 +101,7 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
                     });
                     if (rzpResponse.ok) {
                         const rzpData = await rzpResponse.json();
-                        if (rzpData.status === 'paid' || rzpData.status === 'attempted') {
+                        if (rzpData.status === 'paid') {
                             throw new https_1.HttpsError('failed-precondition', 'A payment is currently processing for this order. Please wait a few moments.');
                         }
                     }
@@ -195,6 +198,9 @@ exports.createPaymentOrder = (0, https_1.onCall)({ secrets: [razorpayClient_1.ra
         };
     }
     catch (error) {
+        if (error instanceof https_1.HttpsError) {
+            throw error;
+        }
         (0, logger_1.logError)('Payment creation error:', error);
         throw new https_1.HttpsError('internal', 'Failed to initiate payment.');
     }

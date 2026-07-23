@@ -46,15 +46,35 @@ export async function payWithRazorpay(params: {
 }): Promise<{ ok: true }> {
   await loadCheckoutScript();
   const fns = getFns();
-  
+
   const verify = httpsCallable<
     { orderId: string },
-    { paymentStatus: string }
+    { paymentStatus: string; orderStatus?: string }
   >(fns, "verifyPaymentStatus");
+
+  const verifyUntilSettled = async () => {
+    let lastStatus = "PENDING";
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      if (attempt > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, attempt * 1200));
+      }
+      const { data } = await verify({ orderId: params.orderId });
+      lastStatus = data.paymentStatus || lastStatus;
+      if (lastStatus === "VERIFIED" || lastStatus === "PAID") {
+        return;
+      }
+      if (lastStatus === "FAILED") {
+        throw new Error("Payment failed. Please retry from order details.");
+      }
+    }
+    throw new Error(
+      `Payment received but verification is still ${lastStatus.toLowerCase()}. Please check your order details in a few moments.`,
+    );
+  };
 
   return new Promise((resolve, reject) => {
     if (!window.Razorpay) return reject(new Error("Razorpay not loaded"));
-    const options = {
+    const options: RzpOptions = {
       key: params.razorpayKeyId,
       amount: params.amountMinor,
       currency: "INR",
@@ -65,7 +85,10 @@ export async function payWithRazorpay(params: {
       theme: { color: "#0f4d2a" },
       handler: async (r) => {
         try {
-          await verify({ orderId: params.orderId });
+          if (!r.razorpay_payment_id || !r.razorpay_order_id) {
+            throw new Error("Payment callback was incomplete. Please retry.");
+          }
+          await verifyUntilSettled();
           resolve({ ok: true });
         } catch (err) {
           reject(err instanceof Error ? err : new Error("Verification failed"));

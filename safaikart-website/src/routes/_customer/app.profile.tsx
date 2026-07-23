@@ -1,6 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { doc, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
@@ -21,22 +31,68 @@ type Address = {
   line2?: string;
   city?: string;
   pincode?: string;
+  state?: string;
 };
+
+const PINCODE_RE = /^\d{6}$/;
 
 function ProfilePage() {
   const { user, customer } = useAuth();
   const [name, setName] = useState(customer?.name || "");
   const [phone, setPhone] = useState(customer?.phone || "");
   const [saving, setSaving] = useState(false);
-  const [addresses, setAddresses] = useState<Address[]>(customer?.addresses || []);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [draft, setDraft] = useState<Address>({ id: "", label: "Home", line1: "", city: "", pincode: "" });
   const [adding, setAdding] = useState(false);
 
+  useEffect(() => {
+    setName(customer?.name || "");
+    setPhone(customer?.phone || "");
+  }, [customer?.name, customer?.phone]);
+
+  useEffect(() => {
+    if (!user) return;
+    const uid = user.uid;
+    let cancelled = false;
+    async function loadAddresses() {
+      setLoadingAddresses(true);
+      try {
+        const snap = await getDocs(query(collection(getDb(), "addresses"), where("userId", "==", uid)));
+        if (cancelled) return;
+        setAddresses(
+          snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Address, "id">) })),
+        );
+      } catch (e) {
+        if (!cancelled) toast.error(e instanceof Error ? e.message : "Failed to load addresses");
+      } finally {
+        if (!cancelled) setLoadingAddresses(false);
+      }
+    }
+    void loadAddresses();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   async function saveProfile() {
     if (!user) return;
+    const displayName = name.trim() || "Customer";
+    const cleanPhone = phone.trim();
     setSaving(true);
     try {
-      await updateDoc(doc(getDb(), "customers", user.uid), { name, phone });
+      await setDoc(
+        doc(getDb(), "profiles", user.uid),
+        {
+          displayName,
+          name: displayName,
+          phoneNumber: cleanPhone || null,
+          phone: cleanPhone || null,
+          email: user.email || customer?.email || null,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
       toast.success("Profile saved");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save");
@@ -45,23 +101,41 @@ function ProfilePage() {
     }
   }
 
-  async function saveAddresses(next: Address[]) {
+  async function addAddress() {
     if (!user) return;
-    setAddresses(next);
+    const next = {
+      label: draft.label?.trim() || "Address",
+      line1: draft.line1.trim(),
+      city: draft.city?.trim() || "",
+      pincode: draft.pincode?.trim() || "",
+      state: draft.state?.trim() || "",
+    };
+    if (!next.line1 || !next.city || !next.pincode) return toast.error("Address, city and pincode are required");
+    if (!PINCODE_RE.test(next.pincode)) return toast.error("Enter a valid 6-digit pincode");
     try {
-      await updateDoc(doc(getDb(), "customers", user.uid), { addresses: next });
+      const ref = await addDoc(collection(getDb(), "addresses"), {
+        userId: user.uid,
+        ...next,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      setAddresses((prev) => [...prev, { id: ref.id, ...next }]);
+      setDraft({ id: "", label: "Home", line1: "", city: "", pincode: "" });
+      setAdding(false);
+      toast.success("Address added");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save address");
     }
   }
 
-  async function addAddress() {
-    if (!draft.line1 || !draft.pincode) return toast.error("Address line and pincode required");
-    const next = [...addresses, { ...draft, id: crypto.randomUUID() }];
-    await saveAddresses(next);
-    setDraft({ id: "", label: "Home", line1: "", city: "", pincode: "" });
-    setAdding(false);
-    toast.success("Address added");
+  async function removeAddress(addressId: string) {
+    setAddresses((prev) => prev.filter((x) => x.id !== addressId));
+    try {
+      await deleteDoc(doc(getDb(), "addresses", addressId));
+      toast.success("Address removed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete address");
+    }
   }
 
   return (
@@ -96,7 +170,13 @@ function ProfilePage() {
           )}
         </div>
 
-        {addresses.length === 0 && !adding && (
+        {loadingAddresses && (
+          <div className="rounded-2xl border border-brand/10 bg-white p-6 text-sm text-brand/60 text-center">
+            Loading addresses…
+          </div>
+        )}
+
+        {!loadingAddresses && addresses.length === 0 && !adding && (
           <div className="rounded-2xl border border-dashed border-brand/20 bg-white p-6 text-sm text-brand/60 text-center">
             No addresses saved yet. Add one for faster checkout.
           </div>
@@ -111,7 +191,7 @@ function ProfilePage() {
                 <div className="text-brand/60 text-xs mt-0.5">{a.city} {a.pincode}</div>
               </div>
               <button
-                onClick={() => saveAddresses(addresses.filter((x) => x.id !== a.id))}
+                onClick={() => removeAddress(a.id)}
                 className="text-brand/40 hover:text-red-600 transition"
                 aria-label="Delete address"
               >

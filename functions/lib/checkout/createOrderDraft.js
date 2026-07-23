@@ -40,13 +40,14 @@ const pricing_logic_1 = require("../orders/pricing.logic");
 const contracts_1 = require("../contracts");
 const serviceability_logic_1 = require("../utils/serviceability.logic");
 const deliveryLogic_1 = require("../utils/deliveryLogic");
+const coupon_logic_1 = require("./coupon.logic");
 // Initialize admin app if not already initialized
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
 exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (data, context) => {
-    var _a, _b;
+    var _a, _b, _c;
     try {
         const uid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
         if (!uid) {
@@ -54,6 +55,10 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
         }
         // Rate limiting bypassed temporarily for debugging
         // await rateLimiter(uid, 'createOrderDraft', 5, 3600);
+        const profileDoc = await db.collection('profiles').doc(uid).get();
+        if (profileDoc.exists && ((_b = profileDoc.data()) === null || _b === void 0 ? void 0 : _b.isBlocked) === true) {
+            throw new functions.https.HttpsError('permission-denied', 'Your account has been blocked. Please contact support.');
+        }
         let addressId, pickupSlotId, couponCode = null, directItems, idempotencyKey, notes = null;
         try {
             const parsed = contracts_1.createOrderDraftRequest.parse(data);
@@ -103,7 +108,7 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
         }
         // 2. Fetch Address & Validate Serviceability
         const addressDoc = await db.collection('addresses').doc(addressId).get();
-        if (!addressDoc.exists || ((_b = addressDoc.data()) === null || _b === void 0 ? void 0 : _b.userId) !== uid) {
+        if (!addressDoc.exists || ((_c = addressDoc.data()) === null || _c === void 0 ? void 0 : _c.userId) !== uid) {
             throw new functions.https.HttpsError('permission-denied', 'Invalid address or unauthorized access.');
         }
         const addressData = addressDoc.data();
@@ -118,12 +123,16 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
                 throw new functions.https.HttpsError('invalid-argument', `Invalid quantity for item ${item.name || item.serviceId}. Quantity must be between 1 and 100.`);
             }
             // Fetch actual service from DB to prevent tampering
-            const serviceDoc = await db.collection('services').doc(item.id || item.serviceId).get();
+            const serviceId = String(item.id || item.serviceId || '').trim();
+            if (!serviceId) {
+                throw new functions.https.HttpsError('invalid-argument', `Invalid service for item ${item.name || ''}`);
+            }
+            const serviceDoc = await db.collection('services').doc(serviceId).get();
             if (!serviceDoc.exists) {
                 throw new functions.https.HttpsError('not-found', `Service not found for item ${item.name}`);
             }
             const serviceData = serviceDoc.data();
-            if (!serviceData.isActive) {
+            if (serviceData.isActive === false) {
                 throw new functions.https.HttpsError('failed-precondition', `Service ${serviceData.name} is no longer active.`);
             }
             const duration = serviceData.estimatedDurationHours || (serviceData.categoryId === 'steam_press' ? 24 : serviceData.categoryId === 'household' ? 72 : 48);
@@ -159,13 +168,26 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
             const couponDoc = await db.collection('coupons').doc(couponCode.toUpperCase()).get();
             if (couponDoc.exists) {
                 const coupon = couponDoc.data();
-                if (coupon.isActive) {
+                const couponSubtotalMinor = pricingItems.reduce((total, item) => {
+                    if (item.priceType === 'variable')
+                        return total;
+                    const addonsTotalMinor = item.addons.reduce((sum, addon) => sum + addon.priceMinor, 0);
+                    return total + (item.unitPriceMinor + addonsTotalMinor) * item.quantity;
+                }, 0);
+                const couponResult = (0, coupon_logic_1.validateCouponApplicability)(coupon, uid, couponSubtotalMinor);
+                if (!couponResult.valid) {
+                    throw new functions.https.HttpsError('failed-precondition', couponResult.message);
+                }
+                {
                     couponInfo = {
                         type: coupon.type,
                         discountValue: coupon.discountValue,
                         minimumOrderAmount: coupon.minimumOrderAmount
                     };
                 }
+            }
+            else {
+                throw new functions.https.HttpsError('not-found', 'Invalid coupon code');
             }
         }
         const { processedItems, subtotalMinor, discountMinor, deliveryFeeMinor, finalAmountMinor, priceConfirmed, maxDurationHours } = (0, pricing_logic_1.calculateOrderTotals)(pricingItems, couponInfo, 4000);

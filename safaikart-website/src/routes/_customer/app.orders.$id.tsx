@@ -21,6 +21,38 @@ export const Route = createFileRoute("/_customer/app/orders/$id")({
 
 type Order = Record<string, unknown> & { id: string };
 
+type OrderItem = {
+  serviceId?: string;
+  name?: string;
+  nameSnapshot?: string;
+  quantity?: number;
+  priceMinor?: number;
+  unitPriceMinor?: number;
+  lineTotalMinor?: number;
+  unit?: string | null;
+  priceType?: string;
+};
+
+function itemName(item: OrderItem) {
+  return item.name || item.nameSnapshot || "Service";
+}
+
+function itemUnitPrice(item: OrderItem) {
+  return item.priceMinor ?? item.unitPriceMinor ?? 0;
+}
+
+function itemLineTotal(item: OrderItem) {
+  if (typeof item.lineTotalMinor === "number") return item.lineTotalMinor;
+  return itemUnitPrice(item) * (item.quantity || 1);
+}
+
+function isPaymentRetryable(status: string, paymentStatus: string) {
+  return (
+    status === "PAYMENT_PENDING" ||
+    ["NOT_STARTED", "PAYMENT_PENDING", "PAYMENT_CREATED", "FAILED", "PENDING", "CREATED"].includes(paymentStatus)
+  );
+}
+
 function OrderDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -31,7 +63,7 @@ function OrderDetail() {
 
   function reorder() {
     if (!order) return;
-    const items = (order.items as Array<{ serviceId?: string; name?: string; quantity?: number; priceMinor?: number; unit?: string | null }>) || [];
+    const items = (order.items as OrderItem[]) || [];
     if (items.length === 0) return toast.error("No items to re-order");
     cart.clear();
     for (const it of items) {
@@ -39,9 +71,10 @@ function OrderDetail() {
       cart.add(
         {
           serviceId: it.serviceId,
-          name: it.name || "",
-          priceMinor: it.priceMinor || 0,
+          name: itemName(it),
+          priceMinor: itemUnitPrice(it),
           unit: it.unit || undefined,
+          priceType: it.priceType,
         },
         it.quantity || 1,
       );
@@ -56,20 +89,17 @@ function OrderDetail() {
     try {
       const createPayment = httpsCallable<any, any>(getFns(), "createPaymentOrder");
       const { data: paymentRes } = await createPayment({ orderId: id });
-      
+
       await payWithRazorpay({
         orderId: id,
         razorpayOrderId: paymentRes.razorpayOrderId,
         razorpayKeyId: paymentRes.razorpayKeyId,
         amountMinor: paymentRes.amountMinor,
         customerName: user.displayName || "Customer",
-        customerPhone: user.phoneNumber || "0000000000",
+        customerPhone: user.phoneNumber || "",
         description: `SafaiKart order ${id.slice(0, 6).toUpperCase()}`,
       });
-      
-      const verifyPayment = httpsCallable<any, any>(getFns(), "verifyPaymentStatus");
-      await verifyPayment({ orderId: id });
-      
+
       toast.success("Payment successful!");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Payment failed");
@@ -88,12 +118,14 @@ function OrderDetail() {
 
   if (!order) return <div className="text-brand/50">Loading…</div>;
 
-  const items = (order.items as Array<{ name?: string; quantity?: number; priceMinor?: number }>) || [];
+  const items = (order.items as OrderItem[]) || [];
   const finalAmount = (order.finalAmountMinor as number) || 0;
   const subtotal = (order.subtotalMinor as number) || 0;
   const discount = (order.discountMinor as number) || 0;
   const deliveryFee = (order.deliveryFeeMinor as number) || 0;
   const status = (order.status as string) || "pending";
+  const paymentStatus = (order.paymentStatus as string) || "NOT_STARTED";
+  const address = ((order.addressSnapshot || order.address) as { line1?: string; city?: string; pincode?: string }) || {};
 
   return (
     <div>
@@ -114,8 +146,8 @@ function OrderDetail() {
           <div className="divide-y divide-brand/10">
             {items.map((it, i) => (
               <div key={i} className="py-2 flex justify-between text-sm">
-                <span>{it.name} × {it.quantity}</span>
-                <span className="font-medium">{formatINR((it.priceMinor || 0) * (it.quantity || 0))}</span>
+                <span>{itemName(it)} × {it.quantity || 1}</span>
+                <span className="font-medium">{formatINR(itemLineTotal(it))}</span>
               </div>
             ))}
           </div>
@@ -151,13 +183,13 @@ function OrderDetail() {
           <div className="rounded-2xl border border-brand/10 bg-white p-5">
             <div className="font-semibold mb-2">Delivery</div>
             <div className="text-sm text-brand/70">
-              {(order.address as { line1?: string; city?: string; pincode?: string })?.line1}<br />
-              {(order.address as { line1?: string; city?: string; pincode?: string })?.city}
+              {address.line1 || "Address not available"}<br />
+              {address.city}
               {" "}
-              {(order.address as { line1?: string; city?: string; pincode?: string })?.pincode}
+              {address.pincode}
             </div>
           </div>
-          {status === "PAYMENT_PENDING" && (
+          {isPaymentRetryable(status, paymentStatus) && (
             <Button onClick={retryPayment} disabled={retryingPayment} className="w-full rounded-xl bg-brand text-gold hover:bg-brand/90 font-semibold mb-3">
               {retryingPayment ? "Processing..." : "Complete Payment"}
             </Button>

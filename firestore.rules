@@ -58,7 +58,7 @@ service cloud.firestore {
     // --- profiles (customer profiles) ------------------------------------
     match /profiles/{uid} {
       allow read: if isAdmin() || isOwner(uid);
-      allow update: if (isOwner(uid) && affectsOnly(['displayName', 'photoURL', 'defaultAddressId', 'email', 'updatedAt'])) 
+      allow update: if (isOwner(uid) && affectsOnly(['displayName', 'name', 'phoneNumber', 'phone', 'photoURL', 'defaultAddressId', 'email', 'updatedAt'])) 
                     || hasAnyAdminRole(['superadmin', 'admin', 'support']);
       allow create: if isOwner(uid);
       allow delete: if false;

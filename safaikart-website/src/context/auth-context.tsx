@@ -30,6 +30,7 @@ export type CustomerProfile = {
   email?: string | null;
   phone?: string | null;
   photoURL?: string;
+  isBlocked?: boolean;
 };
 
 type AuthContextValue = {
@@ -60,6 +61,7 @@ async function ensureCustomerDoc(u: User): Promise<CustomerProfile> {
       email: d.email ?? u.email,
       phone: d.phoneNumber ?? d.phone ?? u.phoneNumber,
       photoURL: d.photoURL || u.photoURL || undefined,
+      isBlocked: d.isBlocked === true,
     };
   }
   const seed = {
@@ -82,6 +84,7 @@ async function ensureCustomerDoc(u: User): Promise<CustomerProfile> {
     email: seed.email,
     phone: seed.phone,
     photoURL: seed.photoURL || undefined,
+    isBlocked: seed.isBlocked,
   };
 }
 
@@ -95,14 +98,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const auth = getFirebaseAuth();
     let adminUnsub: (() => void) | undefined;
-    
+
     const unsub = onAuthStateChanged(auth, async (u) => {
       setLoading(true);
       if (adminUnsub) {
         adminUnsub();
         adminUnsub = undefined;
       }
-      
+
       if (!u) {
         setUser(null);
         setAdmin(null);
@@ -110,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return;
       }
-      
+
       try {
         const db = getDb();
         adminUnsub = onSnapshot(doc(db, "adminUsers", u.uid), async (adminSnap) => {
@@ -118,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (adminSnap.exists()) {
               const data = adminSnap.data() as Partial<AdminProfile>;
               const role = normaliseRole((data as { role?: string }).role);
-              
+
               if (role) {
                 setUser(u);
                 setAdmin({
@@ -218,7 +221,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signUpEmail(email, password, name) {
         const auth = getFirebaseAuth();
         const cred = await createUserWithEmailAndPassword(auth, email, password);
-        if (name) await updateProfile(cred.user, { displayName: name });
+        const displayName = name?.trim() || email.split("@")[0] || "Customer";
+        if (displayName) await updateProfile(cred.user, { displayName });
+        await setDoc(
+          doc(getDb(), "profiles", cred.user.uid),
+          {
+            displayName,
+            name: displayName,
+            email: cred.user.email || email,
+            phoneNumber: cred.user.phoneNumber || null,
+            phone: cred.user.phoneNumber || null,
+            photoURL: cred.user.photoURL || null,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
       },
       async signInWithGoogle() {
         const auth = getFirebaseAuth();
@@ -228,11 +245,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async startPhoneOtp(phoneE164, recaptchaContainerId) {
         const auth = getFirebaseAuth();
         const w = window as unknown as { __skRecaptcha?: RecaptchaVerifier };
-        
+
         if (w.__skRecaptcha) {
           try {
             w.__skRecaptcha.clear();
-          } catch (_) {}
+          } catch (_) { }
           w.__skRecaptcha = undefined;
         }
 
@@ -240,7 +257,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!containerEl) {
           throw new Error(`reCAPTCHA container #${recaptchaContainerId} not found in DOM`);
         }
-        
+
         const verifier = new RecaptchaVerifier(auth, containerEl, {
           size: "normal",
           callback: () => {
@@ -253,7 +270,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         await verifier.render();
         w.__skRecaptcha = verifier;
-        
+
         try {
           return await signInWithPhoneNumber(auth, phoneE164, verifier);
         } catch (phoneErr: any) {

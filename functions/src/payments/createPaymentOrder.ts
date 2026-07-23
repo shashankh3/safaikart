@@ -32,19 +32,24 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeyS
   // 1. Fetch Order
   const orderRef = db.collection('orders').doc(orderId);
   const orderDoc = await orderRef.get();
-  
+
   if (!orderDoc.exists) {
     throw new HttpsError('not-found', 'Order not found.');
   }
   const order = orderDoc.data()!;
-  
+
   if (order.userId !== uid) {
     throw new HttpsError('permission-denied', 'Unauthorized access to order.');
   }
   if (order.status !== 'PAYMENT_PENDING' && order.status !== 'CONFIRMED') {
     throw new HttpsError('failed-precondition', 'Order cannot accept payments at this stage.');
   }
-  if (order.paymentStatus !== 'PAYMENT_PENDING' && order.paymentStatus !== 'NOT_STARTED' && order.paymentStatus !== 'FAILED') {
+  if (
+    order.paymentStatus !== 'PAYMENT_PENDING' &&
+    order.paymentStatus !== 'NOT_STARTED' &&
+    order.paymentStatus !== 'PAYMENT_CREATED' &&
+    order.paymentStatus !== 'FAILED'
+  ) {
     throw new HttpsError('failed-precondition', 'Order does not require payment at this time.');
   }
 
@@ -69,13 +74,13 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeyS
         try {
           const authHeader = getRazorpayAuthHeader();
           const rzpResponse = await fetch(`https://api.razorpay.com/v1/orders/${payment.razorpayOrderId}`, {
-              headers: { 'Authorization': authHeader }
+            headers: { 'Authorization': authHeader }
           });
           if (rzpResponse.ok) {
-             const rzpData = await rzpResponse.json();
-             if (rzpData.status === 'paid' || rzpData.status === 'attempted') {
-                throw new HttpsError('failed-precondition', 'A payment is currently processing for this order. Please wait a few moments.');
-             }
+            const rzpData = await rzpResponse.json();
+            if (rzpData.status === 'paid') {
+              throw new HttpsError('failed-precondition', 'A payment is currently processing for this order. Please wait a few moments.');
+            }
           }
         } catch (e: any) {
           if (e instanceof HttpsError) throw e;
@@ -102,9 +107,9 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeyS
   // 3. Load Secret (no longer needed directly here, handled by client)
 
   // 4. Call Razorpay API
-  
+
   const authHeader = getRazorpayAuthHeader();
-  
+
   try {
     const response = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
@@ -177,6 +182,9 @@ export const createPaymentOrder = onCall({ secrets: [razorpayKeyId, razorpayKeyS
     };
 
   } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
     logError('Payment creation error:', error);
     throw new HttpsError('internal', 'Failed to initiate payment.');
   }

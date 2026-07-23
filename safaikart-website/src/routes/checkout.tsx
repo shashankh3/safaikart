@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { httpsCallable } from "firebase/functions";
-import { collection, query, where, getDocs, orderBy, addDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useQuery } from "@tanstack/react-query";
 import { getFns, getDb } from "@/lib/firebase";
 import { payWithRazorpay } from "@/lib/razorpay";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/context/auth-context";
-import { validateCoupon, type Coupon } from "@/lib/coupons";
+import { validateCoupon } from "@/lib/coupons";
 import { SiteHeader } from "@/components/public/site-header";
 import { SiteFooter } from "@/components/public/site-footer";
 import { SignInModal } from "@/components/auth/sign-in-modal";
@@ -17,7 +17,43 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatINR } from "@/lib/format";
 import { toast } from "sonner";
-import { Loader2, CreditCard, Wallet, MapPin, Tag, X, Check } from "lucide-react";
+import { Loader2, CreditCard, MapPin, Tag, X } from "lucide-react";
+
+const DELIVERY_FEE_MINOR = 4000;
+const PINCODE_RE = /^\d{6}$/;
+
+type SavedAddress = {
+  id: string;
+  label?: string;
+  line1: string;
+  city?: string;
+  pincode?: string;
+};
+
+type PickupSlot = {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  capacity: number;
+  bookedCount: number;
+};
+
+function createAttemptKey() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function isSlotBookable(slot: PickupSlot) {
+  if (!slot.date || !slot.startTime) return false;
+  if (slot.capacity - slot.bookedCount <= 0) return false;
+  const [year, month, day] = slot.date.split("-").map(Number);
+  const [hours, minutes] = slot.startTime.split(":").map(Number);
+  if (![year, month, day, hours, minutes].every(Number.isFinite)) return false;
+  const istOffsetMs = 5.5 * 60 * 60 * 1000;
+  const slotStartMs = Date.UTC(year, month - 1, day, hours, minutes, 0) - istOffsetMs;
+  return slotStartMs >= Date.now() + 2 * 60 * 60 * 1000;
+}
 
 export const Route = createFileRoute("/checkout")({
   ssr: false,
@@ -38,6 +74,7 @@ function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
+  const [pendingCheckoutAfterAuth, setPendingCheckoutAfterAuth] = useState(false);
 
   const { data: savedAddresses = [] } = useQuery({
     queryKey: ["addresses", user?.uid],
@@ -46,7 +83,7 @@ function CheckoutPage() {
       const db = getDb();
       const q = query(collection(db, "addresses"), where("userId", "==", user.uid));
       const snap = await getDocs(q);
-      return snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SavedAddress);
     },
     enabled: !!user,
   });
@@ -58,7 +95,7 @@ function CheckoutPage() {
       // Remove orderBy from query to avoid requiring a composite index, sort in JS instead
       const q = query(collection(db, "pickupSlots"), where("isActive", "==", true));
       const snap = await getDocs(q);
-      const slots = snap.docs.map(d => {
+      const slots = snap.docs.map((d) => {
         const data = d.data();
         return {
           id: d.id,
@@ -67,7 +104,7 @@ function CheckoutPage() {
           endTime: data.endTime,
           capacity: data.capacity || 0,
           bookedCount: data.bookedCount || 0,
-        };
+        } as PickupSlot;
       });
       // Sort by date then startTime
       slots.sort((a, b) => {
@@ -80,13 +117,55 @@ function CheckoutPage() {
 
   const [couponCode, setCouponCode] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState<{ coupon: Coupon; discountMinor: number } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountMinor: number } | null>(null);
 
   const discountMinor = appliedCoupon?.discountMinor || 0;
-  const totalMinor = Math.max(0, cart.subtotalMinor - discountMinor);
+  const totalMinor = Math.max(0, cart.subtotalMinor - discountMinor) + DELIVERY_FEE_MINOR;
+  const availableSlots = useMemo(() => pickupSlots.filter(isSlotBookable), [pickupSlots]);
+
+  useEffect(() => {
+    if (savedAddresses.length > 0 && selectedAddrId === "new" && !line1 && !city && !pincode) {
+      setSelectedAddrId(savedAddresses[0].id);
+    }
+  }, [savedAddresses, selectedAddrId, line1, city, pincode]);
+
+  useEffect(() => {
+    if (!slot || availableSlots.some((s) => s.id === slot)) return;
+    setSlot("");
+  }, [availableSlots, slot]);
+
+  useEffect(() => {
+    if (!user || !pendingCheckoutAfterAuth) return;
+    setPendingCheckoutAfterAuth(false);
+    void placeOrder();
+  }, [user, pendingCheckoutAfterAuth]);
+
+  useEffect(() => {
+    if (!appliedCoupon) return;
+    if (cart.subtotalMinor <= 0) {
+      removeCoupon();
+      return;
+    }
+    void validateCoupon(appliedCoupon.code, cart.subtotalMinor).then((res) => {
+      if (!res.ok) {
+        removeCoupon();
+        toast.error(res.error);
+      } else if (res.discountMinor !== appliedCoupon.discountMinor) {
+        setAppliedCoupon({ code: res.coupon.code, discountMinor: res.discountMinor });
+      }
+    });
+  }, [cart.subtotalMinor, appliedCoupon?.code]);
 
   async function applyCoupon() {
     if (!couponCode.trim()) return;
+    if (!user) {
+      toast.error("Please sign in before applying a coupon.");
+      return;
+    }
+    if (cart.subtotalMinor <= 0) {
+      toast.error("Add fixed-price services before applying a coupon.");
+      return;
+    }
     setApplyingCoupon(true);
     const res = await validateCoupon(couponCode, cart.subtotalMinor);
     setApplyingCoupon(false);
@@ -94,7 +173,7 @@ function CheckoutPage() {
       toast.error(res.error);
       return;
     }
-    setAppliedCoupon({ coupon: res.coupon, discountMinor: res.discountMinor });
+    setAppliedCoupon({ code: res.coupon.code, discountMinor: res.discountMinor });
     toast.success(`Applied ${res.coupon.code} — saved ${formatINR(res.discountMinor)}`);
   }
 
@@ -112,34 +191,57 @@ function CheckoutPage() {
   }
 
   async function placeOrder() {
+    if (placing) return;
     if (!user) {
       setSignInOpen(true);
       return;
     }
+    if (customer?.isBlocked) {
+      toast.error("Your account is blocked. Please contact support.");
+      return;
+    }
     if (cart.items.length === 0) return toast.error("Cart is empty");
-    
+
     let addressId = selectedAddrId;
-    
+    const selectedSlot = availableSlots.find((s) => s.id === slot);
+    if (!selectedSlot) {
+      return toast.error("Please select an available pickup slot");
+    }
+
     if (addressId === "new") {
-      if (!line1 || !pincode || !city) {
-         return toast.error("Please fill all delivery details");
+      const cleanLine1 = line1.trim();
+      const cleanCity = city.trim();
+      const cleanPincode = pincode.trim();
+      if (!cleanLine1 || !cleanPincode || !cleanCity) {
+        return toast.error("Please fill all delivery details");
+      }
+      if (!PINCODE_RE.test(cleanPincode)) {
+        return toast.error("Please enter a valid 6-digit pincode");
       }
       try {
         const db = getDb();
         const docRef = await addDoc(collection(db, "addresses"), {
           userId: user.uid,
-          line1,
-          city,
-          pincode,
-          state: "State" // Default or input
+          label: "Home",
+          line1: cleanLine1,
+          city: cleanCity,
+          pincode: cleanPincode,
+          state: "",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
         });
         addressId = docRef.id;
       } catch (err: any) {
         return toast.error("Failed to save address: " + err.message);
       }
+    } else {
+      const address = resolveAddress();
+      if (!address.line1 || !PINCODE_RE.test(address.pincode || "")) {
+        return toast.error("Selected address is incomplete. Please choose or add another address.");
+      }
     }
 
-    if (!addressId || !slot) {
+    if (!addressId) {
       return toast.error("Please select an address and pickup slot");
     }
 
@@ -149,12 +251,14 @@ function CheckoutPage() {
         Record<string, unknown>,
         { orderId: string, finalAmountMinor: number }
       >(getFns(), "createOrderDraft");
-      
+
+      const idempotencyKey = createAttemptKey();
       const { data: created } = await createOrderDraft({
         addressId,
         pickupSlotId: slot,
-        couponCode: appliedCoupon?.coupon.code || null,
-        notes,
+        couponCode: appliedCoupon?.code || null,
+        notes: notes.trim() || null,
+        idempotencyKey,
         directItems: cart.items.map((i) => ({
           serviceId: i.serviceId,
           quantity: i.quantity,
@@ -166,20 +270,17 @@ function CheckoutPage() {
       try {
         const createPayment = httpsCallable<any, any>(getFns(), "createPaymentOrder");
         const { data: paymentRes } = await createPayment({ orderId });
-        
+
         await payWithRazorpay({
           orderId,
           razorpayOrderId: paymentRes.razorpayOrderId,
           razorpayKeyId: paymentRes.razorpayKeyId,
           amountMinor: paymentRes.amountMinor,
-          customerName: user.displayName || "Customer",
-          customerPhone: user.phoneNumber || "+919999999999",
+          customerName: customer?.name || user.displayName || "Customer",
+          customerPhone: customer?.phone || user.phoneNumber || "",
           description: `SafaiKart order ${orderId.slice(0, 6).toUpperCase()}`,
         });
-        
-        const verifyPayment = httpsCallable<any, any>(getFns(), "verifyPaymentStatus");
-        await verifyPayment({ orderId });
-        
+
         toast.success("Payment successful!");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Payment failed — you can retry from order details");
@@ -213,9 +314,8 @@ function CheckoutPage() {
                       key={a.id}
                       type="button"
                       onClick={() => setSelectedAddrId(a.id)}
-                      className={`p-3 rounded-xl border text-left text-sm ${
-                        selectedAddrId === a.id ? "border-brand bg-brand/5" : "border-brand/15"
-                      }`}
+                      className={`p-3 rounded-xl border text-left text-sm ${selectedAddrId === a.id ? "border-brand bg-brand/5" : "border-brand/15"
+                        }`}
                     >
                       <div className="font-medium">{a.label || "Address"}</div>
                       <div className="text-brand/60 text-xs mt-0.5 truncate">{a.line1}, {a.city} {a.pincode}</div>
@@ -224,9 +324,8 @@ function CheckoutPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedAddrId("new")}
-                    className={`p-3 rounded-xl border text-left text-sm border-dashed ${
-                      selectedAddrId === "new" ? "border-brand bg-brand/5" : "border-brand/20"
-                    }`}
+                    className={`p-3 rounded-xl border text-left text-sm border-dashed ${selectedAddrId === "new" ? "border-brand bg-brand/5" : "border-brand/20"
+                      }`}
                   >
                     <div className="font-medium">+ Use a new address</div>
                     <div className="text-brand/60 text-xs mt-0.5">Enter delivery details below</div>
@@ -263,7 +362,6 @@ function CheckoutPage() {
               <Label className="mb-2 block flex items-center gap-1.5">Preferred pickup slot</Label>
               <div className="grid gap-2 sm:grid-cols-2">
                 {(() => {
-                  const availableSlots = pickupSlots.filter((s: any) => s.capacity - s.bookedCount > 0);
                   if (availableSlots.length === 0) {
                     return (
                       <div className="col-span-1 sm:col-span-2 p-4 rounded-xl border border-dashed border-brand/20 text-center text-sm text-brand/60">
@@ -271,14 +369,13 @@ function CheckoutPage() {
                       </div>
                     );
                   }
-                  return availableSlots.map((s: any) => (
+                  return availableSlots.map((s) => (
                     <button
                       key={s.id}
                       type="button"
                       onClick={() => setSlot(s.id)}
-                      className={`p-3 rounded-xl border text-left text-sm ${
-                        slot === s.id ? "border-brand bg-brand/5" : "border-brand/15"
-                      }`}
+                      className={`p-3 rounded-xl border text-left text-sm ${slot === s.id ? "border-brand bg-brand/5" : "border-brand/15"
+                        }`}
                     >
                       <div className="font-medium">{new Date(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
                       <div className="text-brand/60 text-xs mt-0.5">{s.startTime} - {s.endTime}</div>
@@ -344,7 +441,7 @@ function CheckoutPage() {
             ) : (
               <div className="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm">
                 <div className="flex items-center gap-1.5 text-emerald-800">
-                  <Check className="h-4 w-4" /> <span className="font-medium">{appliedCoupon.coupon.code}</span>
+                  <span className="font-medium">{appliedCoupon.code}</span>
                   <span className="text-emerald-700/80 text-xs">− {formatINR(appliedCoupon.discountMinor)}</span>
                 </div>
                 <button onClick={removeCoupon} className="text-emerald-800/60 hover:text-emerald-900" aria-label="Remove coupon">
@@ -365,6 +462,10 @@ function CheckoutPage() {
                 <span>− {formatINR(discountMinor)}</span>
               </div>
             )}
+            <div className="flex justify-between text-brand/70">
+              <span>Pickup & delivery</span>
+              <span>{formatINR(DELIVERY_FEE_MINOR)}</span>
+            </div>
           </div>
           <div className="mt-3 pt-3 border-t border-brand/10 flex justify-between text-lg font-bold">
             <span>Total</span>
@@ -383,7 +484,10 @@ function CheckoutPage() {
       <SignInModal
         open={signInOpen}
         onOpenChange={setSignInOpen}
-        onAuthed={() => placeOrder()}
+        onAuthed={() => {
+          setPendingCheckoutAfterAuth(true);
+          setSignInOpen(false);
+        }}
       />
 
       <SiteFooter />

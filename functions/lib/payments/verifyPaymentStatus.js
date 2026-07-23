@@ -56,16 +56,20 @@ exports.verifyPaymentStatus = (0, https_1.onCall)({ secrets: [razorpayClient_1.r
     const paymentsQuery = await db.collection('payments')
         .where('orderId', '==', orderId)
         .where('userId', '==', uid)
-        .where('razorpayOrderId', '!=', null)
-        .orderBy('razorpayOrderId', 'desc')
-        .orderBy('createdAt', 'desc')
-        .limit(1)
         .get();
-    if (paymentsQuery.empty) {
+    const paymentDocs = paymentsQuery.docs
+        .filter((doc) => !!doc.data().razorpayOrderId)
+        .sort((a, b) => {
+        var _a, _b, _c, _d;
+        const aTime = ((_b = (_a = a.data().createdAt) === null || _a === void 0 ? void 0 : _a.toMillis) === null || _b === void 0 ? void 0 : _b.call(_a)) || 0;
+        const bTime = ((_d = (_c = b.data().createdAt) === null || _c === void 0 ? void 0 : _c.toMillis) === null || _d === void 0 ? void 0 : _d.call(_c)) || 0;
+        return bTime - aTime;
+    });
+    if (paymentDocs.length === 0) {
         throw new https_1.HttpsError('not-found', 'Payment record not found.');
     }
-    const paymentDocRef = paymentsQuery.docs[0].ref;
-    const paymentRecord = paymentsQuery.docs[0].data();
+    const paymentDocRef = paymentDocs[0].ref;
+    const paymentRecord = paymentDocs[0].data();
     // If already verified, just return
     if (paymentRecord.status === 'VERIFIED') {
         return { paymentStatus: 'VERIFIED', orderStatus: 'CONFIRMED' };
