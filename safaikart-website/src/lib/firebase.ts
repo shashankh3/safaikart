@@ -5,8 +5,9 @@ import { getFunctions, type Functions } from "firebase/functions";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 // SafaiKart Firebase config. apiKey is publishable (safe in client code).
+console.log("DEBUG: VITE_FIREBASE_API_KEY is", import.meta.env.VITE_FIREBASE_API_KEY);
 const firebaseConfig = {
-  apiKey: "AIzaSyCtGOIf3d9VjqTYRXRnmkGPZ9lrIQxiB9M",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "safaikart-6c4e4.firebaseapp.com",
   projectId: "safaikart-6c4e4",
   storageBucket: "safaikart-6c4e4.firebasestorage.app",
@@ -26,21 +27,20 @@ import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 function ensureApp(): FirebaseApp {
   if (_app) return _app;
   _app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-  
+
   if (typeof window !== 'undefined') {
     const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || 'RECAPTCHA_V3_SITE_KEY_PLACEHOLDER';
-    
-    if (isLocalhost) {
-      (self as any).FIREBASE_APPCHECK_DEFAULT_TOKEN = true;
-    } else if (siteKey !== 'RECAPTCHA_V3_SITE_KEY_PLACEHOLDER') {
+
+    // Skip App Check entirely on localhost — it conflicts with Phone Auth's reCAPTCHA
+    if (!isLocalhost && siteKey !== 'RECAPTCHA_V3_SITE_KEY_PLACEHOLDER') {
       initializeAppCheck(_app, {
         provider: new ReCaptchaV3Provider(siteKey),
         isTokenAutoRefreshEnabled: true
       });
     }
   }
-  
+
   return _app;
 }
 

@@ -280,7 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         w.__skRecaptcha = verifier;
 
         try {
-          await verifier.verify();
+          // Let signInWithPhoneNumber handle reCAPTCHA verification internally
           return await signInWithPhoneNumber(auth, phoneE164, verifier);
         } catch (phoneErr: any) {
           console.error("signInWithPhoneNumber failed:", phoneErr);
