@@ -49,4 +49,6 @@ google-play-service-account.json
 firestore-debug.log
 *-debug.log
 .secret.local
+production_artifacts/
+
 

@@ -33,7 +33,14 @@ export const paymentWebhook = onRequest(
       }
 
       const event = JSON.parse(rawBody.toString());
-      const eventId = request.headers['x-razorpay-event-id'] as string;
+      let eventId = request.headers['x-razorpay-event-id'] as string;
+
+      if (!eventId) {
+        // Fallback: Generate deterministic eventId from payload signature
+        const crypto = await import('crypto');
+        const paymentId = event?.payload?.payment?.entity?.id || event?.payload?.order?.entity?.id || Date.now();
+        eventId = `generated_${crypto.createHash('sha256').update(`${event.event}_${paymentId}`).digest('hex')}`;
+      }
 
       // Offload to a Task Queue for idempotent processing (avoid gateway timeouts)
       const queue = getFunctions().taskQueue('processRazorpayWebhook');

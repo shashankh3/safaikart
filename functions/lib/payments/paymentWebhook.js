@@ -45,6 +45,7 @@ if (!admin.apps.length) {
     admin.initializeApp();
 }
 exports.paymentWebhook = (0, https_1.onRequest)({ secrets: [exports.razorpayWebhookSecret], region: 'asia-south1' }, async (request, response) => {
+    var _a, _b, _c, _d, _e, _f;
     try {
         // Must use rawBody for HMAC generation to match exactly what Razorpay signed
         const rawBody = request.rawBody;
@@ -61,7 +62,13 @@ exports.paymentWebhook = (0, https_1.onRequest)({ secrets: [exports.razorpayWebh
             return;
         }
         const event = JSON.parse(rawBody.toString());
-        const eventId = request.headers['x-razorpay-event-id'];
+        let eventId = request.headers['x-razorpay-event-id'];
+        if (!eventId) {
+            // Fallback: Generate deterministic eventId from payload signature
+            const crypto = await Promise.resolve().then(() => __importStar(require('crypto')));
+            const paymentId = ((_c = (_b = (_a = event === null || event === void 0 ? void 0 : event.payload) === null || _a === void 0 ? void 0 : _a.payment) === null || _b === void 0 ? void 0 : _b.entity) === null || _c === void 0 ? void 0 : _c.id) || ((_f = (_e = (_d = event === null || event === void 0 ? void 0 : event.payload) === null || _d === void 0 ? void 0 : _d.order) === null || _e === void 0 ? void 0 : _e.entity) === null || _f === void 0 ? void 0 : _f.id) || Date.now();
+            eventId = `generated_${crypto.createHash('sha256').update(`${event.event}_${paymentId}`).digest('hex')}`;
+        }
         // Offload to a Task Queue for idempotent processing (avoid gateway timeouts)
         const queue = (0, functions_1.getFunctions)().taskQueue('processRazorpayWebhook');
         await queue.enqueue({ event, eventId });

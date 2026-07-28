@@ -23,6 +23,9 @@ export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret], enforc
     throw new HttpsError('invalid-argument', 'Order ID is required.');
   }
 
+  const { rateLimiter } = await import('../utils/rateLimiter');
+  await rateLimiter(uid, 'verifyPaymentStatus', 30, 3600);
+
   const paymentsQuery = await db.collection('payments')
     .where('orderId', '==', orderId)
     .where('userId', '==', uid)

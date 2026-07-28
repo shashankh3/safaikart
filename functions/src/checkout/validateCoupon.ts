@@ -20,6 +20,9 @@ export const validateCoupon = onCall({ enforceAppCheck: shouldEnforceAppCheck },
     throw new HttpsError('invalid-argument', 'Invalid coupon code format.');
   }
 
+  const { rateLimiter } = await import('../utils/rateLimiter');
+  await rateLimiter(uid, 'validateCoupon', 15, 3600);
+
   const upperCode = code.toUpperCase();
   const couponDoc = await db.collection('coupons').doc(upperCode).get();
 
