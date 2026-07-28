@@ -268,7 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         containerEl.innerHTML = "";
 
         const verifier = new RecaptchaVerifier(auth, containerEl, {
-          size: "invisible",
+          size: "normal",
           callback: () => {
             console.log("reCAPTCHA solved successfully");
           },

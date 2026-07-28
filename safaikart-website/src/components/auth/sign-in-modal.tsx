@@ -143,7 +143,7 @@ export function SignInModal({
                 <Input placeholder="6-digit code" value={otp} onChange={(e) => setOtp(e.target.value)} />
               </>
             )}
-            <div id="recaptcha-container" />
+            <div id="recaptcha-container" className="my-2 flex justify-center min-h-[78px]" />
             {!confirm ? (
               <Button onClick={handleSendOtp} disabled={busy} className="w-full h-11 rounded-xl">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send OTP"}
