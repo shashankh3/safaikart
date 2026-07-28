@@ -28,14 +28,16 @@ function ensureApp(): FirebaseApp {
   _app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   
   if (typeof window !== 'undefined') {
+    const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || 'RECAPTCHA_V3_SITE_KEY_PLACEHOLDER';
-    if (siteKey !== 'RECAPTCHA_V3_SITE_KEY_PLACEHOLDER') {
+    
+    if (isLocalhost) {
+      (self as any).FIREBASE_APPCHECK_EXECUTE_IN_GLOBAL_SCOPE = true;
+    } else if (siteKey !== 'RECAPTCHA_V3_SITE_KEY_PLACEHOLDER') {
       initializeAppCheck(_app, {
         provider: new ReCaptchaV3Provider(siteKey),
         isTokenAutoRefreshEnabled: true
       });
-    } else {
-      console.warn("App Check not initialized: Please define VITE_RECAPTCHA_SITE_KEY in your .env file.");
     }
   }
   
