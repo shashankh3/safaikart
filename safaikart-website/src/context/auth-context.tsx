@@ -268,7 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         containerEl.innerHTML = "";
 
         const verifier = new RecaptchaVerifier(auth, containerEl, {
-          size: "normal",
+          size: "invisible",
           callback: () => {
             console.log("reCAPTCHA solved successfully");
           },
@@ -280,6 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         w.__skRecaptcha = verifier;
 
         try {
+          await verifier.verify();
           return await signInWithPhoneNumber(auth, phoneE164, verifier);
         } catch (phoneErr: any) {
           console.error("signInWithPhoneNumber failed:", phoneErr);

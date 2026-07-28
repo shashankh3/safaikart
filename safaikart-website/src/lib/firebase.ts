@@ -32,7 +32,7 @@ function ensureApp(): FirebaseApp {
     const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || 'RECAPTCHA_V3_SITE_KEY_PLACEHOLDER';
     
     if (isLocalhost) {
-      (self as any).FIREBASE_APPCHECK_EXECUTE_IN_GLOBAL_SCOPE = true;
+      (self as any).FIREBASE_APPCHECK_DEFAULT_TOKEN = true;
     } else if (siteKey !== 'RECAPTCHA_V3_SITE_KEY_PLACEHOLDER') {
       initializeAppCheck(_app, {
         provider: new ReCaptchaV3Provider(siteKey),
