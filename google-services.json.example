@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "1050255060517",
-    "project_id": "safaikart-6c4e4",
-    "storage_bucket": "safaikart-6c4e4.firebasestorage.app"
+    "project_number": "YOUR_PROJECT_NUMBER",
+    "project_id": "YOUR_PROJECT_ID",
+    "storage_bucket": "YOUR_STORAGE_BUCKET"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1050255060517:android:fcc74bb1b23c8531f119cc",
+        "mobilesdk_app_id": "YOUR_MOBILE_SDK_APP_ID",
         "android_client_info": {
           "package_name": "com.safaikart.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCaVwfAKut-y6idolgQ8K7SPEFV_FNSFLM"
+          "current_key": "YOUR_FIREBASE_API_KEY"
         }
       ],
       "services": {

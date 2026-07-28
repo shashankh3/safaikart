@@ -5,9 +5,17 @@ import { PickupSlot } from '../domain/PickupSlot';
 
 export class CheckoutRepository {
   async getPickupSlots(): Promise<PickupSlot[]> {
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const maxDate = new Date(today);
+    maxDate.setDate(today.getDate() + 7);
+    const maxStr = maxDate.toISOString().slice(0, 10);
+
     const q = query(
       collection(db, 'pickupSlots'),
       where('isActive', '==', true),
+      where('date', '>=', todayStr),
+      where('date', '<=', maxStr),
       orderBy('date', 'asc'),
       orderBy('startTime', 'asc')
     );

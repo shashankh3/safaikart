@@ -43,7 +43,10 @@ service-account.json
 /android
 
 # secrets & local artifacts
+google-services.json
+GoogleService-Info.plist
 google-play-service-account.json
 firestore-debug.log
 *-debug.log
 .secret.local
+

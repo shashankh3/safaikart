@@ -52,7 +52,10 @@ function isSlotBookable(slot: PickupSlot) {
   if (![year, month, day, hours, minutes].every(Number.isFinite)) return false;
   const istOffsetMs = 5.5 * 60 * 60 * 1000;
   const slotStartMs = Date.UTC(year, month - 1, day, hours, minutes, 0) - istOffsetMs;
-  return slotStartMs >= Date.now() + 2 * 60 * 60 * 1000;
+  const now = Date.now();
+  const minStartMs = now + 2 * 60 * 60 * 1000; // At least 2 hours in future
+  const maxStartMs = now + 7 * 24 * 60 * 60 * 1000; // Next 7 days only
+  return slotStartMs >= minStartMs && slotStartMs <= maxStartMs;
 }
 
 export const Route = createFileRoute("/checkout")({
@@ -123,6 +126,30 @@ function CheckoutPage() {
   const totalMinor = Math.max(0, cart.subtotalMinor - discountMinor) + DELIVERY_FEE_MINOR;
   const availableSlots = useMemo(() => pickupSlots.filter(isSlotBookable), [pickupSlots]);
 
+  const [selectedDate, setSelectedDate] = useState<string>("");
+
+  const slotsByDate = useMemo(() => {
+    const map = new Map<string, PickupSlot[]>();
+    availableSlots.forEach((s) => {
+      const list = map.get(s.date) || [];
+      list.push(s);
+      map.set(s.date, list);
+    });
+    return map;
+  }, [availableSlots]);
+
+  const uniqueDates = useMemo(() => Array.from(slotsByDate.keys()).slice(0, 7), [slotsByDate]);
+
+  useEffect(() => {
+    if (uniqueDates.length > 0 && (!selectedDate || !uniqueDates.includes(selectedDate))) {
+      setSelectedDate(uniqueDates[0]);
+    }
+  }, [uniqueDates, selectedDate]);
+
+  const slotsForSelectedDate = useMemo(() => {
+    return slotsByDate.get(selectedDate) || [];
+  }, [slotsByDate, selectedDate]);
+
   useEffect(() => {
     if (savedAddresses.length > 0 && selectedAddrId === "new" && !line1 && !city && !pincode) {
       setSelectedAddrId(savedAddresses[0].id);
@@ -130,9 +157,12 @@ function CheckoutPage() {
   }, [savedAddresses, selectedAddrId, line1, city, pincode]);
 
   useEffect(() => {
-    if (!slot || availableSlots.some((s) => s.id === slot)) return;
-    setSlot("");
-  }, [availableSlots, slot]);
+    if (slotsForSelectedDate.length > 0) {
+      if (!slot || !slotsForSelectedDate.some((s) => s.id === slot)) {
+        setSlot(slotsForSelectedDate[0].id);
+      }
+    }
+  }, [slotsForSelectedDate, slot]);
 
   useEffect(() => {
     if (!user || !pendingCheckoutAfterAuth || loadingAddresses) return;
@@ -369,30 +399,61 @@ function CheckoutPage() {
             )}
 
             <div>
-              <Label className="mb-2 block flex items-center gap-1.5">Preferred pickup slot</Label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {(() => {
-                  if (availableSlots.length === 0) {
-                    return (
-                      <div className="col-span-1 sm:col-span-2 p-4 rounded-xl border border-dashed border-brand/20 text-center text-sm text-brand/60">
-                        {isError ? "Failed to load pickup slots." : "No pickup slots are available at the moment."}
-                      </div>
-                    );
-                  }
-                  return availableSlots.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setSlot(s.id)}
-                      className={`p-3 rounded-xl border text-left text-sm ${slot === s.id ? "border-brand bg-brand/5" : "border-brand/15"
-                        }`}
-                    >
-                      <div className="font-medium">{new Date(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
-                      <div className="text-brand/60 text-xs mt-0.5">{s.startTime} - {s.endTime}</div>
-                    </button>
-                  ));
-                })()}
-              </div>
+              <Label className="mb-2 block flex items-center gap-1.5 font-medium">Preferred pickup slot</Label>
+              {uniqueDates.length === 0 ? (
+                <div className="p-4 rounded-xl border border-dashed border-brand/20 text-center text-sm text-brand/60">
+                  {isError ? "Failed to load pickup slots." : "No pickup slots are available at the moment."}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* 1. Date Pills */}
+                  <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-none">
+                    {uniqueDates.map((dStr) => {
+                      const d = new Date(dStr);
+                      const isSelected = selectedDate === dStr;
+                      return (
+                        <button
+                          key={dStr}
+                          type="button"
+                          onClick={() => setSelectedDate(dStr)}
+                          className={`px-3.5 py-2 rounded-xl border text-center transition-all flex-shrink-0 text-xs ${
+                            isSelected
+                              ? "border-brand bg-brand text-white font-semibold shadow-sm"
+                              : "border-brand/15 bg-white text-brand hover:border-brand/40 hover:bg-brand/5"
+                          }`}
+                        >
+                          <div className="opacity-80 text-[11px] uppercase tracking-wider">{d.toLocaleDateString("en-GB", { weekday: "short" })}</div>
+                          <div className="font-semibold text-sm">{d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* 2. Time Window Pills */}
+                  <div>
+                    <Label className="mb-1.5 block text-xs text-brand/60 font-normal">Select time window for {selectedDate ? new Date(selectedDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : ""}:</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {slotsForSelectedDate.map((s) => {
+                        const isSelected = slot === s.id;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setSlot(s.id)}
+                            className={`py-2.5 px-3 rounded-xl border text-center text-xs transition-all ${
+                              isSelected
+                                ? "border-brand bg-brand/10 text-brand font-bold ring-2 ring-brand/20 shadow-xs"
+                                : "border-brand/15 bg-white text-brand/80 hover:border-brand/35 hover:bg-brand/5"
+                            }`}
+                          >
+                            {s.startTime} – {s.endTime}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <Label>Notes (optional)</Label>
