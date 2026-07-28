@@ -266,23 +266,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(`reCAPTCHA container #${recaptchaContainerId} not found in DOM`);
         }
 
-        const verifier = new RecaptchaVerifier(auth, containerEl, {
-          size: "normal",
+        const verifier = new RecaptchaVerifier(auth, recaptchaContainerId, {
+          size: "invisible",
           callback: () => {
-            console.log("reCAPTCHA checkbox solved successfully");
+            console.log("reCAPTCHA solved successfully");
           },
           "expired-callback": () => {
             console.warn("reCAPTCHA expired");
           }
         });
 
-        await verifier.render();
         w.__skRecaptcha = verifier;
 
         try {
           return await signInWithPhoneNumber(auth, phoneE164, verifier);
         } catch (phoneErr: any) {
           console.error("signInWithPhoneNumber failed:", phoneErr);
+          if (w.__skRecaptcha) {
+            try { w.__skRecaptcha.clear(); } catch (_) {}
+            w.__skRecaptcha = undefined;
+          }
           throw phoneErr;
         }
       },

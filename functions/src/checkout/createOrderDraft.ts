@@ -1,4 +1,4 @@
-import * as functions from 'firebase-functions';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { calculateOrderTotals, PricingItem } from '../orders/pricing.logic';
 import { createOrderDraftRequest } from '../contracts';
@@ -6,6 +6,7 @@ import { isPincodeServiceable } from '../utils/serviceability.logic';
 import { computeEstimatedDelivery, isSlotValid } from '../utils/deliveryLogic';
 import { validateCouponApplicability, CouponData } from './coupon.logic';
 import { rateLimiter } from '../utils/rateLimiter';
+import { shouldEnforceAppCheck } from '../utils/config';
 import { logError } from '../utils/logger';
 
 // Initialize admin app if not already initialized
@@ -15,35 +16,35 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const createOrderDraft = functions.region('asia-south1').https.onCall(async (data, context) => {
+export const createOrderDraft = onCall({ region: 'asia-south1', enforceAppCheck: shouldEnforceAppCheck }, async (request) => {
   try {
-    const uid = context.auth?.uid;
+    const uid = request.auth?.uid;
     if (!uid) {
-      throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to create an order.');
+      throw new HttpsError('unauthenticated', 'User must be logged in to create an order.');
     }
 
-    const consumeRateLimit = await rateLimiter(uid, 'createOrderDraft', 5, 3600);
+    await rateLimiter(uid, 'createOrderDraft', 5, 3600);
 
     const profileDoc = await db.collection('profiles').doc(uid).get();
     if (profileDoc.exists && profileDoc.data()?.isBlocked === true) {
-      throw new functions.https.HttpsError('permission-denied', 'Your account has been blocked. Please contact support.');
+      throw new HttpsError('permission-denied', 'Your account has been blocked. Please contact support.');
     }
 
     let addressId: string, pickupSlotId: string, couponCode: string | null = null, directItems: any[] | undefined | null, idempotencyKey: string | undefined, notes: string | null = null;
 
     try {
-      const parsed = createOrderDraftRequest.parse(data);
+      const parsed = createOrderDraftRequest.parse(request.data);
       addressId = parsed.addressId;
       pickupSlotId = parsed.pickupSlotId;
       directItems = parsed.directItems;
       couponCode = parsed.couponCode ? parsed.couponCode.toUpperCase() : null;
       idempotencyKey = parsed.idempotencyKey;
-      notes = parsed.notes || null;
+      notes = parsed.notes ? parsed.notes.slice(0, 500) : null;
     } catch (e: any) {
-      throw new functions.https.HttpsError('invalid-argument', `Validation error: ${e.message}`);
+      throw new HttpsError('invalid-argument', `Validation error: ${e.message}`);
     }
 
-    // A4: Idempotency Check
+    // Idempotency Check
     if (idempotencyKey) {
       const existing = await db.collection('orders')
         .where('userId', '==', uid)
@@ -53,7 +54,6 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
 
       if (!existing.empty) {
         const existingOrder = existing.docs[0];
-        await consumeRateLimit();
         return {
           orderId: existingOrder.id,
           finalAmountMinor: existingOrder.data().finalAmountMinor,
@@ -69,29 +69,29 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
     } else {
       const cartItemsQuery = await db.collection(`users/${uid}/cartItems`).get();
       if (cartItemsQuery.empty) {
-        throw new functions.https.HttpsError('failed-precondition', 'Cart is empty or not found on server.');
+        throw new HttpsError('failed-precondition', 'Cart is empty or not found on server.');
       }
 
       itemsToProcess = cartItemsQuery.docs.map(doc => doc.data());
       if (itemsToProcess.length === 0) {
-        throw new functions.https.HttpsError('failed-precondition', 'Cart is empty.');
+        throw new HttpsError('failed-precondition', 'Cart is empty.');
       }
     }
 
     if (itemsToProcess.length > 50) {
-      throw new functions.https.HttpsError('invalid-argument', 'Too many items in cart. Maximum allowed is 50.');
+      throw new HttpsError('invalid-argument', 'Too many items in cart. Maximum allowed is 50.');
     }
 
     // 2. Fetch Address & Validate Serviceability
     const addressDoc = await db.collection('addresses').doc(addressId).get();
     if (!addressDoc.exists || addressDoc.data()?.userId !== uid) {
-      throw new functions.https.HttpsError('permission-denied', 'Invalid address or unauthorized access.');
+      throw new HttpsError('permission-denied', 'Invalid address or unauthorized access.');
     }
     const addressData = addressDoc.data()!;
 
     const { isServiceable } = await isPincodeServiceable(db, addressData.pincode);
     if (!isServiceable) {
-      throw new functions.https.HttpsError('failed-precondition', `We don't service pincode ${addressData.pincode} yet.`);
+      throw new HttpsError('failed-precondition', `We don't service pincode ${addressData.pincode} yet.`);
     }
 
     // 3. Process Items & Calculate Price
@@ -99,31 +99,28 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
 
     for (const item of itemsToProcess) {
       if (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 100) {
-        throw new functions.https.HttpsError('invalid-argument', `Invalid quantity for item ${item.name || item.serviceId}. Quantity must be between 1 and 100.`);
+        throw new HttpsError('invalid-argument', `Invalid quantity for item ${item.name || item.serviceId}. Quantity must be between 1 and 100.`);
       }
 
-      // Fetch actual service from DB to prevent tampering
       const serviceId = String(item.id || item.serviceId || '').trim();
       if (!serviceId) {
-        throw new functions.https.HttpsError('invalid-argument', `Invalid service for item ${item.name || ''}`);
+        throw new HttpsError('invalid-argument', `Invalid service for item ${item.name || ''}`);
       }
 
       const serviceDoc = await db.collection('services').doc(serviceId).get();
       if (!serviceDoc.exists) {
-        throw new functions.https.HttpsError('not-found', `Service not found for item ${item.name}`);
+        throw new HttpsError('not-found', `Service not found for item ${item.name}`);
       }
       const serviceData = serviceDoc.data()!;
       if (serviceData.isActive === false) {
-        throw new functions.https.HttpsError('failed-precondition', `Service ${serviceData.name} is no longer active.`);
+        throw new HttpsError('failed-precondition', `Service ${serviceData.name} is no longer active.`);
       }
 
       const duration = serviceData.estimatedDurationHours || (serviceData.categoryId === 'steam_press' ? 24 : serviceData.categoryId === 'household' ? 72 : 48);
 
-      // Process addons
       const validatedAddons: { id: string; name: string; priceMinor: number }[] = [];
       if (item.addons && Array.isArray(item.addons)) {
         for (const addon of item.addons) {
-          // Find if this service supports this addon
           const serverAddon = (serviceData.addons || []).find((a: any) => a.id === addon.id);
           if (serverAddon) {
             validatedAddons.push({
@@ -160,17 +157,15 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
         }, 0);
         const couponResult = validateCouponApplicability(coupon, uid, couponSubtotalMinor);
         if (!couponResult.valid) {
-          throw new functions.https.HttpsError('failed-precondition', couponResult.message);
+          throw new HttpsError('failed-precondition', couponResult.message);
         }
-        {
-          couponInfo = {
-            type: coupon.type,
-            discountValue: coupon.discountValue,
-            minimumOrderAmount: coupon.minimumOrderAmount
-          };
-        }
+        couponInfo = {
+          type: coupon.type,
+          discountValue: coupon.discountValue,
+          minimumOrderAmount: coupon.minimumOrderAmount
+        };
       } else {
-        throw new functions.https.HttpsError('not-found', 'Invalid coupon code');
+        throw new HttpsError('not-found', 'Invalid coupon code');
       }
     }
 
@@ -193,15 +188,27 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
       const slotDoc = await transaction.get(slotRef);
 
       if (!slotDoc.exists) {
-        throw new functions.https.HttpsError('not-found', 'Pickup slot not found.');
+        throw new HttpsError('not-found', 'Pickup slot not found.');
       }
       const slotData = slotDoc.data()!;
       if (!slotData.isActive || (slotData.bookedCount >= slotData.capacity)) {
-        throw new functions.https.HttpsError('failed-precondition', 'Pickup slot is fully booked or inactive.');
+        throw new HttpsError('failed-precondition', 'Pickup slot is fully booked or inactive.');
       }
 
       if (!isSlotValid(slotData.date, slotData.startTime, 2)) {
-        throw new functions.https.HttpsError('failed-precondition', 'Pickup slot is in the past or too soon to book.');
+        throw new HttpsError('failed-precondition', 'Pickup slot is in the past or too soon to book.');
+      }
+
+      // Check coupon usage inside transaction to prevent race conditions
+      if (couponCode) {
+        const couponRef = db.collection('coupons').doc(couponCode);
+        const latestCouponDoc = await transaction.get(couponRef);
+        if (latestCouponDoc.exists) {
+          const usedBy: string[] = latestCouponDoc.data()?.usedBy || [];
+          if (usedBy.includes(uid)) {
+            throw new HttpsError('failed-precondition', 'You have already used this coupon code.');
+          }
+        }
       }
 
       // Increment booked count
@@ -265,17 +272,16 @@ export const createOrderDraft = functions.region('asia-south1').https.onCall(asy
       }
     });
 
-    await consumeRateLimit();
     return {
       orderId: finalOrderId,
       finalAmountMinor,
       priceConfirmed
     };
   } catch (err: any) {
-    if (err instanceof functions.https.HttpsError) {
+    if (err instanceof HttpsError) {
       throw err;
     }
     logError('createOrderDraft failed:', err);
-    throw new functions.https.HttpsError('internal', 'Failed to create order. Please try again.');
+    throw new HttpsError('internal', 'Failed to create order. Please try again.');
   }
 });

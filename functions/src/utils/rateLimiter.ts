@@ -1,48 +1,50 @@
 import * as admin from 'firebase-admin';
-import * as functions from 'firebase-functions';
+import { HttpsError } from 'firebase-functions/v2/https';
 
 export async function rateLimiter(uid: string, functionName: string, maxCalls: number, windowSeconds: number) {
   const db = admin.firestore();
   const rateLimitRef = db.collection('rateLimits').doc(`${uid}_${functionName}`);
 
-  const doc = await rateLimitRef.get();
   const now = Date.now();
   const windowMs = windowSeconds * 1000;
 
-  if (!doc.exists) {
-    return async () => {
-      await rateLimitRef.set({ 
+  await db.runTransaction(async (tx) => {
+    const doc = await tx.get(rateLimitRef);
+
+    if (!doc.exists) {
+      tx.set(rateLimitRef, {
         count: 1,
         windowStart: now,
         expiresAt: admin.firestore.Timestamp.fromMillis(now + windowMs)
       });
-    };
-  }
+      return;
+    }
 
-  const data = doc.data()!;
-  const windowStart = data.windowStart || 0;
+    const data = doc.data()!;
+    const windowStart = data.windowStart || 0;
 
-  if (now - windowStart >= windowMs) {
-    return async () => {
-      await rateLimitRef.set({ 
+    if (now - windowStart >= windowMs) {
+      tx.set(rateLimitRef, {
         count: 1,
         windowStart: now,
         expiresAt: admin.firestore.Timestamp.fromMillis(now + windowMs)
       });
-    };
-  }
+      return;
+    }
 
-  const count = data.count || 0;
-  if (count >= maxCalls) {
-    throw new functions.https.HttpsError(
-      'resource-exhausted',
-      `Rate limit exceeded for ${functionName}. Please try again later.`
-    );
-  }
+    const count = data.count || 0;
+    if (count >= maxCalls) {
+      throw new HttpsError(
+        'resource-exhausted',
+        `Rate limit exceeded for ${functionName}. Please try again later.`
+      );
+    }
 
-  return async () => {
-    await rateLimitRef.update({ 
+    tx.update(rateLimitRef, {
       count: admin.firestore.FieldValue.increment(1)
     });
-  };
+  });
+
+  // Return dummy no-op callback for backward compatibility
+  return async () => {};
 }

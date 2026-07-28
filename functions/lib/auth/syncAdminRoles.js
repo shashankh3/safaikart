@@ -40,6 +40,7 @@ const logger_1 = require("../utils/logger");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
+const VALID_ROLES = ['superadmin', 'admin', 'support', 'ops', 'finance'];
 exports.syncAdminRoles = (0, firestore_1.onDocumentWritten)('adminUsers/{uid}', async (event) => {
     const uid = event.params.uid;
     const snapshot = event.data;
@@ -52,10 +53,15 @@ exports.syncAdminRoles = (0, firestore_1.onDocumentWritten)('adminUsers/{uid}', 
         (0, logger_1.logInfo)(`Removed admin claims for ${uid}`);
         return;
     }
-    // If created or updated, sync role
+    // If created or updated, sync role with whitelist check
     const data = snapshot.after.data();
     const role = data === null || data === void 0 ? void 0 : data.role;
     if (role) {
+        if (!VALID_ROLES.includes(role)) {
+            (0, logger_1.logWarn)(`Attempted to set invalid role "${role}" for user ${uid}. Revoking claims.`);
+            await admin.auth().setCustomUserClaims(uid, { admin: false, role: null });
+            return;
+        }
         await admin.auth().setCustomUserClaims(uid, { admin: true, role: role });
         (0, logger_1.logInfo)(`Set admin role ${role} for ${uid}`);
     }

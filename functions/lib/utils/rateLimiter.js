@@ -35,41 +35,41 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rateLimiter = rateLimiter;
 const admin = __importStar(require("firebase-admin"));
-const functions = __importStar(require("firebase-functions"));
+const https_1 = require("firebase-functions/v2/https");
 async function rateLimiter(uid, functionName, maxCalls, windowSeconds) {
     const db = admin.firestore();
     const rateLimitRef = db.collection('rateLimits').doc(`${uid}_${functionName}`);
-    const doc = await rateLimitRef.get();
     const now = Date.now();
     const windowMs = windowSeconds * 1000;
-    if (!doc.exists) {
-        return async () => {
-            await rateLimitRef.set({
+    await db.runTransaction(async (tx) => {
+        const doc = await tx.get(rateLimitRef);
+        if (!doc.exists) {
+            tx.set(rateLimitRef, {
                 count: 1,
                 windowStart: now,
                 expiresAt: admin.firestore.Timestamp.fromMillis(now + windowMs)
             });
-        };
-    }
-    const data = doc.data();
-    const windowStart = data.windowStart || 0;
-    if (now - windowStart >= windowMs) {
-        return async () => {
-            await rateLimitRef.set({
+            return;
+        }
+        const data = doc.data();
+        const windowStart = data.windowStart || 0;
+        if (now - windowStart >= windowMs) {
+            tx.set(rateLimitRef, {
                 count: 1,
                 windowStart: now,
                 expiresAt: admin.firestore.Timestamp.fromMillis(now + windowMs)
             });
-        };
-    }
-    const count = data.count || 0;
-    if (count >= maxCalls) {
-        throw new functions.https.HttpsError('resource-exhausted', `Rate limit exceeded for ${functionName}. Please try again later.`);
-    }
-    return async () => {
-        await rateLimitRef.update({
+            return;
+        }
+        const count = data.count || 0;
+        if (count >= maxCalls) {
+            throw new https_1.HttpsError('resource-exhausted', `Rate limit exceeded for ${functionName}. Please try again later.`);
+        }
+        tx.update(rateLimitRef, {
             count: admin.firestore.FieldValue.increment(1)
         });
-    };
+    });
+    // Return dummy no-op callback for backward compatibility
+    return async () => { };
 }
 //# sourceMappingURL=rateLimiter.js.map

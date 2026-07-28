@@ -34,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createOrderDraft = void 0;
-const functions = __importStar(require("firebase-functions"));
+const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const pricing_logic_1 = require("../orders/pricing.logic");
 const contracts_1 = require("../contracts");
@@ -42,38 +42,39 @@ const serviceability_logic_1 = require("../utils/serviceability.logic");
 const deliveryLogic_1 = require("../utils/deliveryLogic");
 const coupon_logic_1 = require("./coupon.logic");
 const rateLimiter_1 = require("../utils/rateLimiter");
+const config_1 = require("../utils/config");
 const logger_1 = require("../utils/logger");
 // Initialize admin app if not already initialized
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (data, context) => {
+exports.createOrderDraft = (0, https_1.onCall)({ region: 'asia-south1', enforceAppCheck: config_1.shouldEnforceAppCheck }, async (request) => {
     var _a, _b, _c;
     try {
-        const uid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
+        const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
         if (!uid) {
-            throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to create an order.');
+            throw new https_1.HttpsError('unauthenticated', 'User must be logged in to create an order.');
         }
-        const consumeRateLimit = await (0, rateLimiter_1.rateLimiter)(uid, 'createOrderDraft', 5, 3600);
+        await (0, rateLimiter_1.rateLimiter)(uid, 'createOrderDraft', 5, 3600);
         const profileDoc = await db.collection('profiles').doc(uid).get();
         if (profileDoc.exists && ((_b = profileDoc.data()) === null || _b === void 0 ? void 0 : _b.isBlocked) === true) {
-            throw new functions.https.HttpsError('permission-denied', 'Your account has been blocked. Please contact support.');
+            throw new https_1.HttpsError('permission-denied', 'Your account has been blocked. Please contact support.');
         }
         let addressId, pickupSlotId, couponCode = null, directItems, idempotencyKey, notes = null;
         try {
-            const parsed = contracts_1.createOrderDraftRequest.parse(data);
+            const parsed = contracts_1.createOrderDraftRequest.parse(request.data);
             addressId = parsed.addressId;
             pickupSlotId = parsed.pickupSlotId;
             directItems = parsed.directItems;
             couponCode = parsed.couponCode ? parsed.couponCode.toUpperCase() : null;
             idempotencyKey = parsed.idempotencyKey;
-            notes = parsed.notes || null;
+            notes = parsed.notes ? parsed.notes.slice(0, 500) : null;
         }
         catch (e) {
-            throw new functions.https.HttpsError('invalid-argument', `Validation error: ${e.message}`);
+            throw new https_1.HttpsError('invalid-argument', `Validation error: ${e.message}`);
         }
-        // A4: Idempotency Check
+        // Idempotency Check
         if (idempotencyKey) {
             const existing = await db.collection('orders')
                 .where('userId', '==', uid)
@@ -82,7 +83,6 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
                 .get();
             if (!existing.empty) {
                 const existingOrder = existing.docs[0];
-                await consumeRateLimit();
                 return {
                     orderId: existingOrder.id,
                     finalAmountMinor: existingOrder.data().finalAmountMinor,
@@ -98,51 +98,48 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
         else {
             const cartItemsQuery = await db.collection(`users/${uid}/cartItems`).get();
             if (cartItemsQuery.empty) {
-                throw new functions.https.HttpsError('failed-precondition', 'Cart is empty or not found on server.');
+                throw new https_1.HttpsError('failed-precondition', 'Cart is empty or not found on server.');
             }
             itemsToProcess = cartItemsQuery.docs.map(doc => doc.data());
             if (itemsToProcess.length === 0) {
-                throw new functions.https.HttpsError('failed-precondition', 'Cart is empty.');
+                throw new https_1.HttpsError('failed-precondition', 'Cart is empty.');
             }
         }
         if (itemsToProcess.length > 50) {
-            throw new functions.https.HttpsError('invalid-argument', 'Too many items in cart. Maximum allowed is 50.');
+            throw new https_1.HttpsError('invalid-argument', 'Too many items in cart. Maximum allowed is 50.');
         }
         // 2. Fetch Address & Validate Serviceability
         const addressDoc = await db.collection('addresses').doc(addressId).get();
         if (!addressDoc.exists || ((_c = addressDoc.data()) === null || _c === void 0 ? void 0 : _c.userId) !== uid) {
-            throw new functions.https.HttpsError('permission-denied', 'Invalid address or unauthorized access.');
+            throw new https_1.HttpsError('permission-denied', 'Invalid address or unauthorized access.');
         }
         const addressData = addressDoc.data();
         const { isServiceable } = await (0, serviceability_logic_1.isPincodeServiceable)(db, addressData.pincode);
         if (!isServiceable) {
-            throw new functions.https.HttpsError('failed-precondition', `We don't service pincode ${addressData.pincode} yet.`);
+            throw new https_1.HttpsError('failed-precondition', `We don't service pincode ${addressData.pincode} yet.`);
         }
         // 3. Process Items & Calculate Price
         const pricingItems = [];
         for (const item of itemsToProcess) {
             if (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 100) {
-                throw new functions.https.HttpsError('invalid-argument', `Invalid quantity for item ${item.name || item.serviceId}. Quantity must be between 1 and 100.`);
+                throw new https_1.HttpsError('invalid-argument', `Invalid quantity for item ${item.name || item.serviceId}. Quantity must be between 1 and 100.`);
             }
-            // Fetch actual service from DB to prevent tampering
             const serviceId = String(item.id || item.serviceId || '').trim();
             if (!serviceId) {
-                throw new functions.https.HttpsError('invalid-argument', `Invalid service for item ${item.name || ''}`);
+                throw new https_1.HttpsError('invalid-argument', `Invalid service for item ${item.name || ''}`);
             }
             const serviceDoc = await db.collection('services').doc(serviceId).get();
             if (!serviceDoc.exists) {
-                throw new functions.https.HttpsError('not-found', `Service not found for item ${item.name}`);
+                throw new https_1.HttpsError('not-found', `Service not found for item ${item.name}`);
             }
             const serviceData = serviceDoc.data();
             if (serviceData.isActive === false) {
-                throw new functions.https.HttpsError('failed-precondition', `Service ${serviceData.name} is no longer active.`);
+                throw new https_1.HttpsError('failed-precondition', `Service ${serviceData.name} is no longer active.`);
             }
             const duration = serviceData.estimatedDurationHours || (serviceData.categoryId === 'steam_press' ? 24 : serviceData.categoryId === 'household' ? 72 : 48);
-            // Process addons
             const validatedAddons = [];
             if (item.addons && Array.isArray(item.addons)) {
                 for (const addon of item.addons) {
-                    // Find if this service supports this addon
                     const serverAddon = (serviceData.addons || []).find((a) => a.id === addon.id);
                     if (serverAddon) {
                         validatedAddons.push({
@@ -178,18 +175,16 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
                 }, 0);
                 const couponResult = (0, coupon_logic_1.validateCouponApplicability)(coupon, uid, couponSubtotalMinor);
                 if (!couponResult.valid) {
-                    throw new functions.https.HttpsError('failed-precondition', couponResult.message);
+                    throw new https_1.HttpsError('failed-precondition', couponResult.message);
                 }
-                {
-                    couponInfo = {
-                        type: coupon.type,
-                        discountValue: coupon.discountValue,
-                        minimumOrderAmount: coupon.minimumOrderAmount
-                    };
-                }
+                couponInfo = {
+                    type: coupon.type,
+                    discountValue: coupon.discountValue,
+                    minimumOrderAmount: coupon.minimumOrderAmount
+                };
             }
             else {
-                throw new functions.https.HttpsError('not-found', 'Invalid coupon code');
+                throw new https_1.HttpsError('not-found', 'Invalid coupon code');
             }
         }
         const { processedItems, subtotalMinor, discountMinor, deliveryFeeMinor, finalAmountMinor, priceConfirmed, maxDurationHours } = (0, pricing_logic_1.calculateOrderTotals)(pricingItems, couponInfo, 4000);
@@ -197,17 +192,29 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
         const newOrderRef = db.collection('orders').doc();
         let finalOrderId = '';
         await db.runTransaction(async (transaction) => {
+            var _a;
             const slotRef = db.collection('pickupSlots').doc(pickupSlotId);
             const slotDoc = await transaction.get(slotRef);
             if (!slotDoc.exists) {
-                throw new functions.https.HttpsError('not-found', 'Pickup slot not found.');
+                throw new https_1.HttpsError('not-found', 'Pickup slot not found.');
             }
             const slotData = slotDoc.data();
             if (!slotData.isActive || (slotData.bookedCount >= slotData.capacity)) {
-                throw new functions.https.HttpsError('failed-precondition', 'Pickup slot is fully booked or inactive.');
+                throw new https_1.HttpsError('failed-precondition', 'Pickup slot is fully booked or inactive.');
             }
             if (!(0, deliveryLogic_1.isSlotValid)(slotData.date, slotData.startTime, 2)) {
-                throw new functions.https.HttpsError('failed-precondition', 'Pickup slot is in the past or too soon to book.');
+                throw new https_1.HttpsError('failed-precondition', 'Pickup slot is in the past or too soon to book.');
+            }
+            // Check coupon usage inside transaction to prevent race conditions
+            if (couponCode) {
+                const couponRef = db.collection('coupons').doc(couponCode);
+                const latestCouponDoc = await transaction.get(couponRef);
+                if (latestCouponDoc.exists) {
+                    const usedBy = ((_a = latestCouponDoc.data()) === null || _a === void 0 ? void 0 : _a.usedBy) || [];
+                    if (usedBy.includes(uid)) {
+                        throw new https_1.HttpsError('failed-precondition', 'You have already used this coupon code.');
+                    }
+                }
             }
             // Increment booked count
             transaction.update(slotRef, { bookedCount: admin.firestore.FieldValue.increment(1) });
@@ -260,7 +267,6 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
                 }
             }
         });
-        await consumeRateLimit();
         return {
             orderId: finalOrderId,
             finalAmountMinor,
@@ -268,11 +274,11 @@ exports.createOrderDraft = functions.region('asia-south1').https.onCall(async (d
         };
     }
     catch (err) {
-        if (err instanceof functions.https.HttpsError) {
+        if (err instanceof https_1.HttpsError) {
             throw err;
         }
         (0, logger_1.logError)('createOrderDraft failed:', err);
-        throw new functions.https.HttpsError('internal', 'Failed to create order. Please try again.');
+        throw new https_1.HttpsError('internal', 'Failed to create order. Please try again.');
     }
 });
 //# sourceMappingURL=createOrderDraft.js.map

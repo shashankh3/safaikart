@@ -81,6 +81,7 @@ service cloud.firestore {
     match /carts/{userId} {
       allow read: if isOwner(userId);
       allow write: if isOwner(userId)
+        && request.resource.data.userId == userId
         && request.resource.data.keys().hasOnly(['userId', 'items', 'updatedAt'])
         && request.resource.data.items.size() <= 50;
     }
@@ -171,7 +172,7 @@ service cloud.firestore {
     // --- audit + config -------------------------------------------------
     match /auditLogs/{id} {
       allow read: if hasAnyAdminRole(['superadmin', 'admin']);
-      allow create: if isAdmin();
+      allow create: if false; // Cloud Functions write only
       allow update, delete: if false; // Immutable audit trail
     }
     match /appConfig/{id} {
