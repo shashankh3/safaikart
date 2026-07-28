@@ -254,19 +254,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const auth = getFirebaseAuth();
         const w = window as unknown as { __skRecaptcha?: RecaptchaVerifier };
 
+        const containerEl = document.getElementById(recaptchaContainerId);
+        if (!containerEl) {
+          throw new Error(`reCAPTCHA container #${recaptchaContainerId} not found in DOM`);
+        }
+
         if (w.__skRecaptcha) {
           try {
             w.__skRecaptcha.clear();
           } catch (_) { }
           w.__skRecaptcha = undefined;
         }
+        containerEl.innerHTML = "";
 
-        const containerEl = document.getElementById(recaptchaContainerId);
-        if (!containerEl) {
-          throw new Error(`reCAPTCHA container #${recaptchaContainerId} not found in DOM`);
-        }
-
-        const verifier = new RecaptchaVerifier(auth, recaptchaContainerId, {
+        const verifier = new RecaptchaVerifier(auth, containerEl, {
           size: "invisible",
           callback: () => {
             console.log("reCAPTCHA solved successfully");
@@ -286,6 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try { w.__skRecaptcha.clear(); } catch (_) {}
             w.__skRecaptcha = undefined;
           }
+          containerEl.innerHTML = "";
           throw phoneErr;
         }
       },
