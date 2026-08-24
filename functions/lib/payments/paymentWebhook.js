@@ -44,7 +44,7 @@ exports.razorpayWebhookSecret = (0, params_1.defineSecret)('RAZORPAY_WEBHOOK_SEC
 if (!admin.apps.length) {
     admin.initializeApp();
 }
-exports.paymentWebhook = (0, https_1.onRequest)({ secrets: [exports.razorpayWebhookSecret], region: 'asia-south1' }, async (request, response) => {
+exports.paymentWebhook = (0, https_1.onRequest)({ secrets: [exports.razorpayWebhookSecret], region: 'asia-south1', invoker: 'public' }, async (request, response) => {
     var _a, _b, _c, _d, _e, _f;
     try {
         // Must use rawBody for HMAC generation to match exactly what Razorpay signed

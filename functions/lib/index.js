@@ -47,8 +47,13 @@ if (process.env.SENTRY_DSN) {
         environment: process.env.FUNCTIONS_EMULATOR === 'true' ? 'local' : (process.env.GCLOUD_PROJECT ? 'production' : 'development')
     });
 }
-// All v2 functions deploy to asia-south1 (Mumbai)
-(0, v2_1.setGlobalOptions)({ region: 'asia-south1' });
+// All v2 functions deploy to asia-south1 (Mumbai) with optimized CPU/memory quotas
+(0, v2_1.setGlobalOptions)({
+    region: 'asia-south1',
+    cpu: 0.167,
+    memory: '256MiB',
+    maxInstances: 10,
+});
 __exportStar(require("./checkout/createOrderDraft"), exports);
 __exportStar(require("./checkout/validateCoupon"), exports);
 var checkServiceability_1 = require("./checkout/checkServiceability");

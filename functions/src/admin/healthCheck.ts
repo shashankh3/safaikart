@@ -8,7 +8,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const healthCheck = onRequest(async (req, res) => {
+export const healthCheck = onRequest({ invoker: 'public' }, async (req, res) => {
   try {
     // Perform a quick dependency check (e.g. check if Firestore is reachable)
     // A simple limit(1) query on any collection is sufficient

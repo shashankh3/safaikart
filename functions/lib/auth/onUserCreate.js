@@ -38,8 +38,13 @@ const functions = __importStar(require("firebase-functions/v1"));
 const admin = __importStar(require("firebase-admin"));
 const pubsub_1 = require("@google-cloud/pubsub");
 const logger_1 = require("../utils/logger");
-const pubsub = new pubsub_1.PubSub();
-// Initialize admin if not already initialized
+let _pubsub = null;
+function getPubSub() {
+    if (!_pubsub) {
+        _pubsub = new pubsub_1.PubSub();
+    }
+    return _pubsub;
+}
 if (!admin.apps.length) {
     admin.initializeApp();
 }
@@ -64,17 +69,18 @@ exports.onUserCreate = functions.region('asia-south1').auth.user().onCreate(asyn
         createdAt: now,
         updatedAt: now,
         defaultAddressId: null,
-        fcmTokens: []
+        fcmTokens: [],
     });
     await batch.commit();
     // Publish async event for background workers (Welcome Email, Analytics, etc.)
     try {
+        const pubsub = getPubSub();
         await pubsub.topic('user-signup-events').publishJSON({
             uid: user.uid,
             email: user.email,
             displayName: user.displayName,
             phoneNumber: user.phoneNumber,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         });
     }
     catch (error) {

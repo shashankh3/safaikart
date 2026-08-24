@@ -1,0 +1,21 @@
+# EAS Build ignore file
+# dependencies
+node_modules/
+
+# Expo & web
+.expo/
+dist/
+web-build/
+
+# Native generated folders
+/ios
+/android
+
+# Local debug logs & server keys
+service-account.json
+google-play-service-account.json
+firestore-debug.log
+*-debug.log
+eas-build*
+.secret.local
+production_artifacts/

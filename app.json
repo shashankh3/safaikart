@@ -64,8 +64,7 @@
       [
         "expo-build-properties",
         {}
-      ],
-      "./disable-gradle-auto-download.js"
+      ]
     ],
     "extra": {
       "expo-navigation-bar": {

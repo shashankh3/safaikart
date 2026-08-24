@@ -41,7 +41,7 @@ if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.healthCheck = (0, https_1.onRequest)(async (req, res) => {
+exports.healthCheck = (0, https_1.onRequest)({ invoker: 'public' }, async (req, res) => {
     try {
         // Perform a quick dependency check (e.g. check if Firestore is reachable)
         // A simple limit(1) query on any collection is sufficient

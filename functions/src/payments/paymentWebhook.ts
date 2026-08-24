@@ -12,7 +12,7 @@ if (!admin.apps.length) {
 }
 
 export const paymentWebhook = onRequest(
-  { secrets: [razorpayWebhookSecret], region: 'asia-south1' }, 
+  { secrets: [razorpayWebhookSecret], region: 'asia-south1', invoker: 'public' }, 
   async (request, response) => {
     try {
       // Must use rawBody for HMAC generation to match exactly what Razorpay signed

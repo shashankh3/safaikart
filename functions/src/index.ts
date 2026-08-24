@@ -10,8 +10,13 @@ if (process.env.SENTRY_DSN) {
   });
 }
 
-// All v2 functions deploy to asia-south1 (Mumbai)
-setGlobalOptions({ region: 'asia-south1' });
+// All v2 functions deploy to asia-south1 (Mumbai) with optimized CPU/memory quotas
+setGlobalOptions({
+  region: 'asia-south1',
+  cpu: 0.167,
+  memory: '256MiB',
+  maxInstances: 10,
+});
 
 export * from './checkout/createOrderDraft';
 export * from './checkout/validateCoupon';
