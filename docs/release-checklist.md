@@ -12,8 +12,9 @@ This checklist tracks the launch readiness work.
 - [x] **FCM Token Pruning on Logout:** Implemented token removal on sign-out via `removeFcmToken` callable.
 - [x] **Unit Tests & CI:** Extracted logic and tested `validateCoupon.ts`, `paymentWebhook.ts`, `editOrderItems.ts`, `createOrderDraft.ts`, `compareVersions.ts`. GitHub Actions CI configured for tests and builds.
 - [x] **App Features Verification:** Real phone OTP auth, Razorpay checkout page + refunds, native Firebase (FCM/Crashlytics/App Check), admin order manager.
+- [x] **TRAI DLT Custom SMS & Auth Architecture:** Replaced Google Phone Auth with TRAI DLT Indian SMS Gateway adapter (Fast2SMS, MSG91, 2Factor, and Mock Mode) + Firebase Custom Tokens across Cloud Functions, Mobile App, and Web.
 - [x] **EAS Setup:** EAS project initialized (id c8689aa7-cbb2-4aad-a348-8ce979a8b0c1).
-- [x] **Firebase Billing:** Billing is ACTIVE; 10 functions deployed (asia-south1).
+- [x] **Firebase Billing:** Billing is ACTIVE; Cloud functions deployed to asia-south1.
 
 ## Pending Operator / Human Tasks
 Follow these exact steps to complete the release:

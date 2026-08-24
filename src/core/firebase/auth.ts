@@ -15,7 +15,7 @@ export const logoutUser = async () => {
       const removeFcmToken = httpsCallable(functions, 'removeFcmToken');
       // Fire-and-forget, gracefully handle failure
       await removeFcmToken({ token }).catch(err => console.warn('Failed to remove FCM token:', err));
-      
+
       // Delete local FCM token to ensure device no longer receives old push notifications
       await messaging().deleteToken().catch(err => console.warn('Failed to delete local FCM token:', err));
     }
@@ -25,6 +25,28 @@ export const logoutUser = async () => {
   return firebaseAuth().signOut();
 };
 
-export const sendPhoneOtp = async (phoneNumber: string): Promise<FirebaseAuthTypes.ConfirmationResult> => {
-  return firebaseAuth().signInWithPhoneNumber(phoneNumber);
+/**
+ * Sends a TRAI DLT-compliant SMS OTP via the custom Cloud Function backend
+ */
+export const sendPhoneOtp = async (phoneNumber: string): Promise<{ success: boolean; message: string }> => {
+  const functions = getFunctions(app, 'asia-south1');
+  const sendCustomOtp = httpsCallable(functions, 'sendCustomOtp');
+  const response = await sendCustomOtp({ phoneNumber });
+  return response.data as { success: boolean; message: string };
+};
+
+/**
+ * Verifies the 6-digit OTP and authenticates with Firebase using a minted Custom Token
+ */
+export const verifyPhoneOtp = async (phoneNumber: string, otp: string): Promise<FirebaseAuthTypes.UserCredential> => {
+  const functions = getFunctions(app, 'asia-south1');
+  const verifyCustomOtp = httpsCallable(functions, 'verifyCustomOtp');
+  const response = await verifyCustomOtp({ phoneNumber, otp });
+  const data = response.data as { success: boolean; customToken: string; uid: string };
+
+  if (!data?.customToken) {
+    throw new Error('Failed to retrieve authentication token from verification service');
+  }
+
+  return firebaseAuth().signInWithCustomToken(data.customToken);
 };

@@ -199,6 +199,9 @@ service cloud.firestore {
     match /rateLimits/{id} {
       allow read, write: if false; // Internal to Cloud Functions
     }
+    match /otp_verifications/{id} {
+      allow read, write: if false; // Internal to Cloud Functions (TRAI DLT SMS OTP)
+    }
     // --- fcmTokens ------------------------------------------------------
     match /fcmTokens/{id} {
       allow read, write: if false; // Cloud Functions only

@@ -8,7 +8,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2, ShieldAlert } from "lucide-react";
 import logoAsset from "@/assets/safaikart-logo.jpeg.asset.json";
 import { toast } from "sonner";
-import type { ConfirmationResult } from "firebase/auth";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
@@ -17,7 +16,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { user, role, loading, signIn, signInWithGoogle, startPhoneOtp } = useAuth();
+  const { user, role, loading, signIn, signInWithGoogle, startPhoneOtp, verifyPhoneOtp } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -27,13 +26,38 @@ function LoginPage() {
 
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
-  const [confirm, setConfirm] = useState<ConfirmationResult | null>(null);
+  const [otpSent, setOtpSent] = useState(false);
+  const [resendTimer, setResendTimer] = useState(30);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (otpSent && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [otpSent, resendTimer]);
 
   useEffect(() => {
     if (loading || !user) return;
     if (role === "admin") navigate({ to: "/dashboard", replace: true });
     else navigate({ to: "/app/orders", replace: true });
   }, [user, role, loading, navigate]);
+
+  function getCleanedPhone() {
+    let cleaned = phone.trim().replace(/[^\d+]/g, "");
+    if (!cleaned.startsWith("+")) {
+      if (cleaned.startsWith("91") && cleaned.length === 12) {
+        cleaned = "+" + cleaned;
+      } else {
+        cleaned = "+91" + cleaned;
+      }
+    }
+    return cleaned;
+  }
 
   async function onEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,33 +89,38 @@ function LoginPage() {
   }
 
   async function onSendOtp() {
-    if (!phone.startsWith("+")) return toast.error("Include country code, e.g. +91…");
+    const cleaned = getCleanedPhone();
+    if (!/^\+91[6-9]\d{9}$/.test(cleaned) && !/^\+91\d{10}$/.test(cleaned)) {
+      return toast.error("Please enter a valid 10-digit Indian mobile number");
+    }
     setSubmitting(true);
     try {
-      const c = await startPhoneOtp(phone.trim(), "recaptcha-container-login");
-      setConfirm(c);
-      toast.success("OTP sent");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to send OTP");
+      await startPhoneOtp(cleaned);
+      setOtpSent(true);
+      setResendTimer(30);
+      toast.success("OTP sent to " + cleaned);
+    } catch (e: any) {
+      console.error("sendOtp error:", e);
+      toast.error(e?.message || "Failed to send OTP. Please try again.");
     } finally {
       setSubmitting(false);
     }
   }
 
   async function onVerifyOtp() {
-    if (!confirm) return;
-    
+    const cleaned = getCleanedPhone();
     const trimmedOtp = otp.trim();
     if (!/^\d{6}$/.test(trimmedOtp)) {
-      return toast.error("Please enter a valid 6-digit OTP");
+      return toast.error("Please enter a valid 6-digit OTP code");
     }
 
     setSubmitting(true);
     try {
-      await confirm.confirm(trimmedOtp);
-      toast.success("Signed in!");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Invalid OTP");
+      await verifyPhoneOtp(cleaned, trimmedOtp);
+      toast.success("Signed in successfully!");
+    } catch (e: any) {
+      console.error("verifyOtp error:", e);
+      toast.error(e?.message || "Invalid OTP. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -100,7 +129,8 @@ function LoginPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
       <div className="hidden lg:flex relative overflow-hidden bg-brand text-white">
-        <div className="absolute inset-0 opacity-30"
+        <div
+          className="absolute inset-0 opacity-30"
           style={{
             backgroundImage:
               "radial-gradient(circle at 20% 20%, #F4C73E 0%, transparent 40%), radial-gradient(circle at 80% 70%, #24502D 0%, transparent 50%)",
@@ -118,88 +148,137 @@ function LoginPage() {
           </Link>
 
           <div>
-            <h2 className="text-4xl font-bold leading-tight tracking-tight">
-              Fresh clothes,
+            <div className="text-3xl font-display font-bold leading-tight mb-3">
+              Premium fabric care,
               <br />
-              <span className="text-gold">delivered.</span>
-            </h2>
-            <p className="mt-4 text-white/80 max-w-md">
-              Sign in to schedule pickups, track orders, or manage your team's operations.
+              <span className="text-gold">delivered to your doorstep.</span>
+            </div>
+            <p className="text-white/70 max-w-md text-sm">
+              Track live orders, manage schedules, and experience five-star garment care in Raipur.
             </p>
           </div>
 
-          <div className="text-xs text-white/60">
-            © {new Date().getFullYear()} SafaiKart
+          <div className="text-xs text-white/50">
+            © {new Date().getFullYear()} SafaiKart Inc. All rights reserved.
           </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-center px-6 py-12 bg-white text-brand">
+      <div className="flex items-center justify-center p-6 md:p-12">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="h-12 w-12 rounded-xl overflow-hidden ring-1 ring-brand/20">
-              <img src={logoAsset.url} alt="SafaiKart" className="h-full w-full object-cover" />
-            </div>
-            <div className="text-base font-semibold text-brand">SafaiKart</div>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold font-display text-brand">Welcome to SafaiKart</h1>
+            <p className="text-sm text-brand/70 mt-1">Sign in with your mobile number, Google, or email.</p>
           </div>
 
-          <h1 className="text-2xl font-semibold tracking-tight text-brand">Sign in</h1>
-          <p className="mt-2 text-sm text-brand/60">
-            Sign in with your phone, Google, or email to continue.
-          </p>
-
-          <div className="mt-6">
-            <Button
-              onClick={onGoogle}
-              disabled={submitting}
-              variant="outline"
-              className="w-full h-11 rounded-xl bg-white dark:bg-white border-brand/30 text-brand hover:bg-brand/5 hover:text-brand"
-            >
-              Continue with Google
-            </Button>
-          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onGoogle}
+            disabled={submitting}
+            className="w-full h-11 rounded-xl bg-white border-brand/20 text-brand hover:bg-brand/5 font-semibold flex items-center justify-center gap-2 mb-4"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              />
+            </svg>
+            Continue with Google
+          </Button>
 
           <div className="relative my-4 text-center text-xs text-brand/50">
-            <span className="bg-white px-2 relative z-10">or</span>
-            <div className="absolute inset-x-0 top-1/2 border-t border-brand/10" />
+            <span className="bg-background px-2 relative z-10">or continue with</span>
+            <div className="absolute inset-x-0 top-1/2 -z-0 border-t border-brand/10" />
           </div>
 
           <Tabs defaultValue="phone">
-            <TabsList className="grid grid-cols-2 w-full bg-brand/5 text-brand/70">
-              <TabsTrigger value="phone" className="data-[state=active]:bg-brand data-[state=active]:text-gold text-brand/70">Phone OTP</TabsTrigger>
-              <TabsTrigger value="email" className="data-[state=active]:bg-brand data-[state=active]:text-gold text-brand/70">Email</TabsTrigger>
+            <TabsList className="grid grid-cols-2 bg-brand/5 p-1 rounded-xl">
+              <TabsTrigger value="phone" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-brand font-medium">Phone OTP</TabsTrigger>
+              <TabsTrigger value="email" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-brand font-medium">Email</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="phone" className="mt-4 space-y-3">
+            <TabsContent value="phone" className="space-y-4 mt-4">
               <div>
                 <Label className="text-brand/80">Phone number</Label>
                 <Input
-                  placeholder="+91 98xxxxxxxx"
+                  placeholder="+91 98765 43210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  disabled={!!confirm}
+                  disabled={otpSent || submitting}
                   className="h-11 rounded-xl bg-white border-brand/20 text-brand"
                 />
               </div>
-              {confirm && (
+
+              {otpSent && (
                 <div>
-                  <Label className="text-brand/80">Enter OTP</Label>
+                  <Label className="text-brand/80">Enter 6-digit OTP</Label>
                   <Input
-                    placeholder="6-digit code"
+                    placeholder="••••••"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    className="h-11 rounded-xl bg-white border-brand/20 text-brand"
+                    maxLength={6}
+                    className="h-11 rounded-xl bg-white border-brand/20 text-brand text-center tracking-widest text-lg font-bold"
+                    autoFocus
                   />
+                  <div className="flex justify-between items-center text-xs text-muted-foreground pt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpSent(false);
+                        setOtp("");
+                      }}
+                      className="hover:underline text-brand"
+                    >
+                      Change Number
+                    </button>
+                    {resendTimer > 0 ? (
+                      <span>Resend in {resendTimer}s</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={onSendOtp}
+                        disabled={submitting}
+                        className="text-brand font-semibold hover:underline"
+                      >
+                        Resend OTP
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
-              <div id="recaptcha-container-login" />
-              <Button
-                onClick={confirm ? onVerifyOtp : onSendOtp}
-                disabled={submitting}
-                className="w-full h-11 rounded-xl bg-brand text-gold hover:bg-brand/90 font-semibold"
-              >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : confirm ? "Verify & sign in" : "Send OTP"}
-              </Button>
+
+              {!otpSent ? (
+                <Button
+                  onClick={onSendOtp}
+                  disabled={submitting}
+                  className="w-full h-11 rounded-xl bg-brand text-gold hover:bg-brand/90 font-semibold"
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Send OTP
+                </Button>
+              ) : (
+                <Button
+                  onClick={onVerifyOtp}
+                  disabled={submitting}
+                  className="w-full h-11 rounded-xl bg-brand text-gold hover:bg-brand/90 font-semibold"
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Verify & Sign In
+                </Button>
+              )}
             </TabsContent>
 
             <TabsContent value="email" className="mt-4">
@@ -243,7 +322,8 @@ function LoginPage() {
                   disabled={submitting}
                   className="w-full h-11 rounded-xl bg-brand text-gold hover:bg-brand/90 font-semibold shadow-elevated"
                 >
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Sign in
                 </Button>
               </form>
             </TabsContent>

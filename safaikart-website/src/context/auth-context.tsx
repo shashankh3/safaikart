@@ -1,19 +1,18 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   GoogleAuthProvider,
-  RecaptchaVerifier,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  signInWithCustomToken,
   signInWithEmailAndPassword,
-  signInWithPhoneNumber,
   signInWithPopup,
   signOut,
   updateProfile,
-  type ConfirmationResult,
   type User,
 } from "firebase/auth";
+import { httpsCallable } from "firebase/functions";
 import { doc, getDoc, serverTimestamp, setDoc, onSnapshot } from "firebase/firestore";
-import { getFirebaseAuth, getDb } from "@/lib/firebase";
+import { getFirebaseAuth, getDb, getFns } from "@/lib/firebase";
 import { normaliseRole, type Role } from "@/lib/rbac";
 
 export type AdminProfile = {
@@ -43,7 +42,8 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<{ role: "admin" | "customer" }>;
   signUpEmail: (email: string, password: string, name?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  startPhoneOtp: (phoneE164: string, recaptchaContainerId: string) => Promise<ConfirmationResult>;
+  startPhoneOtp: (phoneE164: string) => Promise<{ success: boolean; message: string }>;
+  verifyPhoneOtp: (phoneE164: string, otp: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -240,8 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signInWithGoogle() {
         const auth = getFirebaseAuth();
         const provider = new GoogleAuthProvider();
-        
-        // Use redirect on mobile to avoid popup blockers, especially in in-app browsers
+
         const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone/i.test(navigator.userAgent);
         if (isMobile) {
           const { signInWithRedirect } = await import("firebase/auth");
@@ -250,47 +249,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await signInWithPopup(auth, provider);
         }
       },
-      async startPhoneOtp(phoneE164, recaptchaContainerId) {
+      async startPhoneOtp(phoneE164: string) {
+        const fns = getFns();
+        const sendOtpFn = httpsCallable<{ phoneNumber: string }, { success: boolean; message: string }>(
+          fns,
+          "sendCustomOtp"
+        );
+        const res = await sendOtpFn({ phoneNumber: phoneE164 });
+        return res.data;
+      },
+      async verifyPhoneOtp(phoneE164: string, otp: string) {
+        const fns = getFns();
+        const verifyOtpFn = httpsCallable<
+          { phoneNumber: string; otp: string },
+          { success: boolean; customToken: string; uid: string; isNewUser: boolean }
+        >(fns, "verifyCustomOtp");
+
+        const res = await verifyOtpFn({ phoneNumber: phoneE164, otp });
+        if (!res.data?.customToken) {
+          throw new Error("No authentication token returned by verification service");
+        }
+
         const auth = getFirebaseAuth();
-        const w = window as unknown as { __skRecaptcha?: RecaptchaVerifier };
-
-        const containerEl = document.getElementById(recaptchaContainerId);
-        if (!containerEl) {
-          throw new Error(`reCAPTCHA container #${recaptchaContainerId} not found in DOM`);
-        }
-
-        if (w.__skRecaptcha) {
-          try {
-            w.__skRecaptcha.clear();
-          } catch (_) { }
-          w.__skRecaptcha = undefined;
-        }
-        containerEl.innerHTML = "";
-
-        const verifier = new RecaptchaVerifier(auth, containerEl, {
-          size: "invisible",
-          callback: () => {
-            console.log("reCAPTCHA solved successfully");
-          },
-          "expired-callback": () => {
-            console.warn("reCAPTCHA expired");
-          }
-        });
-
-        w.__skRecaptcha = verifier;
-
-        try {
-          // Let signInWithPhoneNumber handle reCAPTCHA verification internally
-          return await signInWithPhoneNumber(auth, phoneE164, verifier);
-        } catch (phoneErr: any) {
-          console.error("signInWithPhoneNumber failed:", phoneErr);
-          if (w.__skRecaptcha) {
-            try { w.__skRecaptcha.clear(); } catch (_) {}
-            w.__skRecaptcha = undefined;
-          }
-          containerEl.innerHTML = "";
-          throw phoneErr;
-        }
+        await signInWithCustomToken(auth, res.data.customToken);
       },
       async logout() {
         await signOut(getFirebaseAuth());

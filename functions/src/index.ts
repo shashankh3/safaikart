@@ -27,6 +27,8 @@ export { processRefunds } from './payments/processRefunds';
 export { onUserCreate } from './auth/onUserCreate';
 export { syncAdminRoles } from './auth/syncAdminRoles';
 export { deleteAccount, onUserDelete } from './auth/deleteAccount';
+export { sendCustomOtp } from './auth/sendCustomOtp';
+export { verifyCustomOtp } from './auth/verifyCustomOtp';
 
 // Orders & Notifications
 export { cancelOrder } from './orders/cancelOrder';
