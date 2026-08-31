@@ -25,10 +25,6 @@ export default function NotificationCenterScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const navigation = useNavigation<any>();
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
-
   const fetchNotifications = async () => {
     const userId = auth.currentUser?.uid;
     if (!userId) return;
@@ -53,6 +49,12 @@ export default function NotificationCenterScreen() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+
 
   const handlePress = async (item: AppNotification) => {
     if (!item.isRead) {

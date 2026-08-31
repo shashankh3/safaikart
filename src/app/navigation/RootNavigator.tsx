@@ -164,9 +164,7 @@ export default function AppNavigator() {
     setupNotifications();
 
     const cleanup = setupNotificationListeners(
-      (notification) => {
-        console.log('Notification received in foreground:', notification);
-      },
+      (_notification) => {},
       (response) => {
         const data = response?.notification?.request?.content?.data || response?.data;
         if (data?.orderId) {

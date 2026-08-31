@@ -53,9 +53,11 @@ jobs:
         working-directory: ./functions
         run: npm ci
 
-      - name: Build functions
+      - name: Build & Test functions
         working-directory: ./functions
-        run: npm run build
+        run: |
+          npm run build
+          npm test
 
       - name: Deploy Cloud Functions
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'

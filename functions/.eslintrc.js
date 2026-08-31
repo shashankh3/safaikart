@@ -17,8 +17,9 @@ module.exports = {
     sourceType: "module",
   },
   ignorePatterns: [
-    "/lib/**/*", 
-    ".eslintrc.js"
+    "lib/**", 
+    ".eslintrc.js",
+    "read-schema.ts"
   ],
   plugins: [
     "@typescript-eslint",
@@ -27,6 +28,7 @@ module.exports = {
   rules: {
     "quotes": ["error", "single"],
     "import/no-unresolved": 0,
+    "import/namespace": 0,
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
     "no-console": "error",

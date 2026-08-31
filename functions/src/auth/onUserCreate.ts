@@ -1,4 +1,4 @@
-import * as functions from 'firebase-functions/v1';
+import { region } from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { PubSub } from '@google-cloud/pubsub';
 import { logError } from '../utils/logger';
@@ -15,7 +15,7 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-export const onUserCreate = functions.region('asia-south1').auth.user().onCreate(async (user) => {
+export const onUserCreate = region('asia-south1').auth.user().onCreate(async (user) => {
   const db = admin.firestore();
   const now = admin.firestore.FieldValue.serverTimestamp();
 

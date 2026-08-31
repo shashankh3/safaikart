@@ -19,18 +19,6 @@ import Constants from 'expo-constants';
 
 const isExpoGo = Constants.appOwnership === 'expo';
 
-// let Sentry: any;
-// if (!isExpoGo) {
-//   try {
-//     Sentry = require('@sentry/react-native');
-//     Sentry.init({
-//       dsn: "YOUR_SENTRY_DSN",
-//       debug: false, 
-//     });
-//   } catch (e) {
-//     console.log('Sentry initialization failed', e);
-//   }
-// }
 
 SplashScreen.preventAutoHideAsync();
 
@@ -99,7 +87,6 @@ function App() {
   );
 }
 
-// export default isExpoGo ? App : (Sentry ? Sentry.wrap(App) : App);
 export default App;
 
 

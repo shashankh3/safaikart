@@ -36,6 +36,6 @@ export const bootstrap = async () => {
       }
     };
   } catch (e) {
-    console.log('Initialization failed', e);
+    crashlytics().recordError(e as Error);
   }
 };

@@ -18,7 +18,6 @@ export const initializeAppCheckAsync = async () => {
 
     await appCheck().initializeAppCheck({ provider, isTokenAutoRefreshEnabled: true });
     appCheckInstance = appCheck();
-    console.log('Firebase App Check initialized');
   } catch (error) {
     console.warn('Failed to initialize App Check', error);
   }

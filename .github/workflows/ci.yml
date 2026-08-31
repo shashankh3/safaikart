@@ -33,15 +33,23 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
+      - name: Lint client
+        run: npm run lint
+
       - name: Typecheck client
         run: npx tsc --noEmit
 
+      - name: Install & Lint functions
+        run: cd functions && npm ci && npm run lint
+
       - name: Build functions
-        run: cd functions && npm ci && npm run build
+        run: cd functions && npm run build
 
-      - name: Run Unit Tests
+      - name: Run Functions Unit Tests
+        run: cd functions && npm test
+
+      - name: Run Client Unit Tests
         run: npm run test
-
 
       - name: Run Firebase Rules Tests
         run: npm run test:rules

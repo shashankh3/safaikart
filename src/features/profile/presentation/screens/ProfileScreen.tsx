@@ -1,13 +1,15 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, Image, ImageBackground, Alert, Linking } from 'react-native';
 import { YStack, XStack, ZStack, Text } from '../../../../shared/ui/primitives/Stacks';
-import { auth } from '../../../../app/config/firebase';import { Ionicons } from '@expo/vector-icons';
+import { auth } from '../../../../app/config/firebase';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../../../shared/theme/colors';
 import { SIZES } from '../../../../shared/theme/spacing';
 import Header from '../../../../shared/ui/components/Header';
 import { useAuth } from '../../../auth/application/useAuth';
 import { useProfileQuery } from '../../application/useProfileQuery';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 const menuItems = [
   { id: '0', title: 'Notifications', icon: 'notifications', tint: '#FFE0B2' },
@@ -15,8 +17,6 @@ const menuItems = [
   { id: '3', title: 'Coupons & Offers', icon: 'gift', tint: '#FFF3E0' },
   { id: '4', title: 'Help & Support', icon: 'headset', tint: '#F3E5F5' },
 ];
-
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 export default function ProfileScreen({ navigation }: { navigation: BottomTabNavigationProp<any, any> }) {
   const insets = useSafeAreaInsets();

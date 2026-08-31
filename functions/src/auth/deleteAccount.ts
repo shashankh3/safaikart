@@ -1,5 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import * as functions from 'firebase-functions/v1';
+import { region } from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { logError } from '../utils/logger';
 
@@ -28,7 +28,7 @@ export const deleteAccount = onCall(async (request) => {
 });
 
 // 2. Auth Trigger (Runs when deleted from client callable, or via Firebase Console)
-export const onUserDelete = functions.region('asia-south1').auth.user().onDelete(async (user) => {
+export const onUserDelete = region('asia-south1').auth.user().onDelete(async (user) => {
   const uid = user.uid;
   const batch = db.batch();
 
