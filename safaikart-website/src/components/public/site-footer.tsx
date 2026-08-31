@@ -11,8 +11,8 @@ export function SiteFooter() {
       <div className="relative max-w-7xl mx-auto px-4 md:px-8 py-14 grid gap-10 md:grid-cols-4 text-sm">
         <div className="md:pr-6">
           <div className="flex items-center gap-2.5">
-            <div className="h-10 w-10 rounded-xl overflow-hidden ring-1 ring-white/15">
-              <img src="/images/logo.svg" alt="SafaiKart" className="h-full w-full object-cover" />
+            <div className="h-10 w-10 rounded-xl overflow-hidden ring-1 ring-white/15 bg-[#0C3818] flex items-center justify-center p-0.5">
+              <img src="/images/logo.png" alt="SafaiKart" className="h-full w-full object-cover" />
             </div>
             <div className="text-base font-bold tracking-tight">SafaiKart</div>
           </div>

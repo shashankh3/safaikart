@@ -67,14 +67,17 @@ export const createOrderDraft = onCall({ region: 'asia-south1', enforceAppCheck:
     if (directItems && Array.isArray(directItems) && directItems.length > 0) {
       itemsToProcess = directItems;
     } else {
-      const cartItemsQuery = await db.collection(`users/${uid}/cartItems`).get();
-      if (cartItemsQuery.empty) {
-        throw new HttpsError('failed-precondition', 'Cart is empty or not found on server.');
+      const cartDoc = await db.collection('carts').doc(uid).get();
+      if (cartDoc.exists && Array.isArray(cartDoc.data()?.items) && cartDoc.data()!.items.length > 0) {
+        itemsToProcess = cartDoc.data()!.items;
+      } else {
+        const cartItemsQuery = await db.collection(`users/${uid}/cartItems`).get();
+        if (!cartItemsQuery.empty) {
+          itemsToProcess = cartItemsQuery.docs.map(doc => doc.data());
+        }
       }
-
-      itemsToProcess = cartItemsQuery.docs.map(doc => doc.data());
       if (itemsToProcess.length === 0) {
-        throw new HttpsError('failed-precondition', 'Cart is empty.');
+        throw new HttpsError('failed-precondition', 'Cart is empty or not found on server.');
       }
     }
 
@@ -97,23 +100,63 @@ export const createOrderDraft = onCall({ region: 'asia-south1', enforceAppCheck:
     // 3. Process Items & Calculate Price
     const pricingItems: PricingItem[] = [];
 
+    // Pre-fetch catalog_v2 for fast lookup
+    let catalogServices: any[] = [];
+    try {
+      const catalogDoc = await db.collection('appConfig').doc('catalog_v2').get();
+      if (catalogDoc.exists) {
+        catalogServices = catalogDoc.data()?.services || [];
+      }
+    } catch (_) {}
+
     for (const item of itemsToProcess) {
       if (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 100) {
-        throw new HttpsError('invalid-argument', `Invalid quantity for item ${item.name || item.serviceId}. Quantity must be between 1 and 100.`);
+        throw new HttpsError('invalid-argument', `Invalid quantity for item ${item.nameSnapshot || item.name || item.serviceId}.`);
       }
 
-      const serviceId = String(item.id || item.serviceId || '').trim();
-      if (!serviceId) {
-        throw new HttpsError('invalid-argument', `Invalid service for item ${item.name || ''}`);
+      const serviceId = String(item.serviceId || item.id || '').trim();
+      let serviceData: any = null;
+
+      if (serviceId) {
+        const serviceDoc = await db.collection('services').doc(serviceId).get();
+        if (serviceDoc.exists) {
+          serviceData = serviceDoc.data();
+        }
       }
 
-      const serviceDoc = await db.collection('services').doc(serviceId).get();
-      if (!serviceDoc.exists) {
-        throw new HttpsError('not-found', `Service not found for item ${item.name}`);
+      // Check in catalog_v2
+      if (!serviceData && catalogServices.length > 0) {
+        for (const s of catalogServices) {
+          for (const cat of (s.categories || [])) {
+            for (const itm of (cat.items || [])) {
+              if (itm.id === serviceId || itm.name === item.name || itm.name === item.nameSnapshot) {
+                serviceData = {
+                  name: itm.name,
+                  priceMinor: itm.priceMinor !== undefined ? itm.priceMinor : (itm.price ? Math.round(itm.price * 100) : 0),
+                  unit: itm.unit || 'piece',
+                  priceType: itm.priceType || 'fixed',
+                  addons: itm.addons || [],
+                  estimatedDurationHours: s.estimatedDurationHours || 48
+                };
+                break;
+              }
+            }
+            if (serviceData) break;
+          }
+          if (serviceData) break;
+        }
       }
-      const serviceData = serviceDoc.data()!;
-      if (serviceData.isActive === false) {
-        throw new HttpsError('failed-precondition', `Service ${serviceData.name} is no longer active.`);
+
+      // Fallback to client item snapshot
+      if (!serviceData) {
+        serviceData = {
+          name: item.nameSnapshot || item.name || 'Service Item',
+          priceMinor: item.priceMinor !== undefined ? item.priceMinor : (item.price ? Math.round(item.price * 100) : 0),
+          unit: item.unit || 'piece',
+          priceType: item.priceType || 'fixed',
+          addons: item.addons || [],
+          estimatedDurationHours: 48
+        };
       }
 
       const duration = serviceData.estimatedDurationHours || (serviceData.categoryId === 'steam_press' ? 24 : serviceData.categoryId === 'household' ? 72 : 48);
@@ -121,19 +164,16 @@ export const createOrderDraft = onCall({ region: 'asia-south1', enforceAppCheck:
       const validatedAddons: { id: string; name: string; priceMinor: number }[] = [];
       if (item.addons && Array.isArray(item.addons)) {
         for (const addon of item.addons) {
-          const serverAddon = (serviceData.addons || []).find((a: any) => a.id === addon.id);
-          if (serverAddon) {
-            validatedAddons.push({
-              id: serverAddon.id,
-              name: serverAddon.name,
-              priceMinor: serverAddon.priceMinor
-            });
-          }
+          validatedAddons.push({
+            id: addon.id || 'addon',
+            name: addon.name || 'Addon',
+            priceMinor: addon.priceMinor || 0
+          });
         }
       }
 
       pricingItems.push({
-        serviceId: serviceDoc.id,
+        serviceId: serviceId || 'custom_item',
         nameSnapshot: serviceData.name,
         quantity: item.quantity,
         unit: serviceData.unit || 'piece',

@@ -8,12 +8,20 @@ export class AddressRepository {
   async listAddresses(userId: string): Promise<Address[]> {
     const q = query(
       collection(db, this.collectionPath),
-      where('userId', '==', userId),
-      orderBy('isDefault', 'desc'),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', userId)
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Address));
+    const addresses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Address));
+    
+    return addresses.sort((a: any, b: any) => {
+      // Default addresses first
+      if (a.isDefault && !b.isDefault) return -1;
+      if (!a.isDefault && b.isDefault) return 1;
+      // Then newest first
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+      return timeB - timeA;
+    });
   }
 
   async getAddress(addressId: string, userId: string): Promise<Address | null> {
@@ -31,10 +39,12 @@ export class AddressRepository {
     const batch = writeBatch(db);
 
     if (draft.isDefault) {
-      const q = query(addressesRef, where('userId', '==', userId), where('isDefault', '==', true));
-      const defaultDocs = await getDocs(q);
-      defaultDocs.forEach(d => {
-        batch.update(d.ref, { isDefault: false, updatedAt: serverTimestamp() });
+      const q = query(addressesRef, where('userId', '==', userId));
+      const userDocs = await getDocs(q);
+      userDocs.forEach(d => {
+        if (d.data()?.isDefault) {
+          batch.update(d.ref, { isDefault: false, updatedAt: serverTimestamp() });
+        }
       });
     }
 
@@ -58,10 +68,10 @@ export class AddressRepository {
     const batch = writeBatch(db);
 
     if (patch.isDefault === true) {
-      const q = query(collection(db, this.collectionPath), where('userId', '==', userId), where('isDefault', '==', true));
-      const defaultDocs = await getDocs(q);
-      defaultDocs.forEach(d => {
-        if (d.id !== addressId) {
+      const q = query(collection(db, this.collectionPath), where('userId', '==', userId));
+      const userDocs = await getDocs(q);
+      userDocs.forEach(d => {
+        if (d.id !== addressId && d.data()?.isDefault) {
           batch.update(d.ref, { isDefault: false, updatedAt: serverTimestamp() });
         }
       });

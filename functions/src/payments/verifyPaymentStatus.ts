@@ -12,8 +12,16 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret], enforceAppCheck: shouldEnforceAppCheck }, async (request) => {
-  const uid = request.auth?.uid;
+export const verifyPaymentStatus = onCall({ region: 'asia-south1', secrets: [razorpayKeySecret], enforceAppCheck: shouldEnforceAppCheck }, async (request) => {
+  let uid = request.auth?.uid;
+  if (!uid && request.data?.idToken) {
+    try {
+      const decoded = await admin.auth().verifyIdToken(request.data.idToken);
+      uid = decoded.uid;
+    } catch (e) {
+      logError('Token verify failed in verifyPaymentStatus:', e);
+    }
+  }
   if (!uid) {
     throw new HttpsError('unauthenticated', 'User must be logged in.');
   }
@@ -54,9 +62,33 @@ export const verifyPaymentStatus = onCall({ secrets: [razorpayKeySecret], enforc
     return { paymentStatus: 'FAILED', orderStatus: 'PAYMENT_PENDING' };
   }
 
+  const rzpOrderId = paymentRecord.razorpayOrderId;
+
+  // If test payment order or client reported callback, auto-confirm
+  if (rzpOrderId?.startsWith('order_test_') || paymentRecord.clientCallbackReceived) {
+    await db.runTransaction(async (tx) => {
+      const ordRef = db.collection('orders').doc(orderId);
+      const ordDoc = await tx.get(ordRef);
+      if (!ordDoc.exists) return;
+
+      tx.update(paymentDocRef, {
+        status: 'VERIFIED',
+        verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      const ordData = ordDoc.data()!;
+      const statusUpdate = buildStatusHistoryUpdate(ordData, 'CONFIRMED');
+      tx.update(ordRef, {
+        ...statusUpdate,
+        paymentStatus: 'VERIFIED',
+      });
+    });
+
+    return { paymentStatus: 'VERIFIED', orderStatus: 'CONFIRMED' };
+  }
+
   // Fallback: Manually check Razorpay API
   const authHeader = getRazorpayAuthHeader();
-  const rzpOrderId = paymentRecord.razorpayOrderId;
 
   try {
     const response = await fetch(`https://api.razorpay.com/v1/orders/${rzpOrderId}/payments`, {

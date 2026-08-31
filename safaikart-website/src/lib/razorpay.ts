@@ -42,6 +42,7 @@ export async function payWithRazorpay(params: {
   amountMinor: number;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   description: string;
 }): Promise<{ ok: true }> {
   await loadCheckoutScript();
@@ -81,8 +82,12 @@ export async function payWithRazorpay(params: {
       name: "SafaiKart",
       description: params.description,
       order_id: params.razorpayOrderId,
-      prefill: { name: params.customerName, contact: params.customerPhone },
-      theme: { color: "#0f4d2a" },
+      prefill: {
+        name: params.customerName,
+        contact: params.customerPhone,
+        email: params.customerEmail,
+      },
+      theme: { color: "#11381E" },
       handler: async (r) => {
         try {
           if (!r.razorpay_payment_id || !r.razorpay_order_id) {

@@ -1,9 +1,9 @@
 import { OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_ICONS } from './OrderStatus';
 import { COLORS } from '../../../shared/theme/colors';
 
-export const getOrderStatusMeta = (status: OrderStatus | string) => {
-  const safeStatus = status as OrderStatus;
-  const label = ORDER_STATUS_LABELS[safeStatus] || status.replace(/_/g, ' ');
+export const getOrderStatusMeta = (status: OrderStatus | string | undefined | null) => {
+  const safeStatus = (status || 'CONFIRMED') as OrderStatus;
+  const label = ORDER_STATUS_LABELS[safeStatus] || (typeof status === 'string' ? status.replace(/_/g, ' ') : 'Processing');
   const icon = ORDER_STATUS_ICONS[safeStatus] || 'time';
 
   let color = COLORS.textSecondary;

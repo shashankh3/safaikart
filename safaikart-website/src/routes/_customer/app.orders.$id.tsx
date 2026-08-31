@@ -98,6 +98,7 @@ function OrderDetail() {
         amountMinor: paymentRes.amountMinor,
         customerName: user.displayName || "Customer",
         customerPhone: user.phoneNumber || "",
+        customerEmail: user.email || "",
         description: `SafaiKart order ${id.slice(0, 6).toUpperCase()}`,
       });
 

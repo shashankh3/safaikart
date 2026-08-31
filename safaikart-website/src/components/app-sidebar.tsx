@@ -35,7 +35,6 @@ import {
 import { cn } from "@/lib/utils";
 import { canAccessRoute } from "@/lib/rbac";
 import { useAuth } from "@/context/auth-context";
-import logoAsset from "@/assets/safaikart-logo.jpeg.asset.json";
 
 const NAV_GROUPS: Array<{
   label: string;
@@ -121,8 +120,8 @@ export function AppSidebar() {
   return (
     <aside className="hidden md:flex md:flex-col w-64 shrink-0 bg-sidebar text-sidebar-foreground min-h-screen sticky top-0">
       <div className="px-5 py-5 flex items-center gap-3 border-b border-sidebar-border">
-        <div className="h-14 w-14 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-elevated shrink-0">
-          <img src={logoAsset.url} alt="SafaiKart" className="h-full w-full object-cover" />
+        <div className="h-14 w-14 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-elevated shrink-0 bg-[#0C3818] flex items-center justify-center p-0.5">
+          <img src="/images/logo.png" alt="SafaiKart" className="h-full w-full object-cover" />
         </div>
         <div>
           <div className="text-base font-semibold tracking-tight text-white">SafaiKart</div>

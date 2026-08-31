@@ -10,15 +10,20 @@ export class OrdersRepository {
 
     const q = query(
       collection(db, 'orders'),
-      where('userId', '==', uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', uid)
     );
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => ({
+    const orders = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     } as Order));
+
+    return orders.sort((a: any, b: any) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+      return timeB - timeA;
+    });
   }
 
   async getOrder(orderId: string): Promise<Order | null> {

@@ -173,7 +173,7 @@ export const verifyCustomOtp = onCall(
       };
     } catch (tokenErr: any) {
       logError('Failed to create custom token', tokenErr);
-      throw new HttpsError('internal', 'Failed to generate session token');
+      throw new HttpsError('internal', `Failed to generate session token: ${tokenErr.message || tokenErr}`);
     }
   }
 );

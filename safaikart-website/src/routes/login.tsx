@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2, ShieldAlert } from "lucide-react";
-import logoAsset from "@/assets/safaikart-logo.jpeg.asset.json";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -138,8 +137,8 @@ function LoginPage() {
         />
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <Link to="/" className="flex items-center gap-3">
-            <div className="h-14 w-14 rounded-2xl overflow-hidden ring-1 ring-white/15 shadow-elevated">
-              <img src={logoAsset.url} alt="SafaiKart" className="h-full w-full object-cover" />
+            <div className="h-14 w-14 rounded-2xl overflow-hidden ring-1 ring-white/15 shadow-elevated bg-[#0C3818] flex items-center justify-center p-0.5">
+              <img src="/images/logo.png" alt="SafaiKart" className="h-full w-full object-cover" />
             </div>
             <div>
               <div className="text-lg font-semibold">SafaiKart</div>

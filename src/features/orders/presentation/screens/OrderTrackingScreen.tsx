@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Animated, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS } from '../../../../shared/theme/colors';
@@ -150,11 +150,47 @@ export default function OrderTrackingScreen() {
 
         {/* Timeline Header (Est Delivery) */}
         {order.estimatedDeliveryDate && (
-          <View style={{ backgroundColor: '#F0F9F4', padding: 12, borderRadius: SIZES.radius, marginBottom: SIZES.medium, borderWidth: 1, borderColor: '#A5D6A7' }}>
+          <View style={{ backgroundColor: '#F0F9F4', padding: 12, borderRadius: SIZES.radius, marginBottom: 12, borderWidth: 1, borderColor: '#A5D6A7' }}>
             <Text style={{ textAlign: 'center', color: COLORS.darkGreen, fontWeight: 'bold' }}>
               Expected delivery: {new Date(order.estimatedDeliveryDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
             </Text>
           </View>
+        )}
+
+        {/* Live Delivery Partner Map Banner (Zomato-style) */}
+        {!isCancelled && order.status !== 'PAYMENT_PENDING' && (
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('LiveDeliveryTracking', { orderId: order.id })}
+            style={{
+              backgroundColor: '#1B3B22',
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.15,
+              shadowRadius: 6
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4C73E', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                <Text style={{ fontSize: 22 }}>🛵</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#4CAF50', marginRight: 6 }} />
+                  <Text style={{ color: '#F4C73E', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>LIVE MAP TRACKING</Text>
+                </View>
+                <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '800', marginTop: 2 }}>Track Delivery Partner</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 2 }}>Live rider location & arrival ETA</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#F4C73E" />
+          </TouchableOpacity>
         )}
 
         {/* Timeline */}

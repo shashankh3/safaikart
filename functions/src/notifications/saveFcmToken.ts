@@ -17,7 +17,7 @@ export const saveFcmToken = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'Token is required');
   }
   
-  if (typeof token !== 'string' || token.length > 255) {
+  if (typeof token !== 'string' || token.length > 1024) {
      throw new HttpsError('invalid-argument', 'Invalid token format');
   }
 
@@ -35,11 +35,14 @@ export const saveFcmToken = onCall(async (request) => {
     tokens = tokens.filter(t => t.token !== token);
 
     // Add the new token to the beginning
-    tokens.unshift({
+    const newToken: any = {
       token,
-      platform,
       updatedAt: admin.firestore.Timestamp.now()
-    });
+    };
+    if (platform) {
+      newToken.platform = platform;
+    }
+    tokens.unshift(newToken);
 
     // Enforce max of 3 tokens
     if (tokens.length > 3) {

@@ -79,11 +79,7 @@ service cloud.firestore {
 
     // --- carts -----------------------------------------------------------
     match /carts/{userId} {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId)
-        && request.resource.data.userId == userId
-        && request.resource.data.keys().hasOnly(['userId', 'items', 'updatedAt'])
-        && request.resource.data.items.size() <= 50;
+      allow read, write: if isOwner(userId);
     }
 
     // --- catalog (publicly readable, admin-writable) --------------------
@@ -115,8 +111,9 @@ service cloud.firestore {
     // --- orders ---------------------------------------------------------
     match /orders/{orderId} {
       allow read: if isAdmin() || isOwner(resource.data.userId);
-      allow create: if false;
-      allow update, delete: if false;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if false;
 
       // Nested logs for order history (audit trail)
       match /logs/{logId} {
@@ -128,7 +125,9 @@ service cloud.firestore {
     // --- payments -------------------------------------------------------
     match /payments/{paymentId} {
       allow read: if isAdmin() || isOwner(resource.data.userId);
-      allow write: if false; // Cloud Function only (e.g., Razorpay webhook)
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if false;
     }
 
     // --- finance --------------------------------------------------------

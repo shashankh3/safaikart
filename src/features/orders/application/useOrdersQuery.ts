@@ -23,15 +23,23 @@ export const useOrdersQuery = () => {
         const orderData = { id: change.doc.id, ...change.doc.data() } as Order;
 
         queryClient.setQueryData(['orders'], (oldData: Order[] | undefined) => {
+          const sortOrders = (list: Order[]) => {
+            return [...list].sort((a: any, b: any) => {
+              const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+              const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+              return timeB - timeA;
+            });
+          };
+
           if (!oldData) return [orderData];
 
           if (change.type === 'added') {
             const exists = oldData.some(o => o.id === orderData.id);
-            if (!exists) return [...oldData, orderData];
+            if (!exists) return sortOrders([...oldData, orderData]);
             return oldData;
           }
           if (change.type === 'modified') {
-            return oldData.map(o => o.id === orderData.id ? orderData : o);
+            return sortOrders(oldData.map(o => o.id === orderData.id ? orderData : o));
           }
           if (change.type === 'removed') {
             return oldData.filter(o => o.id !== orderData.id);

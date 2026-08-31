@@ -5,7 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { sendPhoneOtp } from '../../../../core/firebase/auth';
 
 export default function PhoneLoginScreen() {
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('+91 ');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
 

@@ -21,7 +21,14 @@ export default function PaymentPendingScreen() {
   const checkUseCase = new CheckPaymentStatusUseCase(new PaymentRepository());
 
   useEffect(() => {
-    // 1. Listen to real-time updates
+    // 1. Trigger immediate check
+    checkUseCase.verifyFallback(orderId).then((status) => {
+      if (status === 'success') {
+        navigation.replace('PaymentResult', { orderId, success: true });
+      }
+    });
+
+    // 2. Listen to real-time updates
     const unsubscribe = checkUseCase.listenToOrder(orderId, (status) => {
       if (status === 'success') {
         navigation.replace('PaymentResult', { orderId, success: true });

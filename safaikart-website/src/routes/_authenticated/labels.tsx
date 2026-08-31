@@ -9,7 +9,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { formatDate, formatINR } from "@/lib/format";
 import { Loader2, Printer, QrCode, Search } from "lucide-react";
 import QRCode from "qrcode";
-import logoAsset from "@/assets/safaikart-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/_authenticated/labels")({
   ssr: false,
@@ -216,9 +215,9 @@ function LabelsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1">
                         <img
-                          src={logoAsset.url}
+                          src="/images/logo.png"
                           alt="SafaiKart"
-                          className="h-4 w-4 rounded"
+                          className="h-4 w-4 rounded object-cover"
                         />
                         <div className="text-[10px] font-bold tracking-wider text-brand">
                           SAFAIKART

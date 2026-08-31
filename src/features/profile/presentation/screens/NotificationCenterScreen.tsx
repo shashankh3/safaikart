@@ -36,11 +36,16 @@ export default function NotificationCenterScreen() {
     try {
       const q = query(
         collection(db, 'notifications'),
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
+        where('userId', '==', userId)
       );
       const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppNotification));
+      const data = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as AppNotification))
+        .sort((a: any, b: any) => {
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+          return timeB - timeA;
+        });
       setNotifications(data);
     } catch (e) {
       console.error(e);

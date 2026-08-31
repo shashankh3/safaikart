@@ -14,6 +14,7 @@ import OrdersScreen from '../../features/orders/presentation/screens/OrdersScree
 import ProfileScreen from '../../features/profile/presentation/screens/ProfileScreen';
 import NotificationCenterScreen from '../../features/profile/presentation/screens/NotificationCenterScreen';
 import OrderTrackingScreen from '../../features/orders/presentation/screens/OrderTrackingScreen';
+import LiveDeliveryTrackingScreen from '../../features/orders/presentation/screens/LiveDeliveryTrackingScreen';
 import CouponsScreen from '../../features/catalog/presentation/screens/CouponsScreen';
 import AuthNavigator from './AuthNavigator';
 import ServiceDetailsScreen from '../../features/catalog/presentation/screens/ServiceDetailsScreen';
@@ -36,6 +37,7 @@ import { ActivityIndicator } from 'react-native';
 import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
 import { setupNotificationListeners, getFcmToken, saveFcmToken, requestNotificationPermission } from '../../core/firebase/messaging';
+import { compareVersions } from '../../core/updates/compareVersions';
 
 const Tab = createMaterialTopTabNavigator<any>();
 const Stack = createNativeStackNavigator<any>();
@@ -192,8 +194,8 @@ export default function AppNavigator() {
     return <MaintenanceScreen />;
   }
 
-  const currentVersion = parseFloat(Constants.expoConfig?.version || '1.0');
-  if (config?.minAppVersion && config.minAppVersion > currentVersion) {
+  const currentVersion = Constants.expoConfig?.version || '1.0.0';
+  if (config?.minAppVersion && compareVersions(currentVersion, String(config.minAppVersion)) < 0) {
     return <ForceUpdateScreen />;
   }
 
@@ -225,6 +227,7 @@ export default function AppNavigator() {
             <Stack.Screen name="CheckoutFlow" component={CheckoutNavigator} />
             <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} />
             <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
+            <Stack.Screen name="LiveDeliveryTracking" component={LiveDeliveryTrackingScreen} />
             <Stack.Screen name="EditOrder" component={EditOrderScreen} />
             <Stack.Screen name="Support" component={SupportScreen} />
           </>

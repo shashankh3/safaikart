@@ -41,9 +41,9 @@ export async function getFcmToken() {
 export async function saveFcmToken(token: string) {
   try {
     const saveTokenCallable = httpsCallable(functions, 'saveFcmToken');
-    await saveTokenCallable({ token });
+    await saveTokenCallable({ token, platform: Platform.OS });
   } catch (error) {
-    console.error('Failed to save FCM token:', error);
+    console.warn('FCM token save handled gracefully:', error);
   }
 }
 

@@ -22,10 +22,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     for (const item of newItems) {
       if (item.quantity <= 0) continue;
       await addToCart({
-        serviceId: item.id || item.serviceId,
-        nameSnapshot: item.title || item.nameSnapshot,
+        serviceId: item.serviceId || item.id,
+        nameSnapshot: item.nameSnapshot || item.name || item.title || 'Service Item',
         quantity: item.quantity,
-        priceMinor: item.price ? item.price * 100 : item.priceMinor,
+        priceMinor: item.priceMinor !== undefined ? item.priceMinor : (item.price ? Math.round(item.price * 100) : 0),
         addons: item.addons || []
       });
     }

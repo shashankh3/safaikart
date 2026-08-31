@@ -3,6 +3,7 @@ import { ScrollView, Animated, ImageBackground, TextInput, FlatList, TouchableOp
 import { YStack, XStack, ZStack, Text } from '../../../../shared/ui/primitives/Stacks';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../../../shared/theme/colors';
@@ -216,9 +217,22 @@ export default function HomeScreen({ navigation }) {
 
   const { width } = useWindowDimensions();
   const [activeCategory, setActiveCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const flatListRef = useRef(null);
   const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
   const [carouselWidth, setCarouselWidth] = useState(0);
+
+  const filteredServices = finalServices && finalServices.length > 0 
+    ? finalServices.filter((item: any) => {
+        const matchesCategory = activeCategory === 'All' || item.chipCategories?.includes(activeCategory);
+        const query = searchQuery.trim().toLowerCase();
+        if (!query) return matchesCategory;
+        const matchesSearch = 
+          (item.title && item.title.toLowerCase().includes(query)) ||
+          (item.category && item.category.toLowerCase().includes(query));
+        return matchesCategory && matchesSearch;
+      })
+    : [];
 
   useEffect(() => {
     // 4-second auto-swipe logic
@@ -242,49 +256,63 @@ export default function HomeScreen({ navigation }) {
       marginBottom={16}
     >
       <AnimatedPressable onPress={() => navigation.navigate('ServiceDetails', { service: item })}>
-          <YStack
-            borderRadius={16} 
-            elevation={3} 
-            shadowColor="#000" 
-            shadowOffset={{ width: 0, height: 2 }} 
-            shadowOpacity={0.1} 
-            shadowRadius={6}
-            bg={COLORS.white} 
-          >
-            <YStack borderRadius={16} overflow="hidden" borderWidth={1} borderColor="#F3F4F6">
+        <YStack
+          borderRadius={16} 
+          elevation={3} 
+          shadowColor="#000" 
+          shadowOffset={{ width: 0, height: 2 }} 
+          shadowOpacity={0.1} 
+          shadowRadius={6}
+          bg={COLORS.white} 
+        >
+          <YStack borderRadius={16} overflow="hidden" borderWidth={1} borderColor="#F3F4F6">
             {/* Top Half: Image */}
             <ImageBackground 
-            source={item.img} 
-            style={{ width: '100%', height: 160 }}
-            imageStyle={{ width: '100%', height: '100%', resizeMode: 'cover' }}
-          >
-            <YStack f={1} jc="center" ai="center" bg="rgba(15, 48, 31, 0.4)" px={16}>
-              <Text fontSize={18} fontWeight="bold" color={COLORS.white} textAlign="center" textShadowColor="rgba(0,0,0,0.5)" textShadowOffset={{ width: 0, height: 2 }} textShadowRadius={4}>
-                {item.title}
-              </Text>
-            </YStack>
-          </ImageBackground>
-          
-          {/* Bottom Half: White Info Section */}
-          <XStack p={16} ai="center" jc="space-between">
-            <XStack ai="center">
-              {/* Left Icon */}
-              <YStack bg={COLORS.darkGreen} w={40} h={40} borderRadius={12} jc="center" ai="center">
-                <AnimatedServiceIcon iconName={item.icon} />
+              source={item.img} 
+              style={{ width: '100%', height: 160 }}
+              imageStyle={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+            >
+              <YStack f={1} jc="center" ai="center" bg="rgba(15, 48, 31, 0.4)" px={12}>
+                <Text 
+                  fontSize={16} 
+                  fontWeight="bold" 
+                  color={COLORS.white} 
+                  textAlign="center" 
+                  textShadowColor="rgba(0,0,0,0.6)" 
+                  textShadowOffset={{ width: 0, height: 2 }} 
+                  textShadowRadius={4}
+                  numberOfLines={2}
+                  lineHeight={22}
+                >
+                  {item.title}
+                </Text>
               </YStack>
-              
-              {/* Middle Text */}
-              <YStack ml={12} jc="center">
-                <Text fontSize={12} fontWeight="bold" color={COLORS.black} letterSpacing={0.5} numberOfLines={1}>{item.category}</Text>
-                <Text fontSize={11} fontWeight="600" color={COLORS.textSecondary} mt={2}>Est. Time: {item.time}</Text>
+            </ImageBackground>
+            
+            {/* Bottom Half: White Info Section */}
+            <XStack px={10} py={12} ai="center" jc="space-between">
+              <XStack ai="center" f={1} mr={6}>
+                {/* Left Icon */}
+                <YStack bg={COLORS.darkGreen} w={36} h={36} borderRadius={10} jc="center" ai="center" flexShrink={0}>
+                  <AnimatedServiceIcon iconName={item.icon} />
+                </YStack>
+                
+                {/* Middle Text */}
+                <YStack ml={8} jc="center" f={1}>
+                  <Text fontSize={11} fontWeight="bold" color={COLORS.black} letterSpacing={0.3} numberOfLines={2} lineHeight={14}>
+                    {item.category}
+                  </Text>
+                  <Text fontSize={10} fontWeight="600" color={COLORS.textSecondary} mt={2} numberOfLines={1}>
+                    Est. Time: {item.time}
+                  </Text>
+                </YStack>
+              </XStack>
+
+              {/* Right Button */}
+              <YStack bg={COLORS.vibrantYellow} w={28} h={28} borderRadius={8} jc="center" ai="center" elevation={1} flexShrink={0}>
+                <Ionicons name="add" size={18} color={COLORS.darkGreen} />
               </YStack>
             </XStack>
-
-            {/* Right Button */}
-            <YStack bg={COLORS.vibrantYellow} w={32} h={32} borderRadius={8} jc="center" ai="center" elevation={1}>
-              <Ionicons name="add" size={20} color={COLORS.darkGreen} />
-            </YStack>
-          </XStack>
           </YStack>
         </YStack>
       </AnimatedPressable>
@@ -299,19 +327,26 @@ export default function HomeScreen({ navigation }) {
         
         {/* Search Bar & Notifications */}
         <XStack mb={12} ai="center">
-          <XStack f={1} h={48} bg={COLORS.cardBg} borderRadius={24} borderWidth={1} borderColor={COLORS.black} px={20} ai="center" elevation={2} shadowColor={COLORS.cardShadow} shadowOffset={{ width: 0, height: 2 }} shadowOpacity={0.05} shadowRadius={4} mr={15}>
+          <XStack f={1} h={48} bg={COLORS.cardBg} borderRadius={24} borderWidth={1} borderColor="#E5E7EB" px={16} ai="center" elevation={2} shadowColor={COLORS.cardShadow} shadowOffset={{ width: 0, height: 2 }} shadowOpacity={0.05} shadowRadius={4} mr={12}>
             <Ionicons name="search-outline" size={20} color={COLORS.textSecondary} />
             <TextInput 
               placeholder="Search for a service..."
               placeholderTextColor={COLORS.textSecondary}
-              style={{ flex: 1, marginLeft: 10, fontSize: 14, color: COLORS.black, outlineStyle: 'none' } as any} // }}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={{ flex: 1, marginLeft: 10, fontSize: 14, color: COLORS.black, outlineStyle: 'none' } as any}
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close-circle" size={18} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            )}
           </XStack>
           
           <AnimatedPressable onPress={() => {
             if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             navigation.navigate('NotificationCenter');
-          }} style={{ position: 'relative', backgroundColor: COLORS.cardBg, width: 48, height: 48, justifyContent: 'center', alignItems: 'center', borderRadius: 24, elevation: 2, shadowColor: COLORS.cardShadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 }}>
+          }} style={{ position: 'relative', backgroundColor: COLORS.cardBg, width: 48, height: 48, justifyContent: 'center', alignItems: 'center', borderRadius: 24, borderWidth: 1, borderColor: '#E5E7EB', elevation: 2, shadowColor: COLORS.cardShadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 }}>
             <Ionicons name="notifications" size={22} color={COLORS.darkGreen} />
             <YStack position="absolute" top={10} right={12} backgroundColor="#D92D20" borderRadius={6} width={10} height={10} justifyContent="center" alignItems="center" borderWidth={1.5} borderColor={COLORS.white} />
           </AnimatedPressable>
@@ -447,18 +482,22 @@ export default function HomeScreen({ navigation }) {
           </YStack>
         ) : (
           <XStack fw="wrap" jc="space-between">
-            {finalServices && finalServices.length > 0 ? (
-              finalServices
-                .filter((item: any) => activeCategory === 'All' || item.chipCategories?.includes(activeCategory))
-                .map((item: any, index: number) => (
-                  <React.Fragment key={item.id}>
-                    {renderServiceCard({ item, index })}
-                  </React.Fragment>
-                ))
+            {filteredServices && filteredServices.length > 0 ? (
+              filteredServices.map((item: any, index: number) => (
+                <React.Fragment key={item.id}>
+                  {renderServiceCard({ item, index })}
+                </React.Fragment>
+              ))
             ) : (
-              <Text color={COLORS.textSecondary} fontSize={16} ta="center" w="100%">
-                No services available at the moment.
-              </Text>
+              <YStack f={1} jc="center" ai="center" py={40} w="100%">
+                <Ionicons name="search-outline" size={40} color={COLORS.textSecondary} style={{ opacity: 0.4, marginBottom: 8 }} />
+                <Text color={COLORS.black} fontSize={16} fontWeight="bold" ta="center">
+                  No services found
+                </Text>
+                <Text color={COLORS.textSecondary} fontSize={13} ta="center" mt={4}>
+                  {searchQuery ? `No results for "${searchQuery}"` : 'No services in this category.'}
+                </Text>
+              </YStack>
             )}
           </XStack>
         )}

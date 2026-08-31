@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatINR } from "@/lib/format";
 import { toast } from "sonner";
-import { Loader2, CreditCard, MapPin, Tag, X } from "lucide-react";
+import { Loader2, CreditCard, MapPin, Tag, X, ShieldCheck, Lock } from "lucide-react";
 
 const DELIVERY_FEE_MINOR = 4000;
 const PINCODE_RE = /^\d{6}$/;
@@ -71,7 +71,7 @@ function CheckoutPage() {
 
   const [selectedAddrId, setSelectedAddrId] = useState<string>("new");
   const [line1, setLine1] = useState("");
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState("Raipur");
   const [pincode, setPincode] = useState("");
   const [slot, setSlot] = useState("");
   const [notes, setNotes] = useState("");
@@ -317,6 +317,7 @@ function CheckoutPage() {
           amountMinor: paymentRes.amountMinor,
           customerName: customer?.name || user.displayName || "Customer",
           customerPhone: customer?.phone || user.phoneNumber || "",
+          customerEmail: customer?.email || user.email || "",
           description: `SafaiKart order ${orderId.slice(0, 6).toUpperCase()}`,
         });
 
@@ -461,15 +462,25 @@ function CheckoutPage() {
             </div>
 
             <div>
-              <Label className="mb-2 block">Payment method</Label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  className="p-4 rounded-xl border text-left border-brand bg-brand/5"
-                >
-                  <div className="flex items-center gap-2 font-medium"><CreditCard className="h-4 w-4" /> UPI / Card (Razorpay)</div>
-                  <div className="text-xs text-brand/60 mt-1">Pay online securely</div>
-                </button>
+              <Label className="mb-2 block font-medium">Payment method</Label>
+              <div className="rounded-2xl border border-brand/20 bg-brand/[0.03] p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 font-semibold text-brand">
+                    <div className="h-9 w-9 rounded-xl bg-brand text-gold grid place-items-center">
+                      <CreditCard className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div>UPI, Cards, NetBanking, Wallets</div>
+                      <div className="text-xs text-brand/60 font-normal">Powered by Razorpay</div>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full">
+                    <ShieldCheck className="h-3.5 w-3.5" /> 100% Secure
+                  </span>
+                </div>
+                <div className="mt-3 pt-3 border-t border-brand/10 text-xs text-brand/65 flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5 text-brand/50" /> End-to-end 256-bit encrypted payment authorization
+                </div>
               </div>
             </div>
           </div>
@@ -506,7 +517,6 @@ function CheckoutPage() {
                   >
                     {applyingCoupon ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
                   </Button>
-
                 </div>
               </div>
             ) : (
@@ -545,9 +555,17 @@ function CheckoutPage() {
           <Button
             onClick={placeOrder}
             disabled={placing || cart.items.length === 0}
-            className="mt-4 w-full h-12 rounded-xl bg-brand text-gold hover:bg-brand/90 font-semibold"
+            className="mt-4 w-full h-12 rounded-xl bg-gradient-to-r from-[#F6D560] via-[#F4C73E] to-[#E3A42C] text-brand hover:brightness-105 font-bold text-base shadow-[0_4px_16px_rgba(224,169,46,0.35)] transition-all"
           >
-            {placing ? <Loader2 className="h-4 w-4 animate-spin" /> : user ? "Place order" : "Sign in to place order"}
+            {placing ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Processing...
+              </span>
+            ) : user ? (
+              `Pay ${formatINR(totalMinor)} & Place Order`
+            ) : (
+              "Sign in to place order"
+            )}
           </Button>
         </aside>
       </div>

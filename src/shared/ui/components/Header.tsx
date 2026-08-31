@@ -1,88 +1,123 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ImageBackground, TouchableOpacity, Animated, Platform } from 'react-native';
-import { YStack, XStack, ZStack, Text } from '../primitives/Stacks';
-
-
-
-
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { ImageBackground, TouchableOpacity, Animated, Platform, ActivityIndicator } from 'react-native';
+import { YStack, XStack, Text } from '../primitives/Stacks';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../../theme/colors';
 import { SIZES } from '../../theme/spacing';
+import { useAddresses } from '../../../features/addresses/presentation/hooks/useAddresses';
 
 export default function Header() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
+  const { addresses } = useAddresses();
   
   const flameAnim = useRef(new Animated.Value(0)).current;
-  const [locationName, setLocationName] = useState('New Delhi, India');
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [locationName, setLocationName] = useState<string>('Detecting Location...');
+  const [isLoadingLocation, setIsLoadingLocation] = useState<boolean>(false);
 
-  useEffect(() => {
-    (async () => {
-      setIsLoadingLocation(true);
-      try {
-        const enabled = await Location.hasServicesEnabledAsync();
-        if (!enabled) {
-          setLocationName('GPS Disabled');
-          return;
-        }
-
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setLocationName('Location Denied');
-          return;
-        }
-
-        let location;
-        try {
-          location = await Location.getLastKnownPositionAsync({ maxAge: 60000 });
-          if (!location) {
-            location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          }
-        } catch (locError) {
-          console.warn('Primary location fetch failed:', locError);
-          location = await Location.getLastKnownPositionAsync({});
-        }
-
-        if (!location) {
-          setLocationName('New Delhi, India');
-          return;
-        }
-
-        let reverseGeocode;
-        try {
-          reverseGeocode = await Location.reverseGeocodeAsync({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude
-          });
-        } catch (e) {
-          console.warn('Reverse geocode failed:', e);
-        }
-        
-        if (reverseGeocode && reverseGeocode.length > 0) {
-          const place = reverseGeocode[0];
-          const city = place.city || place.subregion || place.region || 'Unknown City';
-          const country = place.country || 'Unknown Country';
-          setLocationName(`${city}, ${country}`);
-        } else {
-          setLocationName('New Delhi, India');
-        }
-      } catch (error) {
-        console.error('Error fetching location:', error);
-        setLocationName('New Delhi, India'); // Silent fallback instead of 'Location Error'
-      } finally {
+  const fetchGpsLocation = useCallback(async () => {
+    setIsLoadingLocation(true);
+    try {
+      const enabled = await Location.hasServicesEnabledAsync();
+      if (!enabled) {
+        setLocationName('Enable GPS');
         setIsLoadingLocation(false);
+        return;
       }
-    })();
+
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationName('Location Permission Required');
+        setIsLoadingLocation(false);
+        return;
+      }
+
+      let loc: Location.LocationObject | null = null;
+      try {
+        loc = await Location.getLastKnownPositionAsync({ maxAge: 10000 });
+        if (!loc) {
+          loc = await Location.getCurrentPositionAsync({ 
+            accuracy: Location.Accuracy.Low 
+          });
+        }
+      } catch (err) {
+        try {
+          loc = await Location.getCurrentPositionAsync({ 
+            accuracy: Location.Accuracy.Lowest 
+          });
+        } catch (_) {}
+      }
+
+      if (!loc) {
+        setLocationName('Tap to set location');
+        setIsLoadingLocation(false);
+        return;
+      }
+
+      const reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+
+      if (reverseGeocode && reverseGeocode.length > 0) {
+        const place = reverseGeocode[0];
+        const locality = place.name || place.district || place.subregion || place.city || '';
+        const city = place.city || place.subregion || place.region || '';
+        
+        if (locality && city && locality !== city) {
+          setLocationName(`${locality}, ${city}`);
+        } else if (city) {
+          setLocationName(`${city}, ${place.country || 'India'}`);
+        } else if (locality) {
+          setLocationName(`${locality}`);
+        } else {
+          setLocationName(place.region || 'Current Location');
+        }
+      } else {
+        setLocationName('Current Location');
+      }
+    } catch (error) {
+      console.warn('Location detection note:', error);
+      setLocationName('Tap to set location');
+    } finally {
+      setIsLoadingLocation(false);
+    }
   }, []);
+
+  // Update header location: prioritize saved delivery address if user has one
+  useEffect(() => {
+    if (addresses && addresses.length > 0) {
+      const defaultAddr = addresses.find(a => a.isDefault) || addresses[0];
+      if (defaultAddr) {
+        const title = defaultAddr.label ? `${defaultAddr.label.toUpperCase()}` : 'DELIVER TO';
+        const place = defaultAddr.city || defaultAddr.line1 || 'Saved Address';
+        setLocationName(`${title} • ${place}`);
+        return;
+      }
+    }
+    fetchGpsLocation();
+  }, [addresses, fetchGpsLocation]);
 
   useEffect(() => {
     Animated.loop(
       Animated.timing(flameAnim, { toValue: 1, duration: 1500, useNativeDriver: Platform.OS !== 'web' })
     ).start();
   }, []);
+
+  const handleLocationPress = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    try {
+      navigation.navigate('AddressList');
+    } catch (_) {
+      fetchGpsLocation();
+    }
+  };
 
   return (
     <YStack 
@@ -105,6 +140,7 @@ export default function Header() {
             paddingVertical={10} 
             backgroundColor="transparent"
           >
+            {/* Logo */}
             <XStack alignItems="flex-end">
               <Text fontSize={24} fontFamily="Inter_900Black" letterSpacing={0.75} color={COLORS.vibrantYellow}>Safa</Text>
               <YStack alignItems="center" position="relative">
@@ -126,23 +162,42 @@ export default function Header() {
               <Text fontSize={24} fontFamily="Inter_900Black" letterSpacing={0.75} color={COLORS.white}>Kart</Text>
             </XStack>
 
-            <XStack alignItems="center">
+            {/* Location Selector */}
+            <TouchableOpacity 
+              onPress={handleLocationPress}
+              activeOpacity={0.8}
+              style={{ maxWidth: '60%' }}
+            >
               <YStack marginLeft={15} alignItems="flex-end">
-                <Text color="rgba(255,255,255,0.7)" fontSize={10} marginBottom={2} fontWeight="600">Current Location</Text>
                 <XStack alignItems="center">
-                  <TouchableOpacity onPress={() => {
-                    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    alert('GPS location tracking is currently disabled in this demo.');
-                  }}>
-                    <Ionicons name="location-sharp" size={14} color={COLORS.vibrantYellow} />
-                  </TouchableOpacity>
-                  <Text color={COLORS.white} fontSize={12} fontWeight="bold" marginLeft={4}>
-                    {isLoadingLocation ? 'Locating...' : locationName}
+                  <Text color="rgba(255,255,255,0.7)" fontSize={10} marginBottom={2} fontWeight="600">
+                    Delivery Location
                   </Text>
-                  <Ionicons name="chevron-down" size={12} color={COLORS.white} style={{ marginLeft: 2 }} />
+                  <Ionicons name="chevron-down" size={10} color="rgba(255,255,255,0.7)" style={{ marginLeft: 3, marginBottom: 2 }} />
+                </XStack>
+                
+                <XStack alignItems="center">
+                  <Ionicons name="location-sharp" size={14} color={COLORS.vibrantYellow} />
+                  {isLoadingLocation ? (
+                    <XStack alignItems="center" marginLeft={4}>
+                      <ActivityIndicator size="small" color={COLORS.vibrantYellow} style={{ transform: [{ scale: 0.7 }] }} />
+                      <Text color={COLORS.white} fontSize={12} fontWeight="bold" marginLeft={2}>Locating...</Text>
+                    </XStack>
+                  ) : (
+                    <Text 
+                      color={COLORS.white} 
+                      fontSize={12} 
+                      fontWeight="bold" 
+                      marginLeft={4}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {locationName}
+                    </Text>
+                  )}
                 </XStack>
               </YStack>
-            </XStack>
+            </TouchableOpacity>
           </XStack>
         </YStack>
       </ImageBackground>

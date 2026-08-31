@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, ScrollView, Switch, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, TextInput, TouchableOpacity, ScrollView, Switch, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { YStack, XStack, Text } from '../../../../shared/ui/primitives/Stacks';
@@ -8,6 +8,7 @@ import { SIZES } from '../../../../shared/theme/spacing';
 import AnimatedPressable from '../../../../shared/ui/components/AnimatedPressable';
 import { useAddresses } from '../hooks/useAddresses';
 import { addressSchema } from '../../../../shared/validation';
+import * as Location from 'expo-location';
 
 export default function AddressFormScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
@@ -27,6 +28,43 @@ export default function AddressFormScreen({ navigation, route }: any) {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+
+  const detectLocationFromGps = async () => {
+    setIsDetectingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Please enable location permission to auto-fill address.');
+        return;
+      }
+
+      let loc = await Location.getLastKnownPositionAsync({});
+      if (!loc) {
+        loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+      }
+
+      if (loc) {
+        const reverse = await Location.reverseGeocodeAsync({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+
+        if (reverse && reverse.length > 0) {
+          const p = reverse[0];
+          if (p.street || p.name) setLine1(p.street || p.name || line1);
+          if (p.district || p.subregion) setLine2(p.district || p.subregion || line2);
+          if (p.city || p.subregion || p.region) setCity(p.city || p.subregion || p.region || city);
+          if (p.region) setState(p.region);
+          if (p.postalCode) setPincode(p.postalCode);
+        }
+      }
+    } catch (e: any) {
+      Alert.alert('GPS Notice', 'Could not fetch current GPS location. Please fill manually.');
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  };
 
   const handleSave = async () => {
     const draft = {
@@ -105,11 +143,38 @@ export default function AddressFormScreen({ navigation, route }: any) {
       <ScrollView contentContainerStyle={{ padding: SIZES.padding, paddingBottom: 100 }}>
         
         <Text fontWeight="600" marginBottom={8}>Save Address As</Text>
-        <XStack marginBottom={20}>
+        <XStack marginBottom={16}>
           {renderLabelChip('Home')}
           {renderLabelChip('Work')}
           {renderLabelChip('Other')}
         </XStack>
+
+        {/* Use Current Location Button */}
+        <TouchableOpacity
+          onPress={detectLocationFromGps}
+          disabled={isDetectingLocation}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#ECFDF5',
+            borderWidth: 1,
+            borderColor: '#A7F3D0',
+            paddingVertical: 12,
+            borderRadius: SIZES.radius,
+            marginBottom: 20,
+          }}
+          activeOpacity={0.8}
+        >
+          {isDetectingLocation ? (
+            <ActivityIndicator size="small" color={COLORS.darkGreen} style={{ marginRight: 8 }} />
+          ) : (
+            <Ionicons name="navigate-circle" size={20} color={COLORS.darkGreen} style={{ marginRight: 6 }} />
+          )}
+          <Text color={COLORS.darkGreen} fontWeight="700" fontSize={14}>
+            {isDetectingLocation ? 'Detecting Your Location...' : 'Use Current GPS Location'}
+          </Text>
+        </TouchableOpacity>
 
         <YStack marginBottom={16}>
           <Text fontWeight="600" fontSize={13} color={COLORS.textSecondary} marginBottom={4}>Full Name *</Text>
