@@ -195,7 +195,7 @@ export default function AppNavigator() {
   }
 
   const currentVersion = Constants.expoConfig?.version || '1.0.0';
-  if (config?.minAppVersion && compareVersions(currentVersion, String(config.minAppVersion)) < 0) {
+  if (config?.minAppVersion && compareVersions(currentVersion, config.minAppVersion) < 0) {
     return <ForceUpdateScreen />;
   }
 

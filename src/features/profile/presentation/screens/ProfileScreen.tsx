@@ -16,7 +16,9 @@ const menuItems = [
   { id: '4', title: 'Help & Support', icon: 'headset', tint: '#F3E5F5' },
 ];
 
-export default function ProfileScreen({ navigation }: any) {
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+
+export default function ProfileScreen({ navigation }: { navigation: BottomTabNavigationProp<any, any> }) {
   const insets = useSafeAreaInsets();
   const { logout, isAdmin } = useAuth();
   const { data: profile, isLoading } = useProfileQuery();

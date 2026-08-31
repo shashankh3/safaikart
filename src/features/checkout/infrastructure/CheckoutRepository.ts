@@ -2,6 +2,7 @@ import firestore, {collection, getDocs, query, where, orderBy, doc, getDoc, setD
 import { httpsCallable } from '@react-native-firebase/functions';
 import { db, functions, auth } from '../../../app/config/firebase';
 import { PickupSlot } from '../domain/PickupSlot';
+import { fetchAppConfig } from '../../auth/application/useAppConfig';
 
 export class CheckoutRepository {
   async getPickupSlots(): Promise<PickupSlot[]> {
@@ -185,12 +186,9 @@ export class CheckoutRepository {
 
   async getDeliveryFee(): Promise<number> {
     try {
-      const configDoc = await getDoc(doc(db, 'appConfig', 'public'));
-      if (configDoc.exists) {
-        const data = configDoc.data();
-        if (typeof data?.deliveryFeeMinor === 'number') {
-          return data.deliveryFeeMinor;
-        }
+      const configData = await fetchAppConfig();
+      if (typeof configData?.deliveryFeeMinor === 'number') {
+        return configData.deliveryFeeMinor;
       }
     } catch (e) {
       console.warn('Failed to fetch delivery fee config', e);

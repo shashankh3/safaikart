@@ -48,16 +48,19 @@ export default function LiveDeliveryTrackingScreen() {
 
   // Handle Call Delivery Partner
   const handleCallRider = () => {
-    const phoneNumber = 'tel:+919876543210';
+    // Ideally this comes from the order object (e.g., order.riderPhone), 
+    // falling back to support if no rider is assigned yet
+    const riderPhone = (order as any)?.riderPhone || '+918005550199'; 
+    const phoneNumber = `tel:${riderPhone}`;
     Linking.canOpenURL(phoneNumber)
       .then((supported) => {
         if (supported) {
           Linking.openURL(phoneNumber);
         } else {
-          Alert.alert('Call Rider', 'Contact SafaiKart Rider at +91 98765 43210');
+          Alert.alert('Call Rider', `Contact SafaiKart Rider at ${riderPhone}`);
         }
       })
-      .catch(() => Alert.alert('Notice', 'Rider phone: +91 98765 43210'));
+      .catch(() => Alert.alert('Notice', `Rider phone: ${riderPhone}`));
   };
 
   // Handle Chat with Rider
@@ -384,7 +387,7 @@ export default function LiveDeliveryTrackingScreen() {
             </YStack>
             <YStack flex={1}>
               <XStack alignItems="center">
-                <Text fontSize={15} fontWeight="800" color={COLORS.black} marginRight={4}>Rahul Sharma</Text>
+                <Text fontSize={15} fontWeight="800" color={COLORS.black} marginRight={4}>{(order as any)?.riderName || 'Rahul Sharma'}</Text>
                 <Ionicons name="shield-checkmark" size={16} color="#0F9D58" />
               </XStack>
               <Text fontSize={12} color={COLORS.textSecondary} marginTop={2} fontWeight="600">

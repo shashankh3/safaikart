@@ -1,6 +1,7 @@
 import * as crypto from 'crypto';
+import { defineSecret } from 'firebase-functions/params';
 
-const OTP_PEPPER = process.env.OTP_PEPPER_SECRET || 'safaikart-otp-salt-production-2026';
+export const otpPepperSecret = defineSecret('OTP_PEPPER_SECRET');
 
 /**
  * Validates and normalizes an Indian phone number to standard E.164 (+91XXXXXXXXXX)
@@ -46,9 +47,13 @@ export function generateSecureOtp(): string {
  * Creates a salted SHA-256 hash of the OTP and phone number
  */
 export function hashOtp(phoneNumber: string, otp: string): string {
+  const pepper = process.env.NODE_ENV === 'test' 
+    ? 'test-pepper' 
+    : otpPepperSecret.value();
+    
   return crypto
     .createHash('sha256')
-    .update(`${phoneNumber}:${otp}:${OTP_PEPPER}`)
+    .update(`${phoneNumber}:${otp}:${pepper}`)
     .digest('hex');
 }
 

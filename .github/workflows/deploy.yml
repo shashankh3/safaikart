@@ -30,8 +30,6 @@ jobs:
         run: |
           npm run test:all
 
-      - name: Install Firebase Tools
-        run: npm install -g firebase-tools
 
       - name: Test Firestore Rules (Emulators)
         run: npm run test:rules

@@ -1,7 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { z } from 'zod';
-import { normalizeIndianPhoneNumber, generateSecureOtp, hashOtp, getPhoneDocId } from './otpCrypto';
+import { normalizeIndianPhoneNumber, generateSecureOtp, hashOtp, getPhoneDocId, otpPepperSecret } from './otpCrypto';
 import { getSmsProvider } from './smsProvider';
 import { rateLimiter } from '../utils/rateLimiter';
 import { logInfo, logError } from '../utils/logger';
@@ -24,6 +24,7 @@ export const sendCustomOtp = onCall(
   {
     region: 'asia-south1',
     cors: true,
+    secrets: [otpPepperSecret]
   },
   async (request) => {
     const rawData = request.data;

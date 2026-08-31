@@ -46,7 +46,7 @@ const OFFERS = [
     id: '2',
     title: 'WINTER CARE',
     subtitle: 'PREMIUM\nJACKET WASH',
-    img: { uri: 'https://picsum.photos/id/1025/600/300' }, // Reliable dog in blanket/winter vibe image
+    img: require('../../../../../assets/premium-bg.jpg.png'),
     btnText: 'VIEW OFFER'
   },
   {
@@ -199,22 +199,21 @@ export default function HomeScreen({ navigation }) {
   };
   
   const finalServices = realServices && realServices.length > 0 
-    ? realServices.map((s, index) => {
-        const meta = UIMetaMapping[s.name || ''] || services[index % services.length];
+    ? realServices.map((s) => {
+        const defaultMeta = { img: require('../../../../../assets/laundry_basket.png'), icon: 'star', chipCategories: ['General'] };
+        const meta = UIMetaMapping[s.name || ''] || defaultMeta;
         return {
           id: s.id,
           title: s.name,
           category: (s.categoryId || s.name || '').toUpperCase(),
-          time: '1-2 DAY',
-          img: meta.img,
-          icon: meta.icon,
-          chipCategories: meta.chipCategories,
+          time: s.estimatedDuration || '1-2 DAY',
+          img: s.imageUrl ? { uri: s.imageUrl } : meta.img,
+          icon: s.iconName || meta.icon,
+          chipCategories: s.chipCategories || meta.chipCategories,
           price: s.priceMinor ? s.priceMinor / 100 : 0
         };
       })
     : services;
-  console.log('Final services length:', finalServices ? finalServices.length : 0);
-
   const { width } = useWindowDimensions();
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -249,7 +248,7 @@ export default function HomeScreen({ navigation }) {
 
 
 
-  const renderServiceCard = ({ item, index }) => (
+  const renderServiceCard = ({ item, index }: { item: any; index: number }) => (
     <YStack 
       opacity={1} y={0}
       width="48%"

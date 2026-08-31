@@ -1,7 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { z } from 'zod';
-import { normalizeIndianPhoneNumber, verifyOtpHash, getPhoneDocId } from './otpCrypto';
+import { normalizeIndianPhoneNumber, verifyOtpHash, getPhoneDocId, otpPepperSecret } from './otpCrypto';
 import { logInfo, logError } from '../utils/logger';
 
 if (!admin.apps.length) {
@@ -22,6 +22,7 @@ export const verifyCustomOtp = onCall(
   {
     region: 'asia-south1',
     cors: true,
+    secrets: [otpPepperSecret]
   },
   async (request) => {
     const rawData = request.data;

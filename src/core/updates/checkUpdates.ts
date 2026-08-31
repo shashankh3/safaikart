@@ -1,16 +1,15 @@
 import * as Updates from 'expo-updates';
 import { Alert, Linking } from 'react-native';
-import {doc, getDoc} from '@react-native-firebase/firestore';
-import { db } from '../../app/config/firebase';
 import Constants from 'expo-constants';
 import { compareVersions } from './compareVersions';
+import { fetchAppConfig } from '../../features/auth/application/useAppConfig';
 
 export async function checkUpdates() {
   if (__DEV__) return; // Don't run in development
 
   try {
-    const configDoc = await getDoc(doc(db, 'appConfig', 'public'));
-    const minAppVersion = configDoc.exists() ? configDoc.data().minAppVersion : '1.0.0';
+    const configData = await fetchAppConfig();
+    const minAppVersion = configData?.minAppVersion || '1.0.0';
     const currentVersion = Constants.expoConfig?.version || '1.0.0';
 
     if (compareVersions(currentVersion, minAppVersion) < 0) {

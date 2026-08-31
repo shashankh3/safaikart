@@ -23,7 +23,6 @@
     "@tanstack/query-async-storage-persister": "^5.101.3",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-query-persist-client": "^5.101.2",
-    "@types/react": "~19.2.14",
     "expo": "~56.0.16",
     "expo-blur": "~56.0.4",
     "expo-build-properties": "~56.0.21",
@@ -49,7 +48,6 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "^4.25.2",
     "react-native-webview": "13.16.1",
-    "typescript": "~6.0.3",
     "zod": "^4.4.3"
   },
   "scripts": {
@@ -62,7 +60,8 @@
     "test:rules": "firebase emulators:exec --only firestore --project safaikart-emulator-tests \"jest --selectProjects rules\"",
     "test:all": "jest",
     "dev:website": "cd safaikart-website && npm run dev",
-    "build:website": "cd safaikart-website && npm run build"
+    "build:website": "cd safaikart-website && npm run build",
+    "lint": "expo lint"
   },
   "private": true,
   "devDependencies": {
@@ -70,8 +69,10 @@
     "@firebase/rules-unit-testing": "^5.0.1",
     "@tamagui/metro-plugin": "^2.3.2",
     "@types/jest": "29.5.14",
-    "@types/react": "^19.2.17",
+    "@types/react": "^19.2.18",
     "babel-preset-expo": "^56.0.15",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~56.0.4",
     "firebase-tools": "^15.23.0",
     "jest": "~29.7.0",
     "sharp": "^0.35.3",
